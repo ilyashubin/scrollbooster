@@ -228,6 +228,7 @@ export default class ScrollBooster {
   }
 
   handleEvents() {
+    let vp = this.props.viewport
     let scroll = { x: 0, y: 0 }
     let mousedown = { x: 0, y: 0 }
 
@@ -263,6 +264,16 @@ export default class ScrollBooster {
       } else {
         pageX = event.pageX
         pageY = event.pageY
+      }
+
+      // click on vertical scrollbar
+      if (pageX - vp.offsetLeft >= vp.clientLeft + vp.clientWidth) {
+        return
+      }
+
+      // click on horizontal scrollbar
+      if (pageY - vp.offsetTop >= vp.clientTop + vp.clientHeight) {
+        return
       }
 
       this.isDragging = true
