@@ -1,0 +1,21 @@
+
+#testapp {
+  padding: 50px;
+  text-align: center;
+}
+
+.wrapper {
+  overflow: hidden;
+  margin: auto;
+  width: 300px;
+  height: 300px;
+  border: 2px solid orange;
+}
+
+.inner {
+  background: skyblue;
+}
+
+#scroll .wrapper {
+  overflow: scroll;
+}

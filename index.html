@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>drag!</title>
+    <style>
+      .app {
+        width: 200px;
+        height: 200px;
+        border: 2px solid orange;
+        overflow: hidden;
+      }
+      .app-inner {
+        width: 400px;
+        height: 500px;
+        border: 10px solid red;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="app-inner">
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. Exercitationem corrupti reiciendis, mollitia molestias magni quasi voluptates culpa dignissimos minima hic.
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. In praesentium odit ex officia, possimus qui omnis, facere incidunt neque ducimus suscipit! Vel, neque! Sapiente tempora veritatis voluptatem itaque! Repellendus, optio.
+      </div>
+    </div>
+    <script src="/dist/scrollbooster.js"></script>
+    <script>
+      let viewport = document.querySelector('.app')
+      let content = viewport.querySelector('.app-inner')
+
+      let scr = new ScrollBooster({
+        viewport: viewport, 
+        content: content, 
+        onUpdate: (data)=> {
+          content.style.transform = `translate(
+            ${-data.position.x}px,
+            ${-data.position.y}px
+          )`
+        }
+      })
+    </script>
+  </body>
+</html>

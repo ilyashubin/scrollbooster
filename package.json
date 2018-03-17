@@ -1,0 +1,29 @@
+{
+  "name": "scrollbooster",
+  "description": "Enjoyable content dragging library",
+  "version": "1.0.0",
+  "author": "Ilya Shubin <pixelwake@gmail.com>",
+  "license": "MIT",
+  "main": "dist/scrollbooster.js",
+  "module": "scr/index.js",
+  "private": true,
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development webpack-dev-server --open --hot",
+    "build": "cross-env NODE_ENV=production webpack --progress --hide-modules"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 8"
+  ],
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-preset-env": "^1.6.0",
+    "babel-preset-stage-3": "^6.24.1",
+    "cross-env": "^5.0.5",
+    "webpack": "^3.6.0",
+    "webpack-dev-server": "^2.9.1"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "presets": [
+    "env",
+    "stage-3"
+  ],
+  "plugins": [
+    "add-module-exports"
+  ]
+}
