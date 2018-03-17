@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "author": "Ilya Shubin <pixelwake@gmail.com>",
   "license": "MIT",
-  "main": "dist/scrollbooster.js",
+  "main": "dist/scrollbooster.min.js",
   "module": "scr/index.js",
   "private": true,
   "scripts": {

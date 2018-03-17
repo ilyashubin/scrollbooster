@@ -1,12 +1,15 @@
-var path = require('path')
-var webpack = require('webpack')
+let path = require('path')
+let webpack = require('webpack')
 
 module.exports = {
-  entry: './src/index.js',
+  entry: {
+    "scrollbooster": "./src/index.js",
+    "scrollbooster.min": "./src/index.js",
+  },
   output: {
     path: path.resolve(__dirname, './dist'),
     publicPath: '/dist/',
-    filename: 'scrollbooster.js',
+    filename: '[name].js',
     library: 'ScrollBooster',
     libraryTarget: 'umd',
     umdNamedDefine: true
@@ -26,25 +29,15 @@ module.exports = {
     overlay: true,
     clientLogLevel: "none"
   },
-  devtool: '#eval-source-map'
-}
-
-if (process.env.NODE_ENV === 'production') {
-  module.exports.devtool = '#source-map'
-  module.exports.plugins = (module.exports.plugins || []).concat([
-    new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: '"production"'
-      }
-    }),
+  devtool: '#source-map',
+  plugins: [
     new webpack.optimize.UglifyJsPlugin({
-      sourceMap: true,
-      compress: {
-        warnings: false
-      }
+      include: /\.min\.js$/,
+      minimize: true
     }),
     new webpack.LoaderOptionsPlugin({
+      include: /\.min\.js$/,
       minimize: true
     })
-  ])
+  ]
 }
