@@ -11,7 +11,7 @@ npm i scrollbooster
 ```
 
 ``` html
-<script src="path/to/scrollbooster.min.js"></script>
+<script src="https://unpkg.com/scrollbooster@1.0.2/dist/scrollbooster.min.js"></script>
 ```
 
 ### Usage
@@ -47,7 +47,7 @@ destroy | Destroys all instance's event listeners
 
 ### Browser support
 
-ScrollBooster was tested in IE 11, Edge and other modern browsers (Chrome, Firefox, Safari).
+ScrollBooster has been tested in IE 11, Edge and other modern browsers (Chrome, Firefox, Safari).
 
 ### Special thanks
 
