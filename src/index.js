@@ -254,25 +254,31 @@ export default class ScrollBooster {
     }
 
     this.events.pointerdown = (event) => {
-      let pageX, pageY
+      let pageX, pageY, clientX, clientY
 
       isTouch =  !!(event.touches && event.touches[0])
 
       if (isTouch) {
         pageX = event.touches[0].pageX
         pageY = event.touches[0].pageY
+        clientX = event.touches[0].clientX
+        clientY = event.touches[0].clientY
       } else {
         pageX = event.pageX
         pageY = event.pageY
+        clientX = event.clientX
+        clientY = event.clientY
       }
 
+      let rect = vp.getBoundingClientRect()
+
       // click on vertical scrollbar
-      if (pageX - vp.offsetLeft >= vp.clientLeft + vp.clientWidth) {
+      if (clientX - rect.left >= vp.clientLeft + vp.clientWidth) {
         return
       }
 
       // click on horizontal scrollbar
-      if (pageY - vp.offsetTop >= vp.clientTop + vp.clientHeight) {
+      if (clientY - rect.top >= vp.clientTop + vp.clientHeight) {
         return
       }
 

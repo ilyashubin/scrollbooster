@@ -34,7 +34,6 @@
         viewport: viewport, 
         content: content, 
         onUpdate: (data)=> {
-          console.log('update')
           viewport.scrollLeft = data.position.x
           viewport.scrollTop = data.position.y
           // content.style.transform = `translate(

@@ -349,6 +349,7 @@ var ScrollBooster = function () {
     value: function handleEvents() {
       var _this3 = this;
 
+      var vp = this.props.viewport;
       var scroll = { x: 0, y: 0 };
       var mousedown = { x: 0, y: 0 };
 
@@ -376,16 +377,36 @@ var ScrollBooster = function () {
 
       this.events.pointerdown = function (event) {
         var pageX = void 0,
-            pageY = void 0;
+            pageY = void 0,
+            clientX = void 0,
+            clientY = void 0;
 
         isTouch = !!(event.touches && event.touches[0]);
 
         if (isTouch) {
           pageX = event.touches[0].pageX;
           pageY = event.touches[0].pageY;
+          clientX = event.touches[0].clientX;
+          clientY = event.touches[0].clientY;
         } else {
           pageX = event.pageX;
           pageY = event.pageY;
+          clientX = event.clientX;
+          clientY = event.clientY;
+        }
+
+        console.log(pageX - vp.offsetLeft, vp.clientLeft + vp.clientWidth);
+        var rect = vp.getBoundingClientRect();
+        // click on vertical scrollbar
+        if (clientX - rect.left >= vp.clientLeft + vp.clientWidth) {
+          console.log('lol x');
+          return;
+        }
+
+        // click on horizontal scrollbar
+        if (clientY - rect.top >= vp.clientTop + vp.clientHeight) {
+          console.log('lol y');
+          return;
         }
 
         _this3.isDragging = true;
