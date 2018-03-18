@@ -1,6 +1,6 @@
 # ScrollBooster
 
-Enjoyable content drag-to-scroll micro (8 KB without GZIP) library.
+Enjoyable content drag-to-scroll micro (~2KB gzipped) library.
 
 ### Installation
 

@@ -162,6 +162,11 @@ var ScrollBooster = function () {
     this.handleEvents();
   }
 
+  /**
+   * Run update loop
+   */
+
+
   _createClass(ScrollBooster, [{
     key: 'run',
     value: function run() {
@@ -204,11 +209,13 @@ var ScrollBooster = function () {
         this.position.y += this.velocity.y;
       }
 
+      // if bounce effect is disabled
       if (!this.bounce || this.isScrolling) {
         this.position.x = Math.max(Math.min(this.position.x, this.boundX.to), this.boundX.from);
         this.position.y = Math.max(Math.min(this.position.y, this.boundY.to), this.boundY.from);
       }
 
+      // stop update loop if nothing moves
       if (!this.isDragging && !this.isScrolling && Math.abs(this.velocity.x) < 0.005 && Math.abs(this.velocity.y) < 0.005) {
         this.isRunning = false;
       }
@@ -219,6 +226,11 @@ var ScrollBooster = function () {
       this.velocity.x += force.x;
       this.velocity.y += force.y;
     }
+
+    /**
+     * Apply force for bounce effect
+     */
+
   }, {
     key: 'applyBoundForce',
     value: function applyBoundForce() {
@@ -234,9 +246,10 @@ var ScrollBooster = function () {
       var pastTop = this.position.y < this.boundY.from;
       var pastBottom = this.position.y > this.boundY.to;
 
-      var resultForce = { x: 0, y: 0 };
+      var resultForce = { x: 0, y: 0
 
-      if (pastLeft || pastRight) {
+        // scrolled past left of right viewport boundaries
+      };if (pastLeft || pastRight) {
         var bound = pastLeft ? this.boundX.from : this.boundX.to;
         var distance = bound - this.position.x;
 
@@ -250,6 +263,7 @@ var ScrollBooster = function () {
         resultForce.x = force;
       }
 
+      // scrolled past top of bottom viewport boundaries
       if (pastTop || pastBottom) {
         var _bound = pastTop ? this.boundY.from : this.boundY.to;
         var _distance = _bound - this.position.y;
@@ -266,6 +280,11 @@ var ScrollBooster = function () {
 
       this.applyForce(resultForce);
     }
+
+    /**
+     * Apply force to move content while dragging with mouse/touch
+     */
+
   }, {
     key: 'applyDragForce',
     value: function applyDragForce() {
@@ -283,6 +302,11 @@ var ScrollBooster = function () {
 
       this.applyForce(dragForce);
     }
+
+    /**
+     * Apply force to emulate mouse wheel
+     */
+
   }, {
     key: 'applyScrollForce',
     value: function applyScrollForce() {
@@ -300,6 +324,11 @@ var ScrollBooster = function () {
 
       this.applyForce(scrollForce);
     }
+
+    /**
+     * Manual position setting
+     */
+
   }, {
     key: 'setPosition',
     value: function setPosition() {
@@ -313,6 +342,11 @@ var ScrollBooster = function () {
 
       this.run();
     }
+
+    /**
+     * Get latest metrics and coordinates
+     */
+
   }, {
     key: 'getUpdate',
     value: function getUpdate() {
@@ -395,17 +429,15 @@ var ScrollBooster = function () {
           clientY = event.clientY;
         }
 
-        console.log(pageX - vp.offsetLeft, vp.clientLeft + vp.clientWidth);
         var rect = vp.getBoundingClientRect();
+
         // click on vertical scrollbar
         if (clientX - rect.left >= vp.clientLeft + vp.clientWidth) {
-          console.log('lol x');
           return;
         }
 
         // click on horizontal scrollbar
         if (clientY - rect.top >= vp.clientTop + vp.clientHeight) {
-          console.log('lol y');
           return;
         }
 

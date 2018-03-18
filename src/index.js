@@ -10,7 +10,7 @@ export default class ScrollBooster {
       handle: props.viewport,
       content: props.viewport.children[0],
       bounce: true,
-      onUpdate: function () { }
+      onUpdate: function () {}
     }
 
     this.props = { ...defaults, ...props }
@@ -67,6 +67,9 @@ export default class ScrollBooster {
     this.handleEvents()
   }
 
+  /**
+   * Run update loop
+   */
   run() {
     this.isRunning = true
     cancelAnimationFrame(this.rafID)
@@ -95,11 +98,13 @@ export default class ScrollBooster {
       this.position.y += this.velocity.y
     }
 
+    // if bounce effect is disabled
     if (!this.bounce || this.isScrolling) {
       this.position.x = Math.max(Math.min(this.position.x, this.boundX.to), this.boundX.from)
       this.position.y = Math.max(Math.min(this.position.y, this.boundY.to), this.boundY.from)
     }
 
+    // stop update loop if nothing moves
     if (
       !this.isDragging &&
       !this.isScrolling &&
@@ -115,6 +120,9 @@ export default class ScrollBooster {
     this.velocity.y += force.y
   }
 
+  /**
+   * Apply force for bounce effect
+   */
   applyBoundForce() {
     if (!this.bounce) { return }
     if (this.isDragging) { return }
@@ -126,6 +134,7 @@ export default class ScrollBooster {
 
     let resultForce = { x: 0, y: 0 }
 
+    // scrolled past left of right viewport boundaries
     if (pastLeft || pastRight) {
       let bound = pastLeft ? this.boundX.from : this.boundX.to
       let distance = bound - this.position.x
@@ -142,6 +151,7 @@ export default class ScrollBooster {
       resultForce.x = force
     }
 
+    // scrolled past top of bottom viewport boundaries
     if (pastTop || pastBottom) {
       let bound = pastTop ? this.boundY.from : this.boundY.to
       let distance = bound - this.position.y
@@ -161,6 +171,9 @@ export default class ScrollBooster {
     this.applyForce(resultForce)
   }
 
+  /**
+   * Apply force to move content while dragging with mouse/touch
+   */
   applyDragForce() {
     if (!this.isDragging) { return }
     let dragVelocity = {
@@ -175,6 +188,9 @@ export default class ScrollBooster {
     this.applyForce(dragForce)
   }
 
+  /**
+   * Apply force to emulate mouse wheel
+   */
   applyScrollForce() {
     if (!this.isScrolling) { return }
 
@@ -189,6 +205,9 @@ export default class ScrollBooster {
     this.applyForce(scrollForce)
   }
 
+  /**
+   * Manual position setting
+   */
   setPosition(newPosition = {}) {
     this.velocity.x = 0
     this.velocity.y = 0
@@ -199,6 +218,9 @@ export default class ScrollBooster {
     this.run()
   }
 
+  /**
+   * Get latest metrics and coordinates
+   */
   getUpdate() {
     return {
       position: {
@@ -371,15 +393,9 @@ export default class ScrollBooster {
 }
 
 function getFullWidth (elem) {
-  return Math.max(
-    elem.offsetWidth,
-    elem.scrollWidth
-  )
+  return Math.max(elem.offsetWidth, elem.scrollWidth)
 }
 
 function getFullHeight (elem) {
-  return Math.max(
-    elem.offsetHeight,
-    elem.scrollHeight
-  )
+  return Math.max(elem.offsetHeight, elem.scrollHeight)
 }
