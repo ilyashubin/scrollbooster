@@ -1,7 +1,7 @@
 {
   "name": "scrollbooster",
-  "description": "Enjoyable content dragging library",
-  "version": "1.0.2",
+  "description": "Enjoyable content drag-to-scroll library",
+  "version": "1.0.3",
   "author": "Ilya Shubin <pixelwake@gmail.com>",
   "license": "MIT",
   "main": "dist/scrollbooster.min.js",
@@ -15,6 +15,19 @@
     "last 2 versions",
     "not ie <= 8"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilyashubin/scrollbooster.git"
+  },
+  "keywords": [
+    "drag",
+    "draggable",
+    "scroll",
+    "scrollable",
+    "UI",
+    "microlibrary"
+  ],
+  "homepage": "https://ilyashubin.github.io/scrollbooster",
   "devDependencies": {
     "babel-core": "^6.26.0",
     "babel-loader": "^7.1.2",

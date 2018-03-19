@@ -8,8 +8,8 @@
         width: 200px;
         height: 200px;
         border: 10px solid orange;
-        /* overflow: hidden; */
-        overflow: scroll;
+        overflow: hidden;
+        /* overflow: scroll; */
       }
       .app-inner {
         width: 400px;
@@ -34,12 +34,12 @@
         viewport: viewport, 
         content: content, 
         onUpdate: (data)=> {
-          viewport.scrollLeft = data.position.x
-          viewport.scrollTop = data.position.y
-          // content.style.transform = `translate(
-          //   ${-data.position.x}px,
-          //   ${-data.position.y}px
-          // )`
+          // viewport.scrollLeft = data.position.x
+          // viewport.scrollTop = data.position.y
+          content.style.transform = `translate(
+            ${-data.position.x}px,
+            ${-data.position.y}px
+          )`
         }
       })
     </script>

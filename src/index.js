@@ -10,6 +10,8 @@ export default class ScrollBooster {
       handle: props.viewport,
       content: props.viewport.children[0],
       bounce: true,
+      friction: 0.05,
+      bounceForce: 0.1,
       onUpdate: function () {}
     }
 
@@ -31,7 +33,8 @@ export default class ScrollBooster {
 
     this.position = { x: 0, y: 0 }
     this.velocity = { x: 0, y: 0 }
-    this.friction = 0.95
+    this.friction = 1 - this.props.friction
+    this.bounceForce = this.props.bounceForce
 
     this.isDragging = false
     this.dragStartPosition = { x: 0, y: 0 }
@@ -139,13 +142,13 @@ export default class ScrollBooster {
       let bound = pastLeft ? this.boundX.from : this.boundX.to
       let distance = bound - this.position.x
 
-      let force = distance * 0.1
+      let force = distance * this.bounceForce
       var restX = this.position.x + (this.velocity.x + force) / (1 - this.friction)
 
       if (
         !((pastLeft && restX < this.boundX.from) || (pastRight && restX > this.boundX.to))
       ) {
-        force = distance * 0.1 - this.velocity.x
+        force = distance * this.bounceForce - this.velocity.x
       }
 
       resultForce.x = force
@@ -156,13 +159,13 @@ export default class ScrollBooster {
       let bound = pastTop ? this.boundY.from : this.boundY.to
       let distance = bound - this.position.y
 
-      let force = distance * 0.1
+      let force = distance * this.bounceForce
       var restY = this.position.y + (this.velocity.y + force) / (1 - this.friction)
 
       if (
         !((pastTop && restY < this.boundY.from) || (pastBottom && restY > this.boundY.to))
       ) {
-        force = distance * 0.1 - this.velocity.y
+        force = distance * this.bounceForce - this.velocity.y
       }
 
       resultForce.y = force
