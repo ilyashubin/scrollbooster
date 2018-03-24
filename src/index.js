@@ -12,6 +12,7 @@ export default class ScrollBooster {
       bounce: true,
       friction: 0.05,
       bounceForce: 0.1,
+      textSelection: false,
       onUpdate: function () {}
     }
 
@@ -45,6 +46,7 @@ export default class ScrollBooster {
     this.scrollOffset = { x: 0, y: 0 }
 
     this.bounce = this.props.bounce
+    this.textSelection = this.props.textSelection
 
     this.boundX = {
       from: Math.min(-this.content.width + this.viewport.width, 0),
@@ -307,6 +309,16 @@ export default class ScrollBooster {
         return
       }
 
+      // text selection enabled
+      if (this.textSelection) {
+        let clickedNode = textNodeFromPoint(event.target, clientX, clientY)
+        if (clickedNode) {
+          return
+        } else {
+          clearTextSelection()
+        }
+      }
+
       this.isDragging = true
       if (scroll.x || scroll.y) {
         this.position.x = scroll.x
@@ -401,4 +413,30 @@ function getFullWidth (elem) {
 
 function getFullHeight (elem) {
   return Math.max(elem.offsetHeight, elem.scrollHeight)
+}
+
+function textNodeFromPoint (element, x, y) {
+  let node
+  let nodes = element.childNodes
+  let range = document.createRange()
+  for (let i = 0; node = nodes[i], i < nodes.length; i++) {
+    if (node.nodeType !== 3) continue
+    range.selectNodeContents(node)
+    let rect = range.getBoundingClientRect()
+    if (x >= rect.left && y >= rect.top && x <= rect.right && y <= rect.bottom) {
+      return node
+    }
+  }
+  return false
+}
+
+function clearTextSelection () {
+  let sel = window.getSelection ? window.getSelection() : document.selection
+  if (sel) {
+    if (sel.removeAllRanges) {
+      sel.removeAllRanges()
+    } else if (sel.empty) {
+      sel.empty()
+    }
+  }
 }

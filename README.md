@@ -11,7 +11,7 @@ npm i scrollbooster
 ```
 
 ``` html
-<script src="https://unpkg.com/scrollbooster@1.0.3/dist/scrollbooster.min.js"></script>
+<script src="https://unpkg.com/scrollbooster@1.0.4/dist/scrollbooster.min.js"></script>
 ```
 
 ### Usage
@@ -33,6 +33,7 @@ viewport | element | null | Viewport - outer element
 content | element | First child of viewport element | Scrollable content inside viewport
 handle | element | Viewport element | Element that respond to drag event
 bounce | boolean | true | Inertia bounce effect (scroll past viewport borders)
+textSelection | boolean | false | Ability to select text content
 friction | float | 0.05 | Scroll friction factor (scroll inertia after pointer release)
 bounceForce | float | 0.1 | Bounce effect factor
 emulateScroll | boolean | false | Emulate viewport mouse wheel events (for cases when scrolling with `transform` property)
@@ -58,6 +59,7 @@ let sb = new ScrollBooster({
   content: content,
   handle: document.querySelector('.viewport-scroller'), 
   bounce: true,
+  textSelection: false,
   emulateScroll: false,
   onUpdate: (data)=> {
     content.style.transform = `translate(

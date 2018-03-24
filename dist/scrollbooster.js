@@ -105,6 +105,9 @@ var ScrollBooster = function () {
       handle: props.viewport,
       content: props.viewport.children[0],
       bounce: true,
+      friction: 0.05,
+      bounceForce: 0.1,
+      textSelection: false,
       onUpdate: function onUpdate() {}
     };
 
@@ -126,7 +129,8 @@ var ScrollBooster = function () {
 
     this.position = { x: 0, y: 0 };
     this.velocity = { x: 0, y: 0 };
-    this.friction = 0.95;
+    this.friction = 1 - this.props.friction;
+    this.bounceForce = this.props.bounceForce;
 
     this.isDragging = false;
     this.dragStartPosition = { x: 0, y: 0 };
@@ -137,6 +141,7 @@ var ScrollBooster = function () {
     this.scrollOffset = { x: 0, y: 0 };
 
     this.bounce = this.props.bounce;
+    this.textSelection = this.props.textSelection;
 
     this.boundX = {
       from: Math.min(-this.content.width + this.viewport.width, 0),
@@ -253,11 +258,11 @@ var ScrollBooster = function () {
         var bound = pastLeft ? this.boundX.from : this.boundX.to;
         var distance = bound - this.position.x;
 
-        var force = distance * 0.1;
+        var force = distance * this.bounceForce;
         var restX = this.position.x + (this.velocity.x + force) / (1 - this.friction);
 
         if (!(pastLeft && restX < this.boundX.from || pastRight && restX > this.boundX.to)) {
-          force = distance * 0.1 - this.velocity.x;
+          force = distance * this.bounceForce - this.velocity.x;
         }
 
         resultForce.x = force;
@@ -268,11 +273,11 @@ var ScrollBooster = function () {
         var _bound = pastTop ? this.boundY.from : this.boundY.to;
         var _distance = _bound - this.position.y;
 
-        var _force = _distance * 0.1;
+        var _force = _distance * this.bounceForce;
         var restY = this.position.y + (this.velocity.y + _force) / (1 - this.friction);
 
         if (!(pastTop && restY < this.boundY.from || pastBottom && restY > this.boundY.to)) {
-          _force = _distance * 0.1 - this.velocity.y;
+          _force = _distance * this.bounceForce - this.velocity.y;
         }
 
         resultForce.y = _force;
@@ -441,6 +446,16 @@ var ScrollBooster = function () {
           return;
         }
 
+        // text selection enabled
+        if (_this3.textSelection) {
+          var clickedNode = textNodeFromPoint(event.target, clientX, clientY);
+          if (clickedNode) {
+            return;
+          } else {
+            clearTextSelection();
+          }
+        }
+
         _this3.isDragging = true;
         if (scroll.x || scroll.y) {
           _this3.position.x = scroll.x;
@@ -546,6 +561,32 @@ function getFullWidth(elem) {
 
 function getFullHeight(elem) {
   return Math.max(elem.offsetHeight, elem.scrollHeight);
+}
+
+function textNodeFromPoint(element, x, y) {
+  var node = void 0;
+  var nodes = element.childNodes;
+  var range = document.createRange();
+  for (var i = 0; node = nodes[i], i < nodes.length; i++) {
+    if (node.nodeType !== 3) continue;
+    range.selectNodeContents(node);
+    var rect = range.getBoundingClientRect();
+    if (x >= rect.left && y >= rect.top && x <= rect.right && y <= rect.bottom) {
+      return node;
+    }
+  }
+  return false;
+}
+
+function clearTextSelection() {
+  var sel = window.getSelection ? window.getSelection() : document.selection;
+  if (sel) {
+    if (sel.removeAllRanges) {
+      sel.removeAllRanges();
+    } else if (sel.empty) {
+      sel.empty();
+    }
+  }
 }
 module.exports = exports['default'];
 

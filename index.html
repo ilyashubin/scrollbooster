@@ -15,13 +15,17 @@
         width: 400px;
         height: 500px;
         border: 10px solid red;
+        padding: 50px;
+      }
+      .app-inner span {
+        color: skyblue;
       }
     </style>
   </head>
   <body>
     <div class="app">
       <div class="app-inner">
-        Lorem ipsum dolor sit amet consectetur adipisicing elit. Exercitationem corrupti reiciendis, mollitia molestias magni quasi voluptates culpa dignissimos minima hic.
+        Lorem <span>ipsum dolor sit</span> amet consectetur adipisicing elit. Exercitationem corrupti reiciendis, mollitia molestias magni quasi voluptates culpa dignissimos minima hic.
         Lorem ipsum dolor sit amet consectetur adipisicing elit. In praesentium odit ex officia, possimus qui omnis, facere incidunt neque ducimus suscipit! Vel, neque! Sapiente tempora veritatis voluptatem itaque! Repellendus, optio.
       </div>
     </div>
@@ -33,6 +37,7 @@
       let scr = new ScrollBooster({
         viewport: viewport, 
         content: content, 
+        textSelection: true,
         onUpdate: (data)=> {
           // viewport.scrollLeft = data.position.x
           // viewport.scrollTop = data.position.y
