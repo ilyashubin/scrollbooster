@@ -39,6 +39,7 @@ export default class ScrollBooster {
 
     this.isDragging = false
     this.dragStartPosition = { x: 0, y: 0 }
+    this.dragOffsetPosition = { ...this.dragStartPosition }
     this.dragPosition = { ...this.position }
 
     this.isScrollEnabled = !!this.props.emulateScroll
@@ -113,8 +114,8 @@ export default class ScrollBooster {
     if (
       !this.isDragging &&
       !this.isScrolling &&
-      Math.abs(this.velocity.x) < 0.005 &&
-      Math.abs(this.velocity.y) < 0.005
+      Math.abs(this.velocity.x) < 0.1 &&
+      Math.abs(this.velocity.y) < 0.1
     ) {
       this.isRunning = false
     }
@@ -228,10 +229,14 @@ export default class ScrollBooster {
    */
   getUpdate() {
     return {
+      isRunning: this.isRunning,
+      isDragging: this.isDragging,
+      isScrolling: this.isScrolling,
       position: {
         x: -this.position.x,
         y: -this.position.y
       },
+      dragOffsetPosition: this.dragOffsetPosition,
       viewport: { ...this.viewport },
       content: { ...this.content }
     }
@@ -263,6 +268,7 @@ export default class ScrollBooster {
 
     let setDragPosition = (event) => {
       let pageX, pageY
+
       if (isTouch) {
         pageX = event.touches[0].pageX
         pageY = event.touches[0].pageY
@@ -271,10 +277,12 @@ export default class ScrollBooster {
         pageY = event.pageY
       }
 
-      let moveX = pageX - mousedown.x
-      let moveY = pageY - mousedown.y
-      this.dragPosition.x = this.dragStartPosition.x + moveX
-      this.dragPosition.y = this.dragStartPosition.y + moveY
+      this.dragOffsetPosition.x = pageX - mousedown.x
+      this.dragOffsetPosition.y = pageY - mousedown.y
+
+      this.dragPosition.x = this.dragStartPosition.x + this.dragOffsetPosition.x
+      this.dragPosition.y = this.dragStartPosition.y + this.dragOffsetPosition.y
+
       if (!isTouch) {
         event.preventDefault()
       }
@@ -320,6 +328,7 @@ export default class ScrollBooster {
       }
 
       this.isDragging = true
+
       if (scroll.x || scroll.y) {
         this.position.x = scroll.x
         this.position.y = scroll.y
@@ -330,14 +339,16 @@ export default class ScrollBooster {
       mousedown.y = pageY
       this.dragStartPosition.x = this.position.x
       this.dragStartPosition.y = this.position.y
-      setDragPosition(event)
-      this.run()
 
+      setDragPosition(event)
+
+      this.run()
 
       let pointerUp, removeEvents
 
       removeEvents = (event) => {
         this.isDragging = false
+
         if (isTouch) {
           window.removeEventListener('touchmove', setDragPosition)
           window.removeEventListener('touchend', pointerUp)
@@ -373,7 +384,7 @@ export default class ScrollBooster {
 
       event.preventDefault()
     }
-    
+
     this.events.scroll = (event) => {
       let sl = this.props.viewport.scrollLeft
       let st = this.props.viewport.scrollTop
