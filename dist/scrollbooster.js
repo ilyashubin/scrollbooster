@@ -108,6 +108,10 @@ var ScrollBooster = function () {
       friction: 0.05,
       bounceForce: 0.1,
       textSelection: false,
+      onClick: function onClick() {},
+      shouldScroll: function shouldScroll() {
+        return true;
+      },
       onUpdate: function onUpdate() {}
     };
 
@@ -134,6 +138,7 @@ var ScrollBooster = function () {
 
     this.isDragging = false;
     this.dragStartPosition = { x: 0, y: 0 };
+    this.dragOffsetPosition = _extends({}, this.dragStartPosition);
     this.dragPosition = _extends({}, this.position);
 
     this.isScrollEnabled = !!this.props.emulateScroll;
@@ -221,7 +226,7 @@ var ScrollBooster = function () {
       }
 
       // stop update loop if nothing moves
-      if (!this.isDragging && !this.isScrolling && Math.abs(this.velocity.x) < 0.005 && Math.abs(this.velocity.y) < 0.005) {
+      if (!this.isDragging && !this.isScrolling && Math.abs(this.velocity.x) < 0.1 && Math.abs(this.velocity.y) < 0.1) {
         this.isRunning = false;
       }
     }
@@ -356,10 +361,14 @@ var ScrollBooster = function () {
     key: 'getUpdate',
     value: function getUpdate() {
       return {
+        isRunning: this.isRunning,
+        isDragging: this.isDragging,
+        isScrolling: this.isScrolling,
         position: {
           x: -this.position.x,
           y: -this.position.y
         },
+        dragOffsetPosition: this.dragOffsetPosition,
         viewport: _extends({}, this.viewport),
         content: _extends({}, this.content)
       };
@@ -397,6 +406,7 @@ var ScrollBooster = function () {
       var setDragPosition = function setDragPosition(event) {
         var pageX = void 0,
             pageY = void 0;
+
         if (isTouch) {
           pageX = event.touches[0].pageX;
           pageY = event.touches[0].pageY;
@@ -405,10 +415,12 @@ var ScrollBooster = function () {
           pageY = event.pageY;
         }
 
-        var moveX = pageX - mousedown.x;
-        var moveY = pageY - mousedown.y;
-        _this3.dragPosition.x = _this3.dragStartPosition.x + moveX;
-        _this3.dragPosition.y = _this3.dragStartPosition.y + moveY;
+        _this3.dragOffsetPosition.x = pageX - mousedown.x;
+        _this3.dragOffsetPosition.y = pageY - mousedown.y;
+
+        _this3.dragPosition.x = _this3.dragStartPosition.x + _this3.dragOffsetPosition.x;
+        _this3.dragPosition.y = _this3.dragStartPosition.y + _this3.dragOffsetPosition.y;
+
         if (!isTouch) {
           event.preventDefault();
         }
@@ -446,6 +458,10 @@ var ScrollBooster = function () {
           return;
         }
 
+        if (!_this3.props.shouldScroll(_this3.getUpdate(), event)) {
+          return;
+        }
+
         // text selection enabled
         if (_this3.textSelection) {
           var clickedNode = textNodeFromPoint(event.target, clientX, clientY);
@@ -457,6 +473,7 @@ var ScrollBooster = function () {
         }
 
         _this3.isDragging = true;
+
         if (scroll.x || scroll.y) {
           _this3.position.x = scroll.x;
           _this3.position.y = scroll.y;
@@ -467,7 +484,9 @@ var ScrollBooster = function () {
         mousedown.y = pageY;
         _this3.dragStartPosition.x = _this3.position.x;
         _this3.dragStartPosition.y = _this3.position.y;
+
         setDragPosition(event);
+
         _this3.run();
 
         var pointerUp = void 0,
@@ -475,6 +494,7 @@ var ScrollBooster = function () {
 
         removeEvents = function removeEvents(event) {
           _this3.isDragging = false;
+
           if (isTouch) {
             window.removeEventListener('touchmove', setDragPosition);
             window.removeEventListener('touchend', pointerUp);
@@ -530,10 +550,15 @@ var ScrollBooster = function () {
         scroll.y = -_this3.props.viewport.scrollTop;
       };
 
+      this.events.click = function (event) {
+        _this3.props.onClick(_this3.getUpdate(), event);
+      };
+
       this.events.resize = this.updateMetrics.bind(this);
 
       this.props.handle.addEventListener('mousedown', this.events.pointerdown);
       this.props.handle.addEventListener('touchstart', this.events.pointerdown);
+      this.props.handle.addEventListener('click', this.events.click);
       this.props.viewport.addEventListener('wheel', this.events.wheel);
       this.props.viewport.addEventListener('scroll', this.events.scroll);
       window.addEventListener('resize', this.events.resize);
@@ -543,6 +568,7 @@ var ScrollBooster = function () {
     value: function destroy() {
       this.props.handle.removeEventListener('mousedown', this.events.pointerdown);
       this.props.handle.removeEventListener('touchstart', this.events.pointerdown);
+      this.props.handle.removeEventListener('click', this.events.click);
       this.props.viewport.removeEventListener('wheel', this.events.wheel);
       this.props.viewport.removeEventListener('scroll', this.events.scroll);
       window.removeEventListener('resize', this.events.resize);

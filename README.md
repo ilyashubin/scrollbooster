@@ -4,14 +4,18 @@ Enjoyable content drag-to-scroll micro (~2KB gzipped) library.
 
 ### Installation
 
-You can install it via `npm` package manager or just drop a `script` tag:
+You can install it via `npm` or `yarn` package manager or just drop a `script` tag:
 
 ``` bash
 npm i scrollbooster
 ```
 
+``` bash
+yarn add scrollbooster
+```
+
 ``` html
-<script src="https://unpkg.com/scrollbooster@1.0.4/dist/scrollbooster.min.js"></script>
+<script src="https://unpkg.com/scrollbooster@1.1.0/dist/scrollbooster.min.js"></script>
 ```
 
 ### Usage
@@ -38,8 +42,10 @@ friction | float | 0.05 | Scroll friction factor (scroll inertia after pointer r
 bounceForce | float | 0.1 | Bounce effect factor
 emulateScroll | boolean | false | Emulate viewport mouse wheel events (for cases when scrolling with `transform` property)
 onUpdate | function | noop | User function that updates element properties according to received coordinates (see demo examples). Receives object with properties: `position`, `viewport` and `content`. Each property contains metrics to perform an actual scrolling
+onClick | function | noop | Function that receives object with scrolling metrics and event object. Calls after each `click` in scrollable area. Here you can, for example, prevent default event for click on links
+shouldScroll | function | noop | Function that receives object with scrolling metrics and event object. Calls on `pointerdown` (mousedown, touchstart) in scrollable area. Here you can return `true` or `false` to start actual scrolling or not
 
-### Methods
+### Methods to perform custom logic
 
 Method | Description
 ------ | -----------
@@ -67,6 +73,18 @@ let sb = new ScrollBooster({
       ${-data.position.y}px
     )`
     // and also metrics: data.viewport['width'|'height'] and data.cotent['width'|'height']
+  },
+  shouldScroll: (data, event) => {
+    if (event.target.classList.contains('button')) {
+      return false
+    } else {
+      return true
+    }
+  },
+  onClick: (data, event) => {
+    if (event.target.classList.contains('link')) {
+      event.preventDefault()
+    }
   }
 })
 

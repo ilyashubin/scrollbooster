@@ -13,6 +13,8 @@ export default class ScrollBooster {
       friction: 0.05,
       bounceForce: 0.1,
       textSelection: false,
+      onClick: function () {},
+      shouldScroll: function () { return true },
       onUpdate: function () {}
     }
 
@@ -317,6 +319,10 @@ export default class ScrollBooster {
         return
       }
 
+      if (!this.props.shouldScroll(this.getUpdate(), event)) {
+        return
+      }
+
       // text selection enabled
       if (this.textSelection) {
         let clickedNode = textNodeFromPoint(event.target, clientX, clientY)
@@ -400,10 +406,15 @@ export default class ScrollBooster {
       scroll.y = -this.props.viewport.scrollTop
     }
 
+    this.events.click = (event) => {
+      this.props.onClick(this.getUpdate(), event)
+    }
+
     this.events.resize = this.updateMetrics.bind(this)
 
     this.props.handle.addEventListener('mousedown', this.events.pointerdown)
     this.props.handle.addEventListener('touchstart', this.events.pointerdown)
+    this.props.handle.addEventListener('click', this.events.click)
     this.props.viewport.addEventListener('wheel', this.events.wheel)
     this.props.viewport.addEventListener('scroll', this.events.scroll)
     window.addEventListener('resize', this.events.resize)
@@ -412,6 +423,7 @@ export default class ScrollBooster {
   destroy() {
     this.props.handle.removeEventListener('mousedown', this.events.pointerdown)
     this.props.handle.removeEventListener('touchstart', this.events.pointerdown)
+    this.props.handle.removeEventListener('click', this.events.click)
     this.props.viewport.removeEventListener('wheel', this.events.wheel)
     this.props.viewport.removeEventListener('scroll', this.events.scroll)
     window.removeEventListener('resize', this.events.resize)

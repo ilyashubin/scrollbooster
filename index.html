@@ -5,17 +5,19 @@
     <title>scrollbooster mini test</title>
     <style>
       .app {
-        width: 200px;
-        height: 200px;
-        border: 10px solid orange;
+        width: 400px;
+        height: 400px;
+        border: 10px solid #460a78;
         overflow: hidden;
         /* overflow: scroll; */
       }
       .app-inner {
-        width: 400px;
-        height: 500px;
-        border: 10px solid red;
+        width: 800px;
+        height: 700px;
+        border: 10px solid #edb197;
         padding: 50px;
+        background: #44bdf6;
+
       }
       .app-inner span {
         color: skyblue;
@@ -25,8 +27,10 @@
   <body>
     <div class="app">
       <div class="app-inner">
-        Lorem <span>ipsum dolor sit</span> amet consectetur adipisicing elit. Exercitationem corrupti reiciendis, mollitia molestias magni quasi voluptates culpa dignissimos minima hic.
+        Lorem <a href="https://dribbble.com/">ipsum dolor sit</a> amet consectetur adipisicing elit. Exercitationem corrupti reiciendis, mollitia molestias magni quasi voluptates culpa dignissimos minima hic.
         Lorem ipsum dolor sit amet consectetur adipisicing elit. In praesentium odit ex officia, possimus qui omnis, facere incidunt neque ducimus suscipit! Vel, neque! Sapiente tempora veritatis voluptatem itaque! Repellendus, optio.
+        <div class="text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Atque iusto vitae quibusdam debitis illum consequuntur iste laborum fuga laboriosam mollitia.</div>
+        <div><button onclick="console.log('hello')">Some button</button></div>
       </div>
     </div>
     <script src="/dist/scrollbooster.js"></script>
@@ -37,7 +41,18 @@
       let scr = new ScrollBooster({
         viewport: viewport, 
         content: content, 
-        textSelection: true,
+        // textSelection: true,
+        emulateScroll: true,
+        onClick: (data, event)=> {
+          event.preventDefault()
+        },
+        shouldScroll: (data, event) => {
+          if (event.target.tagName == 'BUTTON') {
+            return false
+          } else {
+            return true
+          }
+        },
         onUpdate: (data)=> {
           // viewport.scrollLeft = data.position.x
           // viewport.scrollTop = data.position.y
