@@ -572,7 +572,16 @@ var ScrollBooster = function () {
       this.props.viewport.removeEventListener('wheel', this.events.wheel);
       this.props.viewport.removeEventListener('scroll', this.events.scroll);
       window.removeEventListener('resize', this.events.resize);
-    }
+    }, {
+      key: "enable", 
+      value: function () {
+          this.props.handle.addEventListener("mousedown", this.events.pointerdown), 
+          this.props.handle.addEventListener("touchstart", this.events.pointerdown), 
+          this.props.handle.addEventListener("click", this.events.click), 
+          this.props.viewport.addEventListener("wheel", this.events.wheel), 
+          this.props.viewport.addEventListener("scroll", this.events.scroll), 
+          window.addEventListener("resize", this.events.resize)
+      }
   }]);
 
   return ScrollBooster;
