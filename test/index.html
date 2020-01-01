@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <h2>Scroll test</h2>
+    <h2>Native scroll test</h2>
 
     <div id="scroll">
       <div class="wrapper">
@@ -32,7 +32,7 @@
       </div>
     </div>
 
-    <h2>X only</h2>
+    <h2>Horizontal only</h2>
 
     <div id="xonly">
       <div class="wrapper">
@@ -42,7 +42,7 @@
       </div>
     </div>
 
-    <h2>Y only</h2>
+    <h2>Vertical only</h2>
 
     <div id="yonly">
       <div class="wrapper">
@@ -62,6 +62,17 @@
       </div>
     </div>
 
+    <h2>Smooth scroll</h2>
+
+    <div id="scrollto">
+      <div class="wrapper">
+        <div class="inner">
+          <img src="./bread.jpg" alt="">
+        </div>
+      </div>
+      <button id="scrollto-button">scroll</button>
+    </div>
+
 
   </div>
 
@@ -70,12 +81,13 @@
 
   <script>mocha.setup('bdd')</script>
 
-  <script src="../dist/scrollbooster.js"></script>
+  <script src="../dist/scrollbooster.min.js"></script>
   <script src="init.test.js"></script>
   <script src="scroll.test.js"></script>
   <script src="xonly.test.js"></script>
   <script src="yonly.test.js"></script>
   <script src="nobounce.test.js"></script>
+  <script src="scrollto.test.js"></script>
 
   <script>
     mocha.checkLeaks();

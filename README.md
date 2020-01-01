@@ -1,10 +1,10 @@
 # ScrollBooster
 
-Enjoyable content drag-to-scroll micro (~2KB gzipped) library.
+Enjoyable drag-to-scroll micro library (~2KB gzipped). Supports smooth content scroll via mouse/touch dragging, trackpad or mouse wheel.
 
 ### Installation
 
-You can install it via `npm` or `yarn` package manager or just drop a `script` tag:
+You can install it via `npm` or `yarn` package manager or via `script` tag:
 
 ``` bash
 npm i scrollbooster
@@ -15,86 +15,100 @@ yarn add scrollbooster
 ```
 
 ``` html
-<script src="https://unpkg.com/scrollbooster@1.1.0/dist/scrollbooster.min.js"></script>
+<script src="https://unpkg.com/scrollbooster@2.0.0/dist/scrollbooster.min.js"></script>
 ```
 
 ### Usage
 
-``` js
-import ScrollBooster from 'scrollbooster'
+The most simple setup with default settings:
 
-let sb = new ScrollBooster({
-  viewport: document.querySelector('.viewport') // required
-  // ...other options
-})
+``` js
+import ScrollBooster from 'scrollbooster';
+
+const viewport = document.querySelector('.viewport');
+const content = document.querySelector('.scrollable-content');
+
+new ScrollBooster({
+    viewport,
+    content,
+    onUpdate: (data) => {
+      content.style.transform = `translate(
+        ${-data.position.x}px,
+        ${-data.position.y}px
+      )`;
+    },
+    // other options (see below)
+});
 ```
+
+Please note that in order to support IE11 you should replace arrow functions and string templates from code examples to supported equivalents or just use Babel.
 
 ### Options
 
 Option | Type | Default | Description
 ------ | ---- | ------- | -----------
-viewport | element | null | Viewport - outer element
-content | element | First child of viewport element | Scrollable content inside viewport
-handle | element | Viewport element | Element that respond to drag event
-bounce | boolean | true | Inertia bounce effect (scroll past viewport borders)
-textSelection | boolean | false | Ability to select text content
-friction | float | 0.05 | Scroll friction factor (scroll inertia after pointer release)
-bounceForce | float | 0.1 | Bounce effect factor
-emulateScroll | boolean | false | Emulate viewport mouse wheel events (for cases when scrolling with `transform` property)
-onUpdate | function | noop | User function that updates element properties according to received coordinates (see demo examples). Receives object with properties: `position`, `viewport` and `content`. Each property contains metrics to perform an actual scrolling
-onClick | function | noop | Function that receives object with scrolling metrics and event object. Calls after each `click` in scrollable area. Here you can, for example, prevent default event for click on links
-shouldScroll | function | noop | Function that receives object with scrolling metrics and event object. Calls on `pointerdown` (mousedown, touchstart) in scrollable area. Here you can return `true` or `false` to start actual scrolling or not
+viewport | DOM Node | null | Content viewport element (required)
+content | DOM Node | viewport child element | Scrollable content element inside viewport
+direction | String | 'all' | Scroll direction. Could be 'horizontal', 'vertical' or 'all'
+bounce | Boolean | true | Enables elastic bounce effect when hitting viewport borders
+textSelection | Boolean | false | Enables text selection inside viewport
+inputsFocus | Boolean | true | Enables focus for elements: 'input', 'textarea', 'button', 'select' and 'label'
+pointerMode | String | 'all' | Specify pointer type. Supported values - 'touch' (scroll only on touch devices), 'mouse' (scroll only on desktop), 'all' (mobile and desktop) 
+friction | Number | 0.05 | Scroll friction factor - how fast scrolling stops after pointer release
+bounceForce | Number | 0.1 | Elastic bounce effect factor
+emulateScroll | Boolean | false | Enables mouse wheel/trackpad emulation inside viewport
+onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates
+onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives object with scrolling metrics and event object. Calls after each `click` in scrollable area
+shouldScroll | Function | noop | Handler function to permit or disable scrolling. Function that receives object with scrolling metrics and event object. Calls on `pointerdown` (mousedown, touchstart) in scrollable area. You can return `true` or `false` to enable or disable scrolling
 
-### Methods to perform custom logic
+### List of methods
 
 Method | Description
 ------ | -----------
 setPosition | Sets new scroll position in viewport. Receives an object with properties `x` and `y`
-updateMetrics | Updates element sizes. Useful for images loading or other dynamic content
-getUpdate | Returns current metrics and coordinates in a same format as `onUpdate`
-destroy | Destroys all instance's event listeners
+scrollTo | Smooth scroll to position in viewport. Receives an object with properties `x` and `y`
+updateMetrics | Forces to recalculate elments metrics. Useful for cases when content in scrollable area change its size dynamically
+updateOptions | Updates ScrollBooster options. All properties from `Options` config object are supported
+getState | Returns current scroll state in a same format as `onUpdate`
+destroy | Removes all instance's event listeners
 
 ### Full Example
 
 ``` js
-let viewport = document.querySelector('.viewport')
-let content = document.querySelector('.viewport-content')
+const viewport = document.querySelector('.viewport');
+const content = document.querySelector('.scrollable-content');
 
-let sb = new ScrollBooster({
-  viewport: viewport,
-  content: content,
-  handle: document.querySelector('.viewport-scroller'), 
+const sb = new ScrollBooster({
+  viewport,
+  content,
   bounce: true,
   textSelection: false,
-  emulateScroll: false,
-  onUpdate: (data)=> {
+  emulateScroll: true,
+  onUpdate: (state) => {
+    // state contains useful metrics: position, dragOffset, isDragging, isMoving
     content.style.transform = `translate(
-      ${-data.position.x}px,
-      ${-data.position.y}px
-    )`
-    // and also metrics: data.viewport['width'|'height'] and data.cotent['width'|'height']
+      ${-state.position.x}px,
+      ${-state.position.y}px
+    )`;
   },
-  shouldScroll: (data, event) => {
-    if (event.target.classList.contains('button')) {
-      return false
-    } else {
-      return true
-    }
+  shouldScroll: (state, event) => {
+    // disable scroll if clicked on button
+    const isButton = event.taget.nodeName.toLowerCase() === 'button';
+    return !isButton;
   },
   onClick: (data, event) => {
-    if (event.target.classList.contains('link')) {
-      event.preventDefault()
+    // prevent default link event
+    const isLink = event.taget.nodeName.toLowerCase() === 'link';
+    if (isLink) {
+      event.preventDefault();
     }
   }
-})
+});
 
-// methods example:
-sb.updateMetrics()
-sb.setPosition({
-  x: 100,
-  y: 100
-})
-sb.destroy()
+// methods usage examples:
+sb.updateMetrics();
+sb.setPosition({ x: 100, y: 100 });
+sb.destroy();
 ```
 
 ### Browser support

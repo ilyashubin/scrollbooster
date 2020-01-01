@@ -1,43 +1,36 @@
-let path = require('path')
-let webpack = require('webpack')
+let path = require('path');
 
 module.exports = {
-  entry: {
-    "scrollbooster": "./src/index.js",
-    "scrollbooster.min": "./src/index.js",
-  },
+  entry: './src/index.js',
   output: {
-    path: path.resolve(__dirname, './dist'),
-    publicPath: '/dist/',
-    filename: '[name].js',
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'scrollbooster.min.js',
     library: 'ScrollBooster',
     libraryTarget: 'umd',
-    umdNamedDefine: true
+    libraryExport: 'default',
+    umdNamedDefine: true,
   },
   module: {
     rules: [
       {
         test: /\.js$/,
-        loader: 'babel-loader',
-        exclude: /node_modules/
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-env'],
+          }
+        }
       }
     ]
   },
   devServer: {
-    historyApiFallback: true,
-    noInfo: true,
-    overlay: true,
-    clientLogLevel: "none"
+    contentBase: path.join(__dirname),
+    clientLogLevel: 'none',
+    open: true,
   },
-  devtool: '#source-map',
-  plugins: [
-    new webpack.optimize.UglifyJsPlugin({
-      include: /\.min\.js$/,
-      minimize: true
-    }),
-    new webpack.LoaderOptionsPlugin({
-      include: /\.min\.js$/,
-      minimize: true
-    })
-  ]
-}
+  devtool: 'source-map',
+  optimization: {
+    minimize: true,
+  },
+};

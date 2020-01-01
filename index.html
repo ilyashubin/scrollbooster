@@ -33,25 +33,21 @@
         <div><button onclick="console.log('hello')">Some button</button></div>
       </div>
     </div>
-    <script src="/dist/scrollbooster.js"></script>
+    <script src="/dist/scrollbooster.min.js"></script>
     <script>
-      let viewport = document.querySelector('.app')
-      let content = viewport.querySelector('.app-inner')
+      const viewport = document.querySelector('.app');
+      const content = viewport.querySelector('.app-inner');
 
       let scr = new ScrollBooster({
-        viewport: viewport, 
-        content: content, 
-        // textSelection: true,
+        viewport: viewport,
+        content: content,
+        textSelection: true,
         emulateScroll: true,
         onClick: (data, event)=> {
           event.preventDefault()
         },
         shouldScroll: (data, event) => {
-          if (event.target.tagName == 'BUTTON') {
-            return false
-          } else {
-            return true
-          }
+          return event.target.tagName === 'BUTTON';
         },
         onUpdate: (data)=> {
           // viewport.scrollLeft = data.position.x
