@@ -31,10 +31,10 @@ const content = document.querySelector('.scrollable-content');
 new ScrollBooster({
     viewport,
     content,
-    onUpdate: (data) => {
+    onUpdate: (state) => {
       content.style.transform = `translate(
-        ${-data.position.x}px,
-        ${-data.position.y}px
+        ${-state.position.x}px,
+        ${-state.position.y}px
       )`;
     },
     // other options (see below)
@@ -59,7 +59,7 @@ bounceForce | Number | 0.1 | Elastic bounce effect factor
 emulateScroll | Boolean | false | Enables mouse wheel/trackpad emulation inside viewport
 onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates
 onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives object with scrolling metrics and event object. Calls after each `click` in scrollable area
-shouldScroll | Function | noop | Handler function to permit or disable scrolling. Function that receives object with scrolling metrics and event object. Calls on `pointerdown` (mousedown, touchstart) in scrollable area. You can return `true` or `false` to enable or disable scrolling
+shouldScroll | Function | noop | Function to permit or disable scrolling. Receives object with scrolling state and event object. Calls on `pointerdown` (mousedown, touchstart) in scrollable area. You can return `true` or `false` to enable or disable scrolling
 
 ### List of methods
 
@@ -67,8 +67,8 @@ Method | Description
 ------ | -----------
 setPosition | Sets new scroll position in viewport. Receives an object with properties `x` and `y`
 scrollTo | Smooth scroll to position in viewport. Receives an object with properties `x` and `y`
-updateMetrics | Forces to recalculate elments metrics. Useful for cases when content in scrollable area change its size dynamically
-updateOptions | Updates ScrollBooster options. All properties from `Options` config object are supported
+updateMetrics | Forces to recalculate elements metrics. Useful for cases when content in scrollable area change its size dynamically
+updateOptions | Sets option value. All properties from `Options` config object are supported
 getState | Returns current scroll state in a same format as `onUpdate`
 destroy | Removes all instance's event listeners
 
@@ -96,7 +96,7 @@ const sb = new ScrollBooster({
     const isButton = event.taget.nodeName.toLowerCase() === 'button';
     return !isButton;
   },
-  onClick: (data, event) => {
+  onClick: (state, event) => {
     // prevent default link event
     const isLink = event.taget.nodeName.toLowerCase() === 'link';
     if (isLink) {
@@ -108,6 +108,7 @@ const sb = new ScrollBooster({
 // methods usage examples:
 sb.updateMetrics();
 sb.setPosition({ x: 100, y: 100 });
+sb.updateOptions({ emulateScroll: false });
 sb.destroy();
 ```
 
