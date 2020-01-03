@@ -1,6 +1,6 @@
 # ScrollBooster
 
-Enjoyable drag-to-scroll micro library (~2KB gzipped). Supports smooth content scroll via mouse/touch dragging, trackpad or mouse wheel.
+Enjoyable drag-to-scroll micro library (~2KB gzipped). Supports smooth content scroll via mouse/touch dragging, trackpad or mouse wheel. Zero dependencies.
 
 ### Installation
 
@@ -111,6 +111,8 @@ sb.setPosition({ x: 100, y: 100 });
 sb.updateOptions({ emulateScroll: false });
 sb.destroy();
 ```
+
+### [Live ScrollBooster Examples On CodeSandbox](https://codesandbox.io/s/scrollbooster-examples-3g00p)
 
 ### Browser support
 
