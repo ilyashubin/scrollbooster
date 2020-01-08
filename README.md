@@ -85,7 +85,7 @@ const sb = new ScrollBooster({
   textSelection: false,
   emulateScroll: true,
   onUpdate: (state) => {
-    // state contains useful metrics: position, dragOffset, isDragging, isMoving
+    // state contains useful metrics: position, dragOffset, isDragging, isMoving, borderCollision
     content.style.transform = `translate(
       ${-state.position.x}px,
       ${-state.position.y}px

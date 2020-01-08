@@ -120,7 +120,7 @@ export default class ScrollBooster {
   }
 
   isMoving() {
-    return this.isDragging || this.isScrolling || Math.abs(this.velocity.x) >= 0.1 || Math.abs(this.velocity.y) >= 0.1;
+    return this.isDragging || this.isScrolling || Math.abs(this.velocity.x) >= 0.01 || Math.abs(this.velocity.y) >= 0.01;
   }
 
   update() {
@@ -166,20 +166,20 @@ export default class ScrollBooster {
     }
 
     // scrolled past viewport boundaries
-    const pastLeft = this.position.x < this.boundX.from;
-    const pastRight = this.position.x > this.boundX.to;
-    const pastTop = this.position.y < this.boundY.from;
-    const pastBottom = this.position.y > this.boundY.to;
-    const pastX = pastLeft || pastRight;
-    const pastY = pastTop || pastBottom;
+    const beyondXFrom = this.position.x < this.boundX.from;
+    const beyondXTo = this.position.x > this.boundX.to;
+    const beyondYFrom = this.position.y < this.boundY.from;
+    const beyondYTo = this.position.y > this.boundY.to;
+    const beyondX = beyondXFrom || beyondXTo;
+    const beyondY = beyondYFrom || beyondYTo;
 
-    if (!pastX && !pastY) {
+    if (!beyondX && !beyondY) {
       return;
     }
 
     const bound = {
-      x: pastLeft ? this.boundX.from : this.boundX.to,
-      y: pastTop ? this.boundY.from : this.boundY.to,
+      x: beyondXFrom ? this.boundX.from : this.boundX.to,
+      y: beyondYFrom ? this.boundY.from : this.boundY.to,
     };
 
     const distanceToBound = {
@@ -197,17 +197,17 @@ export default class ScrollBooster {
       y: this.position.y + (this.velocity.y + force.y) / (1 - this.friction),
     };
 
-    if ((pastLeft && restPosition.x >= this.boundX.from) || (pastRight && restPosition.x <= this.boundX.to)) {
+    if ((beyondXFrom && restPosition.x >= this.boundX.from) || (beyondXTo && restPosition.x <= this.boundX.to)) {
       force.x = distanceToBound.x * this.bounceForce - this.velocity.x;
     }
 
-    if ((pastTop && restPosition.y >= this.boundY.from) || (pastBottom && restPosition.y <= this.boundY.to)) {
+    if ((beyondYFrom && restPosition.y >= this.boundY.from) || (beyondYTo && restPosition.y <= this.boundY.to)) {
       force.y = distanceToBound.y * this.bounceForce - this.velocity.y;
     }
 
     this.applyForce({
-      x: pastX ? force.x : 0,
-      y: pastY ? force.y : 0,
+      x: beyondX ? force.x : 0,
+      y: beyondY ? force.y : 0,
     });
   }
 
@@ -224,12 +224,10 @@ export default class ScrollBooster {
       y: this.dragPosition.y - this.position.y
     };
 
-    const force = {
+    this.applyForce({
       x: dragVelocity.x - this.velocity.x,
       y: dragVelocity.y - this.velocity.y
-    };
-
-    this.applyForce(force);
+    });
   }
 
   /**
@@ -240,15 +238,13 @@ export default class ScrollBooster {
       return;
     }
 
-    const force = {
+    this.applyForce({
       x: this.scrollOffset.x - this.velocity.x,
       y: this.scrollOffset.y - this.velocity.y
-    };
+    });
 
     this.scrollOffset.x = 0;
     this.scrollOffset.y = 0;
-
-    this.applyForce(force);
   }
 
   applyTargetForce() {
@@ -256,12 +252,10 @@ export default class ScrollBooster {
       return
     }
 
-    const force = {
+    this.applyForce({
       x: (this.targetPosition.x - this.position.x) * 0.08 - this.velocity.x,
       y: (this.targetPosition.y - this.position.y) * 0.08 - this.velocity.y,
-    };
-
-    this.applyForce(force);
+    });
   }
 
   /**
@@ -294,6 +288,12 @@ export default class ScrollBooster {
       isDragging: !!(this.dragOffset.x || this.dragOffset.y),
       position: { x: -this.position.x, y: -this.position.y },
       dragOffset: this.dragOffset,
+      borderCollision: {
+        left: this.position.x >= this.boundX.to,
+        right: this.position.x <= this.boundX.from,
+        top: this.position.y >= this.boundY.to,
+        bottom: this.position.y <= this.boundY.from,
+      }
     };
   }
 
