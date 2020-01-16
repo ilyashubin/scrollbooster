@@ -38,6 +38,8 @@ export default class ScrollBooster {
       textSelection: false,
       inputsFocus: true,
       emulateScroll: false,
+      emulateScrollAllowY: true,
+      emulateScrollAllowX: true,
       onClick() {},
       onUpdate() {},
       shouldScroll() { return true }
@@ -407,8 +409,13 @@ export default class ScrollBooster {
       this.velocity.y = 0;
       this.isScrolling = true;
 
-      this.scrollOffset.x = -event.deltaX;
-      this.scrollOffset.y = -event.deltaY;
+      if(this.props.emulateScrollAllowX) {
+        this.scrollOffset.x = -event.deltaX;
+      }
+      
+      if(this.props.emulateScrollAllowY) {
+          this.scrollOffset.y = -event.deltaY;
+      }
 
       this.run();
 
