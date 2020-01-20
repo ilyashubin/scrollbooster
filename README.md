@@ -93,12 +93,12 @@ const sb = new ScrollBooster({
   },
   shouldScroll: (state, event) => {
     // disable scroll if clicked on button
-    const isButton = event.taget.nodeName.toLowerCase() === 'button';
+    const isButton = event.target.nodeName.toLowerCase() === 'button';
     return !isButton;
   },
   onClick: (state, event) => {
     // prevent default link event
-    const isLink = event.taget.nodeName.toLowerCase() === 'link';
+    const isLink = event.target.nodeName.toLowerCase() === 'link';
     if (isLink) {
       event.preventDefault();
     }
