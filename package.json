@@ -11,7 +11,10 @@
     "build": "webpack --mode production",
     "start": "webpack-dev-server --host 0.0.0.0"
   },
-  "browserslist": ["> 0.25%", "not dead"],
+  "browserslist": [
+    "> 0.25%",
+    "not dead"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ilyashubin/scrollbooster.git"
@@ -31,6 +34,7 @@
     "@babel/preset-env": "^7.7.7",
     "babel-loader": "^8.0.6",
     "babel-plugin-add-module-exports": "^1.0.2",
+    "prettier": "^1.19.1",
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10",
     "webpack-dev-server": "^3.10.1"

@@ -2,6 +2,8 @@
 
 Enjoyable drag-to-scroll micro library (~2KB gzipped). Supports smooth content scroll via mouse/touch dragging, trackpad or mouse wheel. Zero dependencies.
 
+Easy to setup yet flexible enough to support any custom scrolling logic.
+
 ### Installation
 
 You can install it via `npm` or `yarn` package manager or via `script` tag:
@@ -15,7 +17,7 @@ yarn add scrollbooster
 ```
 
 ``` html
-<script src="https://unpkg.com/scrollbooster@2.0.0/dist/scrollbooster.min.js"></script>
+<script src="https://unpkg.com/scrollbooster@2/dist/scrollbooster.min.js"></script>
 ```
 
 ### Usage
@@ -25,19 +27,9 @@ The most simple setup with default settings:
 ``` js
 import ScrollBooster from 'scrollbooster';
 
-const viewport = document.querySelector('.viewport');
-const content = document.querySelector('.scrollable-content');
-
 new ScrollBooster({
-    viewport,
-    content,
-    onUpdate: (state) => {
-      content.style.transform = `translate(
-        ${-state.position.x}px,
-        ${-state.position.y}px
-      )`;
-    },
-    // other options (see below)
+    viewport: document.querySelector('.viewport'),
+    scrollMode: 'transform'
 });
 ```
 
@@ -49,6 +41,7 @@ Option | Type | Default | Description
 ------ | ---- | ------- | -----------
 viewport | DOM Node | null | Content viewport element (required)
 content | DOM Node | viewport child element | Scrollable content element inside viewport
+scrollMode | String | undefined | Scroll technique - via CSS transform or natively. Could be 'transform' or 'native'
 direction | String | 'all' | Scroll direction. Could be 'horizontal', 'vertical' or 'all'
 bounce | Boolean | true | Enables elastic bounce effect when hitting viewport borders
 textSelection | Boolean | false | Enables text selection inside viewport
@@ -86,6 +79,7 @@ const sb = new ScrollBooster({
   emulateScroll: true,
   onUpdate: (state) => {
     // state contains useful metrics: position, dragOffset, isDragging, isMoving, borderCollision
+    // you can control scroll rendering manually without 'scrollMethod' option:
     content.style.transform = `translate(
       ${-state.position.x}px,
       ${-state.position.y}px
@@ -107,7 +101,7 @@ const sb = new ScrollBooster({
 
 // methods usage examples:
 sb.updateMetrics();
-sb.setPosition({ x: 100, y: 100 });
+sb.scrollTo({ x: 100, y: 100 });
 sb.updateOptions({ emulateScroll: false });
 sb.destroy();
 ```
