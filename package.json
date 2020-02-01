@@ -1,7 +1,7 @@
 {
   "name": "scrollbooster",
   "description": "Enjoyable content drag-to-scroll library",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "author": "Ilya Shubin <pixelwake@gmail.com>",
   "license": "MIT",
   "main": "dist/scrollbooster.min.js",
@@ -11,7 +11,10 @@
     "build": "webpack --mode production",
     "start": "webpack-dev-server --host 0.0.0.0"
   },
-  "browserslist": ["> 0.25%", "not dead"],
+  "browserslist": [
+    "> 0.25%",
+    "not dead"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ilyashubin/scrollbooster.git"
