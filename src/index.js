@@ -1,6 +1,3 @@
-const getFullWidth = (elem) => Math.max(elem.offsetWidth, elem.scrollWidth);
-const getFullHeight = (elem) => Math.max(elem.offsetHeight, elem.scrollHeight);
-
 const textNodeFromPoint = (element, x, y) => {
     const nodes = element.childNodes;
     const range = document.createRange();
@@ -120,8 +117,8 @@ export default class ScrollBooster {
             height: this.props.viewport.clientHeight,
         };
         this.content = {
-            width: getFullWidth(this.props.content),
-            height: getFullHeight(this.props.content),
+            width: this.props.content.clientWidth,
+            height: this.props.content.clientHeight,
         };
         this.edgeX = {
             from: Math.min(-this.content.width + this.viewport.width, 0),
