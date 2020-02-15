@@ -30,6 +30,8 @@ const clearTextSelection = () => {
     }
 };
 
+const CLICK_EVENT_THRESHOLD_PX = 5;
+
 export default class ScrollBooster {
     /**
      * Create ScrollBooster instance
@@ -494,7 +496,15 @@ export default class ScrollBooster {
             }
         };
 
-        this.events.click = (event) => this.props.onClick(this.getState(), event);
+        this.events.click = (event) => {
+            const state = this.getState();
+            if (Math.abs(Math.max(state.dragOffset.x, state.dragOffset.y)) > CLICK_EVENT_THRESHOLD_PX) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            this.props.onClick(state, event);
+        };
+
         this.events.contentLoad = () => this.updateMetrics();
         this.events.resize = () => this.updateMetrics();
 
