@@ -9,6 +9,7 @@ module.exports = {
     libraryTarget: 'umd',
     libraryExport: 'default',
     umdNamedDefine: true,
+    globalObject: 'this',
   },
   module: {
     rules: [
@@ -19,10 +20,10 @@ module.exports = {
           loader: 'babel-loader',
           options: {
             presets: ['@babel/preset-env'],
-          }
-        }
-      }
-    ]
+          },
+        },
+      },
+    ],
   },
   devServer: {
     contentBase: path.join(__dirname),
