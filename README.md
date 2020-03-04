@@ -51,7 +51,7 @@ friction | Number | 0.05 | Scroll friction factor - how fast scrolling stops aft
 bounceForce | Number | 0.1 | Elastic bounce effect factor
 emulateScroll | Boolean | false | Enables mouse wheel/trackpad emulation inside viewport
 onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates
-onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives object with scrolling metrics and event object. Calls after each `click` in scrollable area
+onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives object with scrolling metrics, event object and a boolean letting you know if the original click event was prevented due to not scrolling very far. Calls after each `click` in scrollable area
 shouldScroll | Function | noop | Function to permit or disable scrolling. Receives object with scrolling state and event object. Calls on `pointerdown` (mousedown, touchstart) in scrollable area. You can return `true` or `false` to enable or disable scrolling
 
 ### List of methods
