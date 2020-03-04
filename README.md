@@ -90,7 +90,11 @@ const sb = new ScrollBooster({
     const isButton = event.target.nodeName.toLowerCase() === 'button';
     return !isButton;
   },
-  onClick: (state, event) => {
+  onClick: (state, event, eventWasPrevented) => {
+    if (eventWasPrevented) {
+      return;
+    }
+    
     // prevent default link event
     const isLink = event.target.nodeName.toLowerCase() === 'link';
     if (isLink) {
