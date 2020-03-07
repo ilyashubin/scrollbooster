@@ -63,6 +63,7 @@ export default class ScrollBooster {
             textSelection: false,
             inputsFocus: true,
             emulateScroll: false,
+            pointerDownPreventDefault: true,
             onClick() {},
             onUpdate() {},
             shouldScroll() {
@@ -455,7 +456,9 @@ export default class ScrollBooster {
 
             setDragPosition(event);
             this.startAnimationLoop();
-            event.preventDefault();
+            if (this.props.pointerDownPreventDefault) {
+                event.preventDefault();
+            }
         };
 
         this.events.pointermove = (event) => {
