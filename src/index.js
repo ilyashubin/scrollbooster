@@ -498,7 +498,9 @@ export default class ScrollBooster {
 
         this.events.click = (event) => {
             const state = this.getState();
-            if (Math.abs(Math.max(state.dragOffset.x, state.dragOffset.y)) > CLICK_EVENT_THRESHOLD_PX) {
+            const dragOffsetX = this.props.direction !== 'vertical' ? state.dragOffset.x : 0;
+            const dragOffsetY = this.props.direction !== 'horizontal' ? state.dragOffset.y : 0;
+            if (Math.max(Math.abs(dragOffsetX), Math.abs(dragOffsetY)) > CLICK_EVENT_THRESHOLD_PX) {
                 event.preventDefault();
                 event.stopPropagation();
             }
