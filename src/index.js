@@ -49,6 +49,7 @@ export default class ScrollBooster {
      * @param {Boolean} options.emulateScroll - enables mousewheel emulation
      * @param {Function} options.onClick - click handler
      * @param {Function} options.onUpdate - state update handler
+     * @param {Function} options.onWheel - wheel handler
      * @param {Function} options.shouldScroll - predicate to allow or disable scroll
      */
     constructor(options = {}) {
@@ -66,6 +67,7 @@ export default class ScrollBooster {
             pointerDownPreventDefault: true,
             onClick() {},
             onUpdate() {},
+            onWheel() {},
             shouldScroll() {
                 return true;
             },
@@ -470,6 +472,7 @@ export default class ScrollBooster {
         };
 
         this.events.wheel = (event) => {
+            const state = this.getState();
             if (!this.props.emulateScroll) {
                 return;
             }
@@ -479,6 +482,8 @@ export default class ScrollBooster {
 
             this.scrollOffset.x = -event.deltaX;
             this.scrollOffset.y = -event.deltaY;
+
+            this.props.onWheel(state, event);
 
             this.startAnimationLoop();
 
