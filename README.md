@@ -52,7 +52,7 @@ bounceForce | Number | 0.1 | Elastic bounce effect factor
 emulateScroll | Boolean | false | Enables mouse wheel/trackpad emulation inside viewport
 pointerDownPreventDefault | Boolean | true | Prevent default `mousedown`/`touchstart` event (scroll window while dragging on mobile devices)
 lockScrollOnDragDirection | String | false | Detect drag direction and either prevent default `mousedown`/`touchstart` event or lock content scroll. Could be 'horizontal' or 'vertical'
-lockScrollOnDragDirectionTolerance | Number | 40 | Tolerance for horizontal or vertical drag direction detection
+DragDirectionTolerance | Number | 40 | Tolerance for horizontal or vertical drag direction detection
 onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates
 onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives object with scrolling metrics and event object. Calls after each `click` in scrollable area
 shouldScroll | Function | noop | Function to permit or disable scrolling. Receives object with scrolling state and event object. Calls on `pointerdown` (mousedown, touchstart) in scrollable area. You can return `true` or `false` to enable or disable scrolling
