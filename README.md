@@ -50,6 +50,7 @@ pointerMode | String | 'all' | Specify pointer type. Supported values - 'touch' 
 friction | Number | 0.05 | Scroll friction factor - how fast scrolling stops after pointer release
 bounceForce | Number | 0.1 | Elastic bounce effect factor
 emulateScroll | Boolean | false | Enables mouse wheel/trackpad emulation inside viewport
+preventDefaultOnEmulateScroll | String | false | Prevents horizontal or vertical default when `emulateScroll` is enabled (eg. useful to prevent horizontal trackpad gestures while enabling vertical scrolling). Could be 'horizontal' or 'vertical'.
 pointerDownPreventDefault | Boolean | true | Prevent default `mousedown`/`touchstart` event (scroll window while dragging on mobile devices)
 lockScrollOnDragDirection | String | false | Detect drag direction and either prevent default `mousedown`/`touchstart` event or lock content scroll. Could be 'horizontal' or 'vertical'
 DragDirectionTolerance | Number | 40 | Tolerance for horizontal or vertical drag direction detection

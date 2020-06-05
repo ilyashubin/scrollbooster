@@ -64,6 +64,7 @@ export default class ScrollBooster {
             textSelection: false,
             inputsFocus: true,
             emulateScroll: false,
+            preventDefaultOnEmulateScroll: false, // 'vertical', 'horizontal'
             pointerDownPreventDefault: true,
             lockScrollOnDragDirection: false, // 'vertical', 'horizontal'
             DragDirectionTolerance: 40,
@@ -420,6 +421,7 @@ export default class ScrollBooster {
             this.clientOffset.x = clientX - clientOrigin.x;
             this.clientOffset.y = clientY - clientOrigin.y;
 
+            // get dragDirection if offset threshold is reached
             if (
                 (Math.abs(this.clientOffset.x) > 5 && !dragDirection) ||
                 (Math.abs(this.clientOffset.y) > 5 && !dragDirection)
@@ -556,7 +558,17 @@ export default class ScrollBooster {
 
             clearTimeout(wheelTimer);
             wheelTimer = setTimeout(() => (this.isScrolling = false), 80);
-            event.preventDefault();
+
+            // get (trackpad) scrollDirection and prevent default events
+            if (
+                this.props.preventDefaultOnEmulateScroll &&
+                this.getDragDirection(
+                    this.getDragAngle(-event.deltaX, -event.deltaY),
+                    this.props.DragDirectionTolerance
+                ) === this.props.preventDefaultOnEmulateScroll
+            ) {
+                event.preventDefault();
+            }
         };
 
         this.events.scroll = () => {
