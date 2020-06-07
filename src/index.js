@@ -524,7 +524,7 @@ export default class ScrollBooster {
             setDragPosition(event);
             this.startAnimationLoop();
 
-            if (this.props.pointerDownPreventDefault) {
+            if (!isTouch && this.props.pointerDownPreventDefault) {
                 event.preventDefault();
             }
         };
