@@ -67,6 +67,7 @@ export default class ScrollBooster {
             preventDefaultOnEmulateScroll: false, // 'vertical', 'horizontal'
             preventPointerMoveDefault: true,
             lockScrollOnDragDirection: false, // 'vertical', 'horizontal', 'all'
+            pointerDownPreventDefault: true,
             dragDirectionTolerance: 40,
             onPointerDown() {},
             onPointerUp() {},
@@ -522,6 +523,10 @@ export default class ScrollBooster {
 
             setDragPosition(event);
             this.startAnimationLoop();
+
+            if (this.props.pointerDownPreventDefault) {
+                event.preventDefault();
+            }
         };
 
         this.events.pointermove = (event) => {

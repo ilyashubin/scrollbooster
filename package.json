@@ -1,7 +1,7 @@
 {
   "name": "scrollbooster",
   "description": "Enjoyable content drag-to-scroll library",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "author": "Ilya Shubin <pixelwake@gmail.com>",
   "license": "MIT",
   "main": "dist/scrollbooster.min.js",
