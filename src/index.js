@@ -67,7 +67,7 @@ export default class ScrollBooster {
             preventDefaultOnEmulateScroll: false, // 'vertical', 'horizontal'
             pointerDownPreventDefault: true,
             lockScrollOnDragDirection: false, // 'vertical', 'horizontal'
-            DragDirectionTolerance: 40,
+            dragDirectionTolerance: 40,
             onClick() {},
             onUpdate() {},
             onWheel() {},
@@ -428,7 +428,7 @@ export default class ScrollBooster {
             ) {
                 dragDirection = this.getDragDirection(
                     this.getDragAngle(this.clientOffset.x, this.clientOffset.y),
-                    this.props.DragDirectionTolerance
+                    this.props.dragDirectionTolerance
                 );
             }
 
@@ -564,7 +564,7 @@ export default class ScrollBooster {
                 this.props.preventDefaultOnEmulateScroll &&
                 this.getDragDirection(
                     this.getDragAngle(-event.deltaX, -event.deltaY),
-                    this.props.DragDirectionTolerance
+                    this.props.dragDirectionTolerance
                 ) === this.props.preventDefaultOnEmulateScroll
             ) {
                 event.preventDefault();
