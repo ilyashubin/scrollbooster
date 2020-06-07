@@ -64,7 +64,10 @@ export default class ScrollBooster {
             textSelection: false,
             inputsFocus: true,
             emulateScroll: false,
+            preventDefaultOnEmulateScroll: false, // 'vertical', 'horizontal'
             pointerDownPreventDefault: true,
+            lockScrollOnDragDirection: false, // 'vertical', 'horizontal'
+            dragDirectionTolerance: 40,
             onClick() {},
             onUpdate() {},
             onWheel() {},
@@ -96,6 +99,7 @@ export default class ScrollBooster {
         this.velocity = { ...START_COORDINATES };
         this.dragStartPosition = { ...START_COORDINATES };
         this.dragOffset = { ...START_COORDINATES };
+        this.clientOffset = { ...START_COORDINATES };
         this.dragPosition = { ...START_COORDINATES };
         this.targetPosition = { ...START_COORDINATES };
         this.scrollOffset = { ...START_COORDINATES };
@@ -350,6 +354,7 @@ export default class ScrollBooster {
             isDragging: !!(this.dragOffset.x || this.dragOffset.y),
             position: { x: -this.position.x, y: -this.position.y },
             dragOffset: this.dragOffset,
+            dragAngle: this.getDragAngle(this.clientOffset.x, this.clientOffset.y),
             borderCollision: {
                 left: this.position.x >= this.edgeX.to,
                 right: this.position.x <= this.edgeX.from,
@@ -357,6 +362,26 @@ export default class ScrollBooster {
                 bottom: this.position.y <= this.edgeY.from,
             },
         };
+    }
+
+    /**
+     * Get drag angle (up: 180, left: -90, right: 90, down: 0)
+     */
+    getDragAngle(x, y) {
+        return Math.round(Math.atan2(x, y) * (180 / Math.PI));
+    }
+
+    /**
+     * Get drag direction (horizontal or vertical)
+     */
+    getDragDirection(angle, tolerance) {
+        const absAngle = Math.abs(90 - Math.abs(angle));
+
+        if (absAngle <= 90 - tolerance) {
+            return 'horizontal';
+        } else {
+            return 'vertical';
+        }
     }
 
     /**
@@ -377,6 +402,8 @@ export default class ScrollBooster {
      */
     handleEvents() {
         const dragOrigin = { x: 0, y: 0 };
+        const clientOrigin = { x: 0, y: 0 };
+        let dragDirection = null;
         let wheelTimer = null;
         let isTouch = false;
 
@@ -385,14 +412,42 @@ export default class ScrollBooster {
                 return;
             }
 
-            const pageX = isTouch ? event.touches[0].pageX : event.pageX;
-            const pageY = isTouch ? event.touches[0].pageY : event.pageY;
+            const eventData = isTouch ? event.touches[0] : event;
+            const { pageX, pageY, clientX, clientY } = eventData;
 
             this.dragOffset.x = pageX - dragOrigin.x;
             this.dragOffset.y = pageY - dragOrigin.y;
 
-            this.dragPosition.x = this.dragStartPosition.x + this.dragOffset.x;
-            this.dragPosition.y = this.dragStartPosition.y + this.dragOffset.y;
+            this.clientOffset.x = clientX - clientOrigin.x;
+            this.clientOffset.y = clientY - clientOrigin.y;
+
+            // get dragDirection if offset threshold is reached
+            if (
+                (Math.abs(this.clientOffset.x) > 5 && !dragDirection) ||
+                (Math.abs(this.clientOffset.y) > 5 && !dragDirection)
+            ) {
+                dragDirection = this.getDragDirection(
+                    this.getDragAngle(this.clientOffset.x, this.clientOffset.y),
+                    this.props.dragDirectionTolerance
+                );
+            }
+
+            // prevent scroll if not expected scroll direction
+            if (this.props.lockScrollOnDragDirection) {
+                if (dragDirection === this.props.lockScrollOnDragDirection && isTouch) {
+                    this.dragPosition.x = this.dragStartPosition.x + this.dragOffset.x;
+                    this.dragPosition.y = this.dragStartPosition.y + this.dragOffset.y;
+                } else if (!isTouch) {
+                    this.dragPosition.x = this.dragStartPosition.x + this.dragOffset.x;
+                    this.dragPosition.y = this.dragStartPosition.y + this.dragOffset.y;
+                } else {
+                    this.dragPosition.x = this.dragStartPosition.x;
+                    this.dragPosition.y = this.dragStartPosition.y;
+                }
+            } else {
+                this.dragPosition.x = this.dragStartPosition.x + this.dragOffset.x;
+                this.dragPosition.y = this.dragStartPosition.y + this.dragOffset.y;
+            }
         };
 
         this.events.pointerdown = (event) => {
@@ -453,22 +508,36 @@ export default class ScrollBooster {
 
             dragOrigin.x = pageX;
             dragOrigin.y = pageY;
+
+            clientOrigin.x = clientX;
+            clientOrigin.y = clientY;
+
             this.dragStartPosition.x = this.position.x;
             this.dragStartPosition.y = this.position.y;
 
             setDragPosition(event);
             this.startAnimationLoop();
+
             if (this.props.pointerDownPreventDefault) {
                 event.preventDefault();
             }
         };
 
         this.events.pointermove = (event) => {
+            // prevent default scroll if scroll direction is locked
+            if (
+                this.props.lockScrollOnDragDirection &&
+                dragDirection === this.props.lockScrollOnDragDirection &&
+                event.cancelable
+            ) {
+                event.preventDefault();
+            }
             setDragPosition(event);
         };
 
         this.events.pointerup = () => {
             this.isDragging = false;
+            dragDirection = null;
         };
 
         this.events.wheel = (event) => {
@@ -489,7 +558,17 @@ export default class ScrollBooster {
 
             clearTimeout(wheelTimer);
             wheelTimer = setTimeout(() => (this.isScrolling = false), 80);
-            event.preventDefault();
+
+            // get (trackpad) scrollDirection and prevent default events
+            if (
+                this.props.preventDefaultOnEmulateScroll &&
+                this.getDragDirection(
+                    this.getDragAngle(-event.deltaX, -event.deltaY),
+                    this.props.dragDirectionTolerance
+                ) === this.props.preventDefaultOnEmulateScroll
+            ) {
+                event.preventDefault();
+            }
         };
 
         this.events.scroll = () => {
@@ -519,13 +598,13 @@ export default class ScrollBooster {
         this.events.resize = () => this.updateMetrics();
 
         this.props.viewport.addEventListener('mousedown', this.events.pointerdown);
-        this.props.viewport.addEventListener('touchstart', this.events.pointerdown);
+        this.props.viewport.addEventListener('touchstart', this.events.pointerdown, { passive: false });
         this.props.viewport.addEventListener('click', this.events.click);
-        this.props.viewport.addEventListener('wheel', this.events.wheel);
+        this.props.viewport.addEventListener('wheel', this.events.wheel, { passive: false });
         this.props.viewport.addEventListener('scroll', this.events.scroll);
         this.props.content.addEventListener('load', this.events.contentLoad, true);
         window.addEventListener('mousemove', this.events.pointermove);
-        window.addEventListener('touchmove', this.events.pointermove);
+        window.addEventListener('touchmove', this.events.pointermove, { passive: false });
         window.addEventListener('mouseup', this.events.pointerup);
         window.addEventListener('touchend', this.events.pointerup);
         window.addEventListener('resize', this.events.resize);
