@@ -65,9 +65,12 @@ export default class ScrollBooster {
             inputsFocus: true,
             emulateScroll: false,
             preventDefaultOnEmulateScroll: false, // 'vertical', 'horizontal'
-            pointerDownPreventDefault: true,
-            lockScrollOnDragDirection: false, // 'vertical', 'horizontal'
+            preventPointerMoveDefault: true,
+            lockScrollOnDragDirection: false, // 'vertical', 'horizontal', 'all'
             dragDirectionTolerance: 40,
+            onPointerDown() {},
+            onPointerUp() {},
+            onPointerMove() {},
             onClick() {},
             onUpdate() {},
             onWheel() {},
@@ -433,7 +436,7 @@ export default class ScrollBooster {
             }
 
             // prevent scroll if not expected scroll direction
-            if (this.props.lockScrollOnDragDirection) {
+            if (this.props.lockScrollOnDragDirection && this.props.lockScrollOnDragDirection !== 'all') {
                 if (dragDirection === this.props.lockScrollOnDragDirection && isTouch) {
                     this.dragPosition.x = this.dragStartPosition.x + this.dragOffset.x;
                     this.dragPosition.y = this.dragStartPosition.y + this.dragOffset.y;
@@ -452,6 +455,8 @@ export default class ScrollBooster {
 
         this.events.pointerdown = (event) => {
             isTouch = !!(event.touches && event.touches[0]);
+
+            this.props.onPointerDown(this.getState(), event, isTouch);
 
             const eventData = isTouch ? event.touches[0] : event;
             const { pageX, pageY, clientX, clientY } = eventData;
@@ -517,27 +522,22 @@ export default class ScrollBooster {
 
             setDragPosition(event);
             this.startAnimationLoop();
-
-            if (this.props.pointerDownPreventDefault) {
-                event.preventDefault();
-            }
         };
 
         this.events.pointermove = (event) => {
             // prevent default scroll if scroll direction is locked
-            if (
-                this.props.lockScrollOnDragDirection &&
-                dragDirection === this.props.lockScrollOnDragDirection &&
-                event.cancelable
-            ) {
+            if (event.cancelable && (this.props.lockScrollOnDragDirection === 'all' ||
+                this.props.lockScrollOnDragDirection === dragDirection)) {
                 event.preventDefault();
             }
             setDragPosition(event);
+            this.props.onPointerMove(this.getState(), event, isTouch);
         };
 
-        this.events.pointerup = () => {
+        this.events.pointerup = (event) => {
             this.isDragging = false;
             dragDirection = null;
+            this.props.onPointerUp(this.getState(), event, isTouch);
         };
 
         this.events.wheel = (event) => {
@@ -591,7 +591,7 @@ export default class ScrollBooster {
                 event.preventDefault();
                 event.stopPropagation();
             }
-            this.props.onClick(state, event);
+            this.props.onClick(state, event, isTouch);
         };
 
         this.events.contentLoad = () => this.updateMetrics();

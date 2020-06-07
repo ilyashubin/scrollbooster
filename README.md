@@ -46,16 +46,19 @@ direction | String | 'all' | Scroll direction. Could be 'horizontal', 'vertical'
 bounce | Boolean | true | Enables elastic bounce effect when hitting viewport borders
 textSelection | Boolean | false | Enables text selection inside viewport
 inputsFocus | Boolean | true | Enables focus for elements: 'input', 'textarea', 'button', 'select' and 'label'
-pointerMode | String | 'all' | Specify pointer type. Supported values - 'touch' (scroll only on touch devices), 'mouse' (scroll only on desktop), 'all' (mobile and desktop) 
+pointerMode | String | 'all' | Specify pointer type. Supported values - 'touch' (scroll only on touch devices), 'mouse' (scroll only on desktop), 'all' (mobile and desktop)
 friction | Number | 0.05 | Scroll friction factor - how fast scrolling stops after pointer release
 bounceForce | Number | 0.1 | Elastic bounce effect factor
 emulateScroll | Boolean | false | Enables mouse wheel/trackpad emulation inside viewport
 preventDefaultOnEmulateScroll | String | false | Prevents horizontal or vertical default when `emulateScroll` is enabled (eg. useful to prevent horizontal trackpad gestures while enabling vertical scrolling). Could be 'horizontal' or 'vertical'.
-pointerDownPreventDefault | Boolean | true | Prevent default `mousedown`/`touchstart` event (scroll window while dragging on mobile devices)
-lockScrollOnDragDirection | String | false | Detect drag direction and either prevent default `mousedown`/`touchstart` event or lock content scroll. Could be 'horizontal' or 'vertical'
+lockScrollOnDragDirection | String | false | Detect drag direction and either prevent default `mousedown`/`touchstart` event or lock content scroll. Could be 'horizontal', 'vertical' or 'all'
 dragDirectionTolerance | Number | 40 | Tolerance for horizontal or vertical drag detection
 onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates
 onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives object with scrolling metrics and event object. Calls after each `click` in scrollable area
+onPointerDown | Function | noop | `mousedown`/`touchstart` events handler
+onPointerUp | Function | noop | `mouseup`/`touchend` events handler
+onPointerMove | Function | noop | `mousemove`/`touchmove` events handler
+onWheel | Function | noop | `wheel` event handler
 shouldScroll | Function | noop | Function to permit or disable scrolling. Receives object with scrolling state and event object. Calls on `pointerdown` (mousedown, touchstart) in scrollable area. You can return `true` or `false` to enable or disable scrolling
 
 ### List of methods
@@ -94,7 +97,7 @@ const sb = new ScrollBooster({
     const isButton = event.target.nodeName.toLowerCase() === 'button';
     return !isButton;
   },
-  onClick: (state, event) => {
+  onClick: (state, event, isTouchDevice) => {
     // prevent default link event
     const isLink = event.target.nodeName.toLowerCase() === 'link';
     if (isLink) {
