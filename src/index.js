@@ -69,18 +69,26 @@ export default class ScrollBooster {
             lockScrollOnDragDirection: false, // 'vertical', 'horizontal', 'all'
             pointerDownPreventDefault: true,
             dragDirectionTolerance: 40,
-            onPointerDown() {},
-            onPointerUp() {},
-            onPointerMove() {},
-            onClick() {},
-            onUpdate() {},
-            onWheel() {},
+            onPointerDown() {
+            },
+            onPointerUp() {
+            },
+            onPointerMove() {
+            },
+            onClick() {
+            },
+            onUpdate() {
+            },
+            onWheel() {
+            },
             shouldScroll() {
                 return true;
             },
         };
 
-        this.props = { ...defaults, ...options };
+        /** Microsoft Edge 44.18362.449.0 compatibility */
+        /*this.props = { ...defaults, ...options };*/
+        this.props = Object.assign({}, defaults, options);
 
         if (!this.props.viewport || !(this.props.viewport instanceof Element)) {
             console.error(`ScrollBooster init error: "viewport" config property must be present and must be Element`);
@@ -97,16 +105,24 @@ export default class ScrollBooster {
         this.isScrolling = false;
         this.isRunning = false;
 
-        const START_COORDINATES = { x: 0, y: 0 };
-
-        this.position = { ...START_COORDINATES };
+        const START_COORDINATES = {x: 0, y: 0};
+        /** Microsoft Edge 44.18362.449.0 compatibility */
+        /*this.position = { ...START_COORDINATES };
         this.velocity = { ...START_COORDINATES };
         this.dragStartPosition = { ...START_COORDINATES };
         this.dragOffset = { ...START_COORDINATES };
         this.clientOffset = { ...START_COORDINATES };
         this.dragPosition = { ...START_COORDINATES };
         this.targetPosition = { ...START_COORDINATES };
-        this.scrollOffset = { ...START_COORDINATES };
+        this.scrollOffset = { ...START_COORDINATES };*/
+        this.position = Object.assign({}, START_COORDINATES);
+        this.velocity = Object.assign({}, START_COORDINATES);
+        this.dragStartPosition = Object.assign({}, START_COORDINATES);
+        this.dragOffset = Object.assign({}, START_COORDINATES);
+        this.clientOffset = Object.assign({}, START_COORDINATES);
+        this.dragPosition = Object.assign({}, START_COORDINATES);
+        this.targetPosition = Object.assign({}, START_COORDINATES);
+        this.scrollOffset = Object.assign({}, START_COORDINATES);
 
         this.rafID = null;
         this.events = {};
@@ -119,7 +135,9 @@ export default class ScrollBooster {
      * Update options object with new given values
      */
     updateOptions(options = {}) {
-        this.props = { ...this.props, ...options };
+        /** Microsoft Edge 44.18362.449.0 compatibility */
+        /*this.props = {...this.props, ...options};*/
+        this.props = Object.assign({}, this.props, options);
         this.props.onUpdate(this.getState());
         this.startAnimationLoop();
     }
@@ -356,7 +374,7 @@ export default class ScrollBooster {
         return {
             isMoving: this.isMoving(),
             isDragging: !!(this.dragOffset.x || this.dragOffset.y),
-            position: { x: -this.position.x, y: -this.position.y },
+            position: {x: -this.position.x, y: -this.position.y},
             dragOffset: this.dragOffset,
             dragAngle: this.getDragAngle(this.clientOffset.x, this.clientOffset.y),
             borderCollision: {
@@ -405,8 +423,8 @@ export default class ScrollBooster {
      * Register all DOM events
      */
     handleEvents() {
-        const dragOrigin = { x: 0, y: 0 };
-        const clientOrigin = { x: 0, y: 0 };
+        const dragOrigin = {x: 0, y: 0};
+        const clientOrigin = {x: 0, y: 0};
         let dragDirection = null;
         let wheelTimer = null;
         let isTouch = false;
@@ -417,7 +435,7 @@ export default class ScrollBooster {
             }
 
             const eventData = isTouch ? event.touches[0] : event;
-            const { pageX, pageY, clientX, clientY } = eventData;
+            const {pageX, pageY, clientX, clientY} = eventData;
 
             this.dragOffset.x = pageX - dragOrigin.x;
             this.dragOffset.y = pageY - dragOrigin.y;
@@ -460,9 +478,9 @@ export default class ScrollBooster {
             this.props.onPointerDown(this.getState(), event, isTouch);
 
             const eventData = isTouch ? event.touches[0] : event;
-            const { pageX, pageY, clientX, clientY } = eventData;
+            const {pageX, pageY, clientX, clientY} = eventData;
 
-            const { viewport } = this.props;
+            const {viewport} = this.props;
             const rect = viewport.getBoundingClientRect();
 
             // click on vertical scrollbar
@@ -577,7 +595,7 @@ export default class ScrollBooster {
         };
 
         this.events.scroll = () => {
-            const { scrollLeft, scrollTop } = this.props.viewport;
+            const {scrollLeft, scrollTop} = this.props.viewport;
             if (Math.abs(this.position.x + scrollLeft) > 3) {
                 this.position.x = -scrollLeft;
                 this.velocity.x = 0;
@@ -603,13 +621,13 @@ export default class ScrollBooster {
         this.events.resize = () => this.updateMetrics();
 
         this.props.viewport.addEventListener('mousedown', this.events.pointerdown);
-        this.props.viewport.addEventListener('touchstart', this.events.pointerdown, { passive: false });
+        this.props.viewport.addEventListener('touchstart', this.events.pointerdown, {passive: false});
         this.props.viewport.addEventListener('click', this.events.click);
-        this.props.viewport.addEventListener('wheel', this.events.wheel, { passive: false });
+        this.props.viewport.addEventListener('wheel', this.events.wheel, {passive: false});
         this.props.viewport.addEventListener('scroll', this.events.scroll);
         this.props.content.addEventListener('load', this.events.contentLoad, true);
         window.addEventListener('mousemove', this.events.pointermove);
-        window.addEventListener('touchmove', this.events.pointermove, { passive: false });
+        window.addEventListener('touchmove', this.events.pointermove, {passive: false});
         window.addEventListener('mouseup', this.events.pointerup);
         window.addEventListener('touchend', this.events.pointerup);
         window.addEventListener('resize', this.events.resize);
