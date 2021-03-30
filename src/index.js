@@ -47,6 +47,7 @@ export default class ScrollBooster {
      * @param {Boolean} options.textSelection - enables text selection
      * @param {Boolean} options.inputsFocus - enables focus on input elements
      * @param {Boolean} options.emulateScroll - enables mousewheel emulation
+     * @param {Boolean} options.rtl - enables right-to-left direction for scroll
      * @param {Function} options.onClick - click handler
      * @param {Function} options.onUpdate - state update handler
      * @param {Function} options.onWheel - wheel handler
@@ -64,6 +65,7 @@ export default class ScrollBooster {
             textSelection: false,
             inputsFocus: true,
             emulateScroll: false,
+            rtl: false,
             preventDefaultOnEmulateScroll: false, // 'vertical', 'horizontal'
             preventPointerMoveDefault: true,
             lockScrollOnDragDirection: false, // 'vertical', 'horizontal', 'all'
@@ -136,10 +138,17 @@ export default class ScrollBooster {
             width: getFullWidth(this.props.content),
             height: getFullHeight(this.props.content),
         };
-        this.edgeX = {
+        if (this.props.rtl) {
+          this.edgeX = {
+            from: 0,
+            to: Math.max(this.content.width - this.viewport.width, 0),
+          };
+        } else {
+          this.edgeX = {
             from: Math.min(-this.content.width + this.viewport.width, 0),
             to: 0,
-        };
+          };
+        }
         this.edgeY = {
             from: Math.min(-this.content.height + this.viewport.height, 0),
             to: 0,
