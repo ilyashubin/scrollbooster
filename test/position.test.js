@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mount, pendingFrames, recordTrajectory, roundedPosition, tick } from './helpers.js';
+import { mount, nextRender, pendingFrames, recordTrajectory, roundedPosition, tick } from './helpers.js';
 
 describe('setPosition', () => {
     it('moves content with transform in transform mode', () => {
@@ -111,6 +111,36 @@ describe('updateMetrics', () => {
 
         expect(sb.content.height).toBe(2000);
         expect(sb.edgeY).toEqual({ from: -1700, to: 0 });
+    });
+
+    it('picks up content resize without window resize', async () => {
+        const { sb, content } = mount();
+
+        content.style.height = '2000px';
+        await nextRender();
+
+        expect(sb.content.height).toBe(2000);
+        expect(sb.edgeY).toEqual({ from: -1700, to: 0 });
+    });
+
+    it('picks up viewport resize', async () => {
+        const { sb, viewport } = mount();
+
+        viewport.style.width = '500px';
+        await nextRender();
+
+        expect(sb.viewport.width).toBe(500);
+        expect(sb.edgeX).toEqual({ from: -500, to: 0 });
+    });
+
+    it('skips onUpdate when observed sizes did not change', async () => {
+        const onUpdate = vi.fn();
+        mount({ onUpdate });
+        onUpdate.mockClear();
+
+        await nextRender();
+
+        expect(onUpdate).not.toHaveBeenCalled();
     });
 });
 

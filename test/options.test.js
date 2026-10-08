@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mount, pendingFrames, roundedPosition, tick } from './helpers.js';
+import {
+    createFixture,
+    createPointer,
+    mount,
+    nextRender,
+    pendingFrames,
+    roundedPosition,
+    tick,
+    wheel,
+} from './helpers.js';
 
 describe('updateOptions', () => {
     it('merges options, calls onUpdate and restarts animation loop', () => {
@@ -24,22 +33,147 @@ describe('updateOptions', () => {
 
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 100 });
     });
+
+    it('measures and observes new content', async () => {
+        const { sb, viewport } = mount();
+        const bigger = document.createElement('div');
+        bigger.style.cssText = 'width: 2000px; height: 2000px;';
+        viewport.append(bigger);
+
+        sb.updateOptions({ content: bigger });
+        expect(sb.content).toEqual({ width: 2000, height: 2000 });
+
+        bigger.style.height = '3000px';
+        await nextRender();
+        expect(sb.content).toEqual({ width: 2000, height: 3000 });
+    });
+
+    it('moves listeners to new viewport and reads its scroll position', () => {
+        const { sb, pointer } = mount();
+        const next = createFixture({ contentWidth: 2000 });
+        next.viewport.scrollLeft = 100;
+
+        sb.updateOptions({ viewport: next.viewport });
+
+        expect(sb.props.content).toBe(next.content);
+        expect(sb.content.width).toBe(2000);
+        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
+
+        pointer.mouseDrag([200, 200], [100, 200]);
+        tick(100);
+        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
+
+        createPointer(next.viewport).mouseDrag([200, 200], [100, 200], { release: false });
+        tick(100);
+        expect(roundedPosition(sb)).toEqual({ x: 200, y: 0 });
+        next.viewport.remove();
+    });
+
+    it('logs an error and keeps current elements for invalid viewport', () => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const { sb, viewport } = mount();
+
+        sb.updateOptions({ viewport: document.createElement('div') });
+
+        expect(error).toHaveBeenCalledWith(expect.stringContaining('Viewport does not have any content'));
+        expect(sb.props.viewport).toBe(viewport);
+    });
 });
 
 describe('destroy', () => {
-    it('removes pointer, wheel and resize listeners', () => {
+    it('removes pointer, click and wheel listeners', () => {
+        const callbacks = {
+            onUpdate: vi.fn(),
+            onPointerDown: vi.fn(),
+            onPointerMove: vi.fn(),
+            onPointerUp: vi.fn(),
+            onClick: vi.fn(),
+            onWheel: vi.fn(),
+        };
+        const { sb, pointer, viewport } = mount({ emulateScroll: true, ...callbacks });
+        tick(5);
+
+        sb.destroy();
+        callbacks.onUpdate.mockClear();
+        pointer.mouseDrag([200, 200], [100, 100]);
+        pointer.click(100, 100);
+        pointer.touchDrag([200, 200], [100, 100]);
+        wheel(viewport, 0, 100);
+        tick(10);
+
+        for (const callback of Object.values(callbacks)) {
+            expect(callback).not.toHaveBeenCalled();
+        }
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
+    });
+
+    it('stops running animation', () => {
         const onUpdate = vi.fn();
-        const { sb, pointer, viewport } = mount({ emulateScroll: true, onUpdate });
+        const { sb, pointer } = mount({ onUpdate });
+        pointer.mouseDrag([250, 250], [150, 250], { steps: 5 });
+
+        sb.destroy();
+        onUpdate.mockClear();
+        tick(10);
+
+        expect(onUpdate).not.toHaveBeenCalled();
+        expect(pendingFrames()).toBe(0);
+    });
+
+    it('clears wheel timer', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const { sb, viewport } = mount({ emulateScroll: true });
+        wheel(viewport, 0, 100);
+
+        sb.destroy();
+
+        expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('removes capture load listener from content', () => {
+        const onUpdate = vi.fn();
+        const { sb, content } = mount({ onUpdate });
+        const image = document.createElement('img');
+        content.append(image);
+
+        sb.destroy();
+        onUpdate.mockClear();
+        image.dispatchEvent(new Event('load'));
+
+        expect(onUpdate).not.toHaveBeenCalled();
+    });
+
+    it('stops observing element sizes', async () => {
+        const disconnect = vi.spyOn(ResizeObserver.prototype, 'disconnect');
+        const onUpdate = vi.fn();
+        const { sb, content } = mount({ onUpdate });
+
+        sb.destroy();
+        expect(disconnect).toHaveBeenCalledTimes(1);
+        onUpdate.mockClear();
+        content.style.height = '2000px';
+        await nextRender();
+
+        expect(onUpdate).not.toHaveBeenCalled();
+    });
+
+    it('turns further calls into no-ops', () => {
+        const onUpdate = vi.fn();
+        const { sb } = mount({ onUpdate });
         tick(5);
 
         sb.destroy();
         onUpdate.mockClear();
-        pointer.mouseDrag([200, 200], [100, 100]);
-        viewport.dispatchEvent(new WheelEvent('wheel', { deltaY: 100 }));
-        window.dispatchEvent(new Event('resize'));
+        sb.destroy();
+        sb.updateOptions({ friction: 0.2 });
+        sb.updateMetrics();
+        sb.setPosition({ x: 100 });
+        sb.scrollTo({ x: 100 });
+        sb.startAnimationLoop();
         tick(10);
 
         expect(onUpdate).not.toHaveBeenCalled();
+        expect(pendingFrames()).toBe(0);
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
     });
 });

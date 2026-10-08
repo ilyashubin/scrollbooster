@@ -1,11 +1,10 @@
 /**
- * Known bugs from the modernization plan (Б1–Б13), written as tests of the expected behavior.
+ * Known bugs from the modernization plan (Б4–Б10), written as tests of the expected behavior.
  * `it.fails` passes while the bug exists; when a fix lands, the test starts failing
  * and must be switched to `it` and moved to the relevant test file.
  */
 import { describe, expect, it, vi } from 'vitest';
-import ScrollBooster from '../src/index.ts';
-import { createFixture, mount, roundedPosition, tick } from './helpers.js';
+import { mount, roundedPosition, tick } from './helpers.js';
 
 // Drag at constant speed (px/s) for given duration and release, at given refresh rate
 function flingAt(frameRate, { speed = 1000, duration = 200 } = {}) {
@@ -19,37 +18,6 @@ function flingAt(frameRate, { speed = 1000, duration = 200 } = {}) {
 }
 
 describe('known bugs', () => {
-    it.fails('Б1: constructor without viewport reports error instead of throwing TypeError', () => {
-        vi.spyOn(console, 'error').mockImplementation(() => {});
-
-        expect(() => new ScrollBooster({})).not.toThrow();
-    });
-
-    it.fails('Б2: destroy removes capture load listener from content', () => {
-        const onUpdate = vi.fn();
-        const { sb, content } = mount({ onUpdate });
-        const image = document.createElement('img');
-        content.append(image);
-
-        sb.destroy();
-        onUpdate.mockClear();
-        image.dispatchEvent(new Event('load'));
-
-        expect(onUpdate).not.toHaveBeenCalled();
-    });
-
-    it.fails('Б3: destroy during inertia stops animation', () => {
-        const onUpdate = vi.fn();
-        const { sb, pointer } = mount({ onUpdate });
-        pointer.mouseDrag([250, 250], [150, 250], { steps: 5 });
-
-        sb.destroy();
-        onUpdate.mockClear();
-        tick(10);
-
-        expect(onUpdate).not.toHaveBeenCalled();
-    });
-
     it.fails('Б4: lockScrollOnDragDirection "all" does not block page touch scroll outside of drag', () => {
         mount({ lockScrollOnDragDirection: 'all' });
         const event = new Event('touchmove', { bubbles: true, cancelable: true });
@@ -119,37 +87,5 @@ describe('known bugs', () => {
             .map(([type]) => type);
 
         expect(blocking).toEqual([]);
-    });
-
-    it.fails('Б11: updateOptions with new content updates metrics', () => {
-        const { sb, viewport } = mount();
-        const bigger = document.createElement('div');
-        bigger.style.cssText = 'width: 2000px; height: 2000px;';
-        viewport.append(bigger);
-
-        sb.updateOptions({ content: bigger });
-
-        expect(sb.content).toEqual({ width: 2000, height: 2000 });
-    });
-
-    it.fails('Б12: content resize is picked up without window resize', async () => {
-        const { sb, content } = mount();
-
-        content.style.height = '2000px';
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
-        expect(sb.content.height).toBe(2000);
-    });
-
-    it.fails('Б13: init keeps current scroll position of already scrolled viewport', () => {
-        const { viewport } = createFixture();
-        viewport.scrollTop = 200;
-        const sb = new ScrollBooster({ viewport, scrollMode: 'native' });
-        tick(5);
-
-        expect(viewport.scrollTop).toBe(200);
-        expect(sb.getState().position.y).toBe(200);
-        sb.destroy();
-        viewport.remove();
     });
 });

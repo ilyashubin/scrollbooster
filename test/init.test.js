@@ -57,12 +57,29 @@ describe('init', () => {
         });
     });
 
-    it('logs an error when viewport is not an element', () => {
+    it.each([
+        ['without options', undefined],
+        ['without viewport', {}],
+        ['with non-element viewport', { viewport: { children: [] } }],
+    ])('logs an error instead of throwing %s', (_, options) => {
         const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-        // viewport.children is read before validation, so a non-element object with children is needed here
-        new ScrollBooster({ viewport: { children: [] } });
 
+        expect(() => new ScrollBooster(options)).not.toThrow();
         expect(error).toHaveBeenCalledWith(expect.stringContaining('"viewport" config property must be present'));
+    });
+
+    it('keeps instance with invalid options inert', () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const sb = new ScrollBooster({});
+
+        expect(() => {
+            sb.updateOptions({ friction: 0.1 });
+            sb.updateMetrics();
+            sb.setPosition({ x: 10 });
+            sb.scrollTo({ x: 10 });
+            sb.destroy();
+        }).not.toThrow();
+        expect(pendingFrames()).toBe(0);
     });
 
     it('logs an error when viewport has no content', () => {
@@ -83,11 +100,27 @@ describe('init', () => {
         expect(onUpdate.mock.calls[0][0]).toEqual({
             isMoving: false,
             isDragging: false,
-            position: { x: -0, y: -0 },
+            position: { x: 0, y: 0 },
             dragOffset: { x: 0, y: 0 },
             dragAngle: 0,
             borderCollision: { left: true, right: false, top: true, bottom: false },
         });
+    });
+
+    it('keeps scroll position of already scrolled viewport', () => {
+        const { viewport } = createFixture();
+        viewport.scrollTop = 200;
+        viewport.scrollLeft = 100;
+        const onUpdate = vi.fn();
+        const sb = new ScrollBooster({ viewport, scrollMode: 'native', onUpdate });
+        tick(5);
+
+        expect(onUpdate.mock.calls[0][0].position).toEqual({ x: 100, y: 200 });
+        expect(sb.getState().position).toEqual({ x: 100, y: 200 });
+        expect(viewport.scrollTop).toBe(200);
+        expect(viewport.scrollLeft).toBe(100);
+        sb.destroy();
+        viewport.remove();
     });
 
     it('stops animation loop when nothing moves', () => {

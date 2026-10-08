@@ -60,7 +60,7 @@ describe('wheel', () => {
 
         const event = wheel(viewport, 0, 100);
 
-        expect(onWheel).toHaveBeenCalledWith(expect.objectContaining({ position: { x: -0, y: -0 } }), event);
+        expect(onWheel).toHaveBeenCalledWith(expect.objectContaining({ position: { x: 0, y: 0 } }), event);
     });
 
     it('does not prevent default wheel by default', () => {

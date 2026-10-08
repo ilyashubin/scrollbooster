@@ -140,7 +140,7 @@ describe('drag guards', () => {
 
         expect(position(sb)).toEqual({ x: 0, y: 0 });
         expect(shouldScroll).toHaveBeenCalledWith(
-            expect.objectContaining({ position: { x: -0, y: -0 } }),
+            expect.objectContaining({ position: { x: 0, y: 0 } }),
             expect.any(MouseEvent)
         );
     });

@@ -1,6 +1,7 @@
 import ScrollBooster from '../src/index.ts';
 
 const FRAME_60HZ = 1000 / 60;
+const nativeRaf = window.requestAnimationFrame.bind(window);
 
 let clock = null;
 const mounted = [];
@@ -42,6 +43,14 @@ export function installFrameClock() {
         },
     };
     return clock;
+}
+
+/**
+ * Wait for the next real rendering update, where ResizeObserver notifications are delivered.
+ * Works while the fake frame clock is installed.
+ */
+export function nextRender() {
+    return new Promise((resolve) => nativeRaf(() => setTimeout(resolve)));
 }
 
 export function tick(frames, frameDuration) {
@@ -122,7 +131,7 @@ function dispatchTouch(target, type, touches) {
 /**
  * Pointer helpers with coordinates relative to the viewport top left corner
  */
-function createPointer(viewport) {
+export function createPointer(viewport) {
     const toClient = (x, y) => {
         const rect = viewport.getBoundingClientRect();
         return [rect.left + x, rect.top + y];

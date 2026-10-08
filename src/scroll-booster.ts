@@ -32,12 +32,31 @@ interface EventHandlers {
     scroll: () => void;
     click: (event: MouseEvent) => void;
     contentLoad: () => void;
-    resize: () => void;
+}
+
+interface Metrics {
+    viewport: Size;
+    content: Size;
 }
 
 // Touch for touch events, the event itself for mouse events
 const getPointerData = (event: PointerLikeEvent, isTouch: boolean): Touch | MouseEvent =>
     (isTouch ? (event as TouchEvent).touches[0] : event) as Touch | MouseEvent;
+
+const isSameSize = (a: Size, b: Size): boolean => a.width === b.width && a.height === b.height;
+
+// Content position follows native scroll position of the viewport, so a scrolled viewport keeps its scroll
+const getScrollPosition = (viewport: HTMLElement): Point => ({ x: -viewport.scrollLeft, y: -viewport.scrollTop });
+
+const getElementsError = (viewport: unknown, content: unknown): string | null => {
+    if (!(viewport instanceof Element)) {
+        return '"viewport" config property must be present and must be Element';
+    }
+    if (!content) {
+        return 'Viewport does not have any content';
+    }
+    return null;
+};
 
 export class ScrollBooster {
     // Fields are declared without initializers to keep runtime shape of the JavaScript version
@@ -60,11 +79,23 @@ export class ScrollBooster {
     declare content: Size;
     declare edgeX: Edge;
     declare edgeY: Edge;
+    declare private isDestroyed: boolean;
+    declare private abortController: AbortController;
+    declare private resizeObserver: ResizeObserver;
+    declare private wheelTimer: ReturnType<typeof setTimeout> | undefined;
 
     /**
      * Create ScrollBooster instance
      */
     constructor(options: ScrollBoosterOptions = {} as ScrollBoosterOptions) {
+        // Instance stays inert if init fails: public methods do nothing
+        this.isDestroyed = true;
+
+        if (!(options.viewport instanceof Element)) {
+            console.error(`ScrollBooster init error: ${getElementsError(options.viewport, null)}`);
+            return;
+        }
+
         const defaults: Omit<Props, 'viewport'> = {
             content: options.viewport.children[0] as HTMLElement,
             direction: 'all', // 'vertical', 'horizontal'
@@ -94,16 +125,13 @@ export class ScrollBooster {
 
         this.props = { ...defaults, ...options } as Props;
 
-        if (!this.props.viewport || !(this.props.viewport instanceof Element)) {
-            console.error(`ScrollBooster init error: "viewport" config property must be present and must be Element`);
+        const error = getElementsError(this.props.viewport, this.props.content);
+        if (error) {
+            console.error(`ScrollBooster init error: ${error}`);
             return;
         }
 
-        if (!this.props.content) {
-            console.error(`ScrollBooster init error: Viewport does not have any content`);
-            return;
-        }
-
+        this.isDestroyed = false;
         this.isDragging = false;
         this.isTargetScroll = false;
         this.isScrolling = false;
@@ -111,7 +139,7 @@ export class ScrollBooster {
 
         const START_COORDINATES = { x: 0, y: 0 };
 
-        this.position = { ...START_COORDINATES };
+        this.position = getScrollPosition(this.props.viewport);
         this.velocity = { ...START_COORDINATES };
         this.dragStartPosition = { ...START_COORDINATES };
         this.dragOffset = { ...START_COORDINATES };
@@ -121,6 +149,7 @@ export class ScrollBooster {
         this.scrollOffset = { ...START_COORDINATES };
 
         this.rafID = null;
+        this.wheelTimer = undefined;
         this.events = {} as EventHandlers;
 
         this.updateMetrics();
@@ -131,23 +160,52 @@ export class ScrollBooster {
      * Update options object with new given values
      */
     updateOptions(options: Partial<ScrollBoosterOptions> = {}): void {
-        this.props = { ...this.props, ...options };
-        this.props.onUpdate(this.getState());
-        this.startAnimationLoop();
+        if (this.isDestroyed) {
+            return;
+        }
+
+        const { viewport, content } = this.props;
+        const nextProps = { ...this.props, ...options };
+        // New viewport without explicit content gets its first child as content
+        if (options.viewport !== undefined && options.viewport !== viewport && !('content' in options)) {
+            nextProps.content = options.viewport?.children?.[0] as HTMLElement;
+        }
+
+        if (nextProps.viewport === viewport && nextProps.content === content) {
+            this.props = nextProps;
+            this.props.onUpdate(this.getState());
+            this.startAnimationLoop();
+            return;
+        }
+
+        const error = getElementsError(nextProps.viewport, nextProps.content);
+        if (error) {
+            console.error(`ScrollBooster updateOptions error: ${error}`);
+            return;
+        }
+
+        this.props = nextProps;
+        this.unbindEvents();
+        this.isDragging = false;
+        if (this.props.viewport !== viewport) {
+            this.position = getScrollPosition(this.props.viewport);
+            this.velocity = { x: 0, y: 0 };
+        }
+        this.handleEvents();
+        this.updateMetrics();
     }
 
     /**
      * Update DOM container elements metrics (width and height)
      */
     updateMetrics(): void {
-        this.viewport = {
-            width: this.props.viewport.clientWidth,
-            height: this.props.viewport.clientHeight,
-        };
-        this.content = {
-            width: getFullWidth(this.props.content),
-            height: getFullHeight(this.props.content),
-        };
+        if (this.isDestroyed) {
+            return;
+        }
+
+        const { viewport, content } = this.measure();
+        this.viewport = viewport;
+        this.content = content;
         this.edgeX = {
             from: Math.min(-this.content.width + this.viewport.width, 0),
             to: 0,
@@ -165,6 +223,9 @@ export class ScrollBooster {
      * Run animation loop
      */
     startAnimationLoop(): void {
+        if (this.isDestroyed) {
+            return;
+        }
         this.isRunning = true;
         cancelAnimationFrame(this.rafID as number);
         this.rafID = requestAnimationFrame(() => this.animate());
@@ -174,7 +235,7 @@ export class ScrollBooster {
      * Main animation loop
      */
     animate(): void {
-        if (!this.isRunning) {
+        if (!this.isRunning || this.isDestroyed) {
             return;
         }
         this.updateScrollPosition();
@@ -292,6 +353,9 @@ export class ScrollBooster {
      * Set scroll target coordinate for smooth scroll
      */
     scrollTo(position: Partial<Point> = {}): void {
+        if (this.isDestroyed) {
+            return;
+        }
         this.isTargetScroll = true;
         this.targetPosition.x = -(position.x as number) || 0;
         this.targetPosition.y = -(position.y as number) || 0;
@@ -302,11 +366,25 @@ export class ScrollBooster {
      * Manual position setting
      */
     setPosition(position: Partial<Point> = {}): void {
+        if (this.isDestroyed) {
+            return;
+        }
         this.velocity.x = 0;
         this.velocity.y = 0;
         this.position.x = -(position.x as number) || 0;
         this.position.y = -(position.y as number) || 0;
         this.startAnimationLoop();
+    }
+
+    /**
+     * Read current sizes of viewport and content
+     */
+    private measure(): Metrics {
+        const { viewport, content } = this.props;
+        return {
+            viewport: { width: viewport.clientWidth, height: viewport.clientHeight },
+            content: { width: getFullWidth(content), height: getFullHeight(content) },
+        };
     }
 
     /**
@@ -362,7 +440,6 @@ export class ScrollBooster {
         const dragOrigin = { x: 0, y: 0 };
         const clientOrigin = { x: 0, y: 0 };
         let dragDirection: Axis | null = null;
-        let wheelTimer: ReturnType<typeof setTimeout> | undefined;
         let isTouch = false;
 
         const setDragPosition = (event: PointerLikeEvent) => {
@@ -518,8 +595,8 @@ export class ScrollBooster {
 
             this.startAnimationLoop();
 
-            clearTimeout(wheelTimer);
-            wheelTimer = setTimeout(() => {
+            clearTimeout(this.wheelTimer);
+            this.wheelTimer = setTimeout(() => {
                 this.isScrolling = false;
             }, 80);
 
@@ -559,35 +636,56 @@ export class ScrollBooster {
         };
 
         this.events.contentLoad = () => this.updateMetrics();
-        this.events.resize = () => this.updateMetrics();
 
-        this.props.viewport.addEventListener('mousedown', this.events.pointerdown);
-        this.props.viewport.addEventListener('touchstart', this.events.pointerdown, { passive: false });
-        this.props.viewport.addEventListener('click', this.events.click);
-        this.props.viewport.addEventListener('wheel', this.events.wheel, { passive: false });
-        this.props.viewport.addEventListener('scroll', this.events.scroll);
-        this.props.content.addEventListener('load', this.events.contentLoad, true);
-        window.addEventListener('mousemove', this.events.pointermove);
-        window.addEventListener('touchmove', this.events.pointermove, { passive: false });
-        window.addEventListener('mouseup', this.events.pointerup);
-        window.addEventListener('touchend', this.events.pointerup);
-        window.addEventListener('resize', this.events.resize);
+        this.abortController = new AbortController();
+        const { signal } = this.abortController;
+        const { viewport, content } = this.props;
+
+        viewport.addEventListener('mousedown', this.events.pointerdown, { signal });
+        viewport.addEventListener('touchstart', this.events.pointerdown, { passive: false, signal });
+        viewport.addEventListener('click', this.events.click, { signal });
+        viewport.addEventListener('wheel', this.events.wheel, { passive: false, signal });
+        viewport.addEventListener('scroll', this.events.scroll, { signal });
+        // ResizeObserver misses scrollWidth growth of fixed-size content, so loaded images still update metrics
+        content.addEventListener('load', this.events.contentLoad, { capture: true, signal });
+        window.addEventListener('mousemove', this.events.pointermove, { signal });
+        window.addEventListener('touchmove', this.events.pointermove, { passive: false, signal });
+        window.addEventListener('mouseup', this.events.pointerup, { signal });
+        window.addEventListener('touchend', this.events.pointerup, { signal });
+
+        this.resizeObserver = new ResizeObserver(() => {
+            // Initial notification after observe() usually has nothing new
+            const metrics = this.measure();
+            if (!isSameSize(metrics.viewport, this.viewport) || !isSameSize(metrics.content, this.content)) {
+                this.updateMetrics();
+            }
+        });
+        this.resizeObserver.observe(viewport);
+        this.resizeObserver.observe(content);
     }
 
     /**
-     * Unregister all DOM events
+     * Remove DOM listeners and stop observing element sizes
+     */
+    private unbindEvents(): void {
+        this.abortController.abort();
+        this.resizeObserver.disconnect();
+    }
+
+    /**
+     * Stop animation, remove DOM listeners and observers. Methods of destroyed instance do nothing.
      */
     destroy(): void {
-        this.props.viewport.removeEventListener('mousedown', this.events.pointerdown);
-        this.props.viewport.removeEventListener('touchstart', this.events.pointerdown);
-        this.props.viewport.removeEventListener('click', this.events.click);
-        this.props.viewport.removeEventListener('wheel', this.events.wheel);
-        this.props.viewport.removeEventListener('scroll', this.events.scroll);
-        this.props.content.removeEventListener('load', this.events.contentLoad);
-        window.removeEventListener('mousemove', this.events.pointermove);
-        window.removeEventListener('touchmove', this.events.pointermove);
-        window.removeEventListener('mouseup', this.events.pointerup);
-        window.removeEventListener('touchend', this.events.pointerup);
-        window.removeEventListener('resize', this.events.resize);
+        if (this.isDestroyed) {
+            return;
+        }
+        this.isDestroyed = true;
+        this.isRunning = false;
+        this.isDragging = false;
+        this.isScrolling = false;
+        cancelAnimationFrame(this.rafID as number);
+        this.rafID = null;
+        clearTimeout(this.wheelTimer);
+        this.unbindEvents();
     }
 }
