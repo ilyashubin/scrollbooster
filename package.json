@@ -7,12 +7,19 @@
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.cts",
   "unpkg": "./dist/scrollbooster.min.js",
   "jsdelivr": "./dist/scrollbooster.min.js",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./dist/scrollbooster.min.js": "./dist/scrollbooster.min.js",
     "./package.json": "./package.json"
@@ -28,6 +35,7 @@
     "test:watch": "vitest",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
+    "typecheck": "tsc",
     "start": "pnpm run --parallel \"/^start:/\"",
     "start:build": "tsdown --watch",
     "start:serve": "vite --host 0.0.0.0 --open",
@@ -52,6 +60,7 @@
     "@vitest/browser-playwright": "^5.0.3",
     "playwright": "~1.63.0",
     "tsdown": "^0.23.0",
+    "typescript": "7.0.2",
     "vite": "~8.3.3",
     "vitest": "^5.0.3"
   }

@@ -1,4 +1,4 @@
-import ScrollBooster from '../src/index.js';
+import ScrollBooster from '../src/index.ts';
 
 const FRAME_60HZ = 1000 / 60;
 

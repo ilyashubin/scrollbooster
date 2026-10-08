@@ -4,7 +4,7 @@
  * and must be switched to `it` and moved to the relevant test file.
  */
 import { describe, expect, it, vi } from 'vitest';
-import ScrollBooster from '../src/index.js';
+import ScrollBooster from '../src/index.ts';
 import { createFixture, mount, roundedPosition, tick } from './helpers.js';
 
 // Drag at constant speed (px/s) for given duration and release, at given refresh rate
