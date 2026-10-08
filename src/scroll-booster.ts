@@ -38,6 +38,7 @@ interface EventHandlers {
     pointerup: (event: PointerEvent) => void;
     wheel: (event: WheelEvent) => void;
     scroll: () => void;
+    focusin: (event: FocusEvent) => void;
     click: (event: MouseEvent) => void;
     contentLoad: () => void;
 }
@@ -156,6 +157,10 @@ export class ScrollBooster {
         const START_COORDINATES = { x: 0, y: 0 };
 
         this.position = getScrollPosition(this.props.viewport);
+        if (this.props.scrollMode === 'transform') {
+            this.props.viewport.scrollLeft = 0;
+            this.props.viewport.scrollTop = 0;
+        }
         this.velocity = { ...START_COORDINATES };
         this.dragStartPosition = { ...START_COORDINATES };
         this.dragOffset = { ...START_COORDINATES };
@@ -704,6 +709,10 @@ export class ScrollBooster {
 
         this.events.scroll = () => {
             const { scrollLeft, scrollTop } = this.props.viewport;
+            if (this.props.scrollMode === 'transform') {
+                this.moveNativeScrollToTransform();
+                return;
+            }
             if (Math.abs(this.position.x + scrollLeft) > 3) {
                 this.position.x = -scrollLeft;
                 this.velocity.x = 0;
@@ -711,6 +720,13 @@ export class ScrollBooster {
             if (Math.abs(this.position.y + scrollTop) > 3) {
                 this.position.y = -scrollTop;
                 this.velocity.y = 0;
+            }
+        };
+
+        // Content moved with transform has no native scroll to bring focused element into view
+        this.events.focusin = (event) => {
+            if (this.props.scrollMode === 'transform' && event.target instanceof Element) {
+                this.revealElement(event.target);
             }
         };
 
@@ -733,6 +749,7 @@ export class ScrollBooster {
         viewport.addEventListener('mousedown', this.events.mousedown, { signal });
         viewport.addEventListener('click', this.events.click, { signal });
         viewport.addEventListener('scroll', this.events.scroll, { signal });
+        viewport.addEventListener('focusin', this.events.focusin, { signal });
         // ResizeObserver misses scrollWidth growth of fixed-size content, so loaded images still update metrics
         content.addEventListener('load', this.events.contentLoad, { capture: true, signal });
         this.bindWheel();
@@ -749,6 +766,65 @@ export class ScrollBooster {
         });
         this.resizeObserver.observe(viewport);
         this.resizeObserver.observe(content);
+    }
+
+    /**
+     * Jump by given offset along allowed directions, within edges
+     */
+    private jumpBy(x: number, y: number): void {
+        if (this.props.direction !== 'vertical') {
+            this.position.x = clamp(this.position.x - x, this.edgeX);
+        }
+        if (this.props.direction !== 'horizontal') {
+            this.position.y = clamp(this.position.y - y, this.edgeY);
+        }
+        this.velocity.x = 0;
+        this.velocity.y = 0;
+        this.isTargetScroll = false;
+        // Render right away: focus scroll and scroll events happen before the next paint
+        const state = this.getState();
+        this.setContentPosition(state);
+        this.props.onUpdate(state);
+    }
+
+    /**
+     * In transform mode browser can still scroll viewport natively (focus, find in page, anchor links).
+     * Reset native scroll and shift transform by the same offset.
+     */
+    private moveNativeScrollToTransform(): void {
+        const { viewport } = this.props;
+        const { scrollLeft, scrollTop } = viewport;
+        if (!scrollLeft && !scrollTop) {
+            return;
+        }
+        viewport.scrollLeft = 0;
+        viewport.scrollTop = 0;
+        this.jumpBy(scrollLeft, scrollTop);
+    }
+
+    /**
+     * Scroll the smallest distance that shows the element inside viewport, start edge wins for large elements
+     */
+    private revealElement(element: Element): void {
+        const { viewport } = this.props;
+        const box = viewport.getBoundingClientRect();
+        const left = box.left + viewport.clientLeft;
+        const top = box.top + viewport.clientTop;
+        const rect = element.getBoundingClientRect();
+        const offset = (start: number, end: number, visibleStart: number, visibleSize: number) => {
+            if (start < visibleStart) {
+                return start - visibleStart;
+            }
+            if (end > visibleStart + visibleSize) {
+                return Math.min(end - visibleStart - visibleSize, start - visibleStart);
+            }
+            return 0;
+        };
+        const x = offset(rect.left, rect.right, left, viewport.clientWidth);
+        const y = offset(rect.top, rect.bottom, top, viewport.clientHeight);
+        if (x || y) {
+            this.jumpBy(x, y);
+        }
     }
 
     /**
