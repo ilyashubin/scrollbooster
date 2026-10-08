@@ -36,6 +36,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "typecheck": "tsc",
+    "changeset": "changeset",
     "start": "pnpm run --parallel \"/^start:/\"",
     "start:build": "tsdown --watch",
     "start:serve": "vite --host 0.0.0.0 --open",
@@ -57,6 +58,7 @@
   "packageManager": "pnpm@12.10.1",
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
+    "@changesets/cli": "^3.0.3",
     "@vitest/browser-playwright": "^5.0.3",
     "playwright": "~1.63.0",
     "tsdown": "^0.23.0",
