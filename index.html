@@ -39,7 +39,7 @@
             illum consequuntur iste laborum fuga laboriosam mollitia.
         </div>
         <div>
-            <button onclick="console.log('hello')">Some button</button>
+            <button type="button" onclick="console.log('hello')">Some button</button>
         </div>
     </div>
 </div>
@@ -51,7 +51,8 @@
     const viewport = document.querySelector('.app');
     const content = viewport.querySelector('.app-inner');
 
-    let sb = new ScrollBooster({
+    // Exposed for debugging from the browser console
+    window.sb = new ScrollBooster({
         viewport: viewport,
         content: content,
         // textSelection: true,

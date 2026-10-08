@@ -455,7 +455,7 @@ export default class ScrollBooster {
         };
 
         this.events.pointerdown = (event) => {
-            isTouch = !!(event.touches && event.touches[0]);
+            isTouch = !!event.touches?.[0];
 
             this.props.onPointerDown(this.getState(), event, isTouch);
 
@@ -531,8 +531,11 @@ export default class ScrollBooster {
 
         this.events.pointermove = (event) => {
             // prevent default scroll if scroll direction is locked
-            if (event.cancelable && (this.props.lockScrollOnDragDirection === 'all' ||
-                this.props.lockScrollOnDragDirection === dragDirection)) {
+            if (
+                event.cancelable &&
+                (this.props.lockScrollOnDragDirection === 'all' ||
+                    this.props.lockScrollOnDragDirection === dragDirection)
+            ) {
                 event.preventDefault();
             }
             setDragPosition(event);

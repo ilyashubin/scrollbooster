@@ -28,7 +28,9 @@ export function installFrameClock() {
                 now += frameDuration;
                 const callbacks = [...queue.values()];
                 queue.clear();
-                callbacks.forEach((callback) => callback(now));
+                for (const callback of callbacks) {
+                    callback(now);
+                }
             }
         },
         get pendingFrames() {

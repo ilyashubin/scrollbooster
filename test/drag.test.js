@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mount, round, roundedPosition as position, tick } from './helpers.js';
+import { mount, roundedPosition as position, round, tick } from './helpers.js';
 
 describe('mouse drag', () => {
     it('moves content opposite to pointer while held', () => {
@@ -139,7 +139,10 @@ describe('drag guards', () => {
         tick(10);
 
         expect(position(sb)).toEqual({ x: 0, y: 0 });
-        expect(shouldScroll).toHaveBeenCalledWith(expect.objectContaining({ position: { x: -0, y: -0 } }), expect.any(MouseEvent));
+        expect(shouldScroll).toHaveBeenCalledWith(
+            expect.objectContaining({ position: { x: -0, y: -0 } }),
+            expect.any(MouseEvent)
+        );
     });
 
     it.each(['input', 'textarea', 'button', 'select', 'label'])('inputsFocus: does not drag from %s', (tag) => {
