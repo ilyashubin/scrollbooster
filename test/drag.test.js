@@ -35,14 +35,67 @@ describe('mouse drag', () => {
         expect(pointer.mouseDown(100, 100).defaultPrevented).toBe(false);
     });
 
-    it('ignores right mouse button', () => {
+    it.each([
+        ['middle', 1, 4],
+        ['right', 2, 2],
+        ['back', 3, 8],
+        ['forward', 4, 16],
+    ])('ignores %s mouse button', (_, button, buttons) => {
         const { sb, pointer } = mount();
 
-        pointer.mouseDown(200, 200, { button: 2 });
-        pointer.mouseMove(100, 100);
+        pointer.mouseDown(200, 200, { button, buttons });
+        pointer.mouseMove(100, 100, { buttons });
         tick(10);
 
+        expect(sb.isDragging).toBe(false);
         expect(position(sb)).toEqual({ x: 0, y: 0 });
+    });
+
+    it('keeps dragging when pointer leaves viewport', () => {
+        const { sb, pointer } = mount();
+
+        pointer.mouseDown(250, 250);
+        pointer.mouseMove(250, 150);
+        pointer.mouseMove(250, -50);
+        tick(100);
+
+        expect(position(sb)).toEqual({ x: 0, y: 300 });
+    });
+
+    it('captures pointer on viewport only after click threshold', () => {
+        const capture = vi.spyOn(Element.prototype, 'setPointerCapture');
+        const { pointer, viewport } = mount();
+
+        pointer.mouseDown(200, 200);
+        pointer.mouseMove(204, 200);
+        expect(capture).not.toHaveBeenCalled();
+
+        pointer.mouseMove(210, 200);
+        pointer.mouseMove(220, 200);
+        expect(capture).toHaveBeenCalledTimes(1);
+        expect(capture.mock.contexts[0]).toBe(viewport);
+        expect(capture).toHaveBeenCalledWith(1);
+    });
+
+    it('does not call onPointerMove without drag', () => {
+        const onPointerMove = vi.fn();
+        const { pointer } = mount({ onPointerMove });
+
+        pointer.mouseMove(100, 100, { buttons: 0 });
+        pointer.mouseDrag([200, 200], [150, 200], { steps: 2 });
+        onPointerMove.mockClear();
+        pointer.mouseMove(100, 100, { buttons: 0 });
+
+        expect(onPointerMove).not.toHaveBeenCalled();
+    });
+
+    it('does not call onPointerUp for release without drag', () => {
+        const onPointerUp = vi.fn();
+        const { pointer } = mount({ onPointerUp });
+
+        pointer.mouseUp(100, 100);
+
+        expect(onPointerUp).not.toHaveBeenCalled();
     });
 
     it('calls pointer callbacks with state, event and isTouch', () => {
@@ -56,7 +109,7 @@ describe('mouse drag', () => {
         expect(onPointerDown).toHaveBeenCalledTimes(1);
         expect(onPointerMove).toHaveBeenCalledTimes(2);
         expect(onPointerUp).toHaveBeenCalledTimes(1);
-        expect(onPointerDown.mock.calls[0][1]).toBeInstanceOf(MouseEvent);
+        expect(onPointerDown.mock.calls[0][1]).toBeInstanceOf(PointerEvent);
         expect(onPointerDown.mock.calls[0][2]).toBe(false);
         expect(onPointerUp.mock.calls[0][0].dragOffset).toEqual({ x: -50, y: 0 });
     });
@@ -72,19 +125,72 @@ describe('touch drag', () => {
         expect(position(sb)).toEqual({ x: 100, y: 50 });
     });
 
-    it('does not prevent default touchstart', () => {
+    it('does not prevent default pointerdown', () => {
         const { pointer } = mount();
 
-        expect(pointer.touchStart([[100, 100]]).defaultPrevented).toBe(false);
+        expect(pointer.touchStart(100, 100).defaultPrevented).toBe(false);
     });
 
     it('passes isTouch to callbacks', () => {
         const onPointerDown = vi.fn();
         const { pointer } = mount({ onPointerDown });
 
-        pointer.touchStart([[100, 100]]);
+        pointer.touchStart(100, 100);
 
         expect(onPointerDown.mock.calls[0][2]).toBe(true);
+    });
+
+    it('ignores second finger', () => {
+        const onPointerDown = vi.fn();
+        const onPointerUp = vi.fn();
+        const { sb, pointer } = mount({ onPointerDown, onPointerUp });
+        const second = { id: 11 };
+
+        pointer.touchStart(200, 200);
+        pointer.touchMove(150, 200);
+        pointer.touchStart(50, 50, second);
+        pointer.touchMove(0, 0, second);
+        tick(100);
+        expect(position(sb)).toEqual({ x: 50, y: 0 });
+
+        pointer.touchEnd(0, 0, second);
+        pointer.touchMove(100, 200);
+        tick(100);
+
+        expect(onPointerDown).toHaveBeenCalledTimes(1);
+        expect(onPointerUp).not.toHaveBeenCalled();
+        expect(position(sb)).toEqual({ x: 100, y: 0 });
+    });
+
+    it('drags with a finger that is not primary on the page', () => {
+        const { sb, pointer } = mount();
+
+        // First finger rests outside of viewport
+        const finger = { id: 11, isPrimary: false };
+        pointer.touchStart(200, 200, finger);
+        pointer.touchMove(150, 200, finger);
+        pointer.touchMove(100, 200, finger);
+        tick(100);
+
+        expect(position(sb)).toEqual({ x: 100, y: 0 });
+    });
+
+    it('ends drag on pointercancel and keeps inertia', () => {
+        const onPointerUp = vi.fn();
+        const onPointerMove = vi.fn();
+        const { sb, pointer } = mount({ onPointerUp, onPointerMove });
+
+        pointer.touchDrag([250, 200], [150, 200], { steps: 5, release: false });
+        pointer.touchCancel(150, 200);
+        onPointerMove.mockClear();
+        pointer.touchMove(50, 200);
+        tick(100);
+
+        expect(sb.isDragging).toBe(false);
+        expect(onPointerUp).toHaveBeenCalledTimes(1);
+        expect(onPointerUp.mock.calls[0][1].type).toBe('pointercancel');
+        expect(onPointerMove).not.toHaveBeenCalled();
+        expect(sb.getState().position.x).toBeGreaterThan(100);
     });
 });
 
@@ -141,7 +247,7 @@ describe('drag guards', () => {
         expect(position(sb)).toEqual({ x: 0, y: 0 });
         expect(shouldScroll).toHaveBeenCalledWith(
             expect.objectContaining({ position: { x: 0, y: 0 } }),
-            expect.any(MouseEvent)
+            expect.any(PointerEvent)
         );
     });
 

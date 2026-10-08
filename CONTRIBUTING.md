@@ -19,5 +19,8 @@ Source is TypeScript in `src/`: `index.ts` is the ESM entry, `default.ts` is the
 
 Browser tests live in `test/` and run in real browsers with Vitest browser mode. `requestAnimationFrame` is replaced with a manual
 clock (`tick()` in `test/helpers.js`), so physics advances frame by frame and trajectories are deterministic.
+Pointer helpers dispatch synthetic `PointerEvent`s in browser order. Browser default actions, pointer capture and
+click targets need real input, these tests in `test/real-input.test.js` drive Playwright mouse through the `mouse`
+command from `test/commands/mouse.ts`.
 Known bugs are kept in `test/known-bugs.test.js` as `it.fails`: when a fix makes such a test fail, switch it to `it`
 and move it next to related tests.

@@ -21,8 +21,6 @@ export type PointerMode = 'all' | 'touch' | 'mouse';
 
 export type ScrollMode = 'transform' | 'native';
 
-export type PointerLikeEvent = MouseEvent | TouchEvent;
-
 export interface BorderCollision {
     left: boolean;
     right: boolean;
@@ -46,7 +44,7 @@ export interface ScrollBoosterOptions {
     content?: HTMLElement;
     /** Scroll direction */
     direction?: Direction;
-    /** Mouse or touch support */
+    /** Mouse or touch support, pen counts as mouse. Touch drag sets CSS `touch-action` on viewport */
     pointerMode?: PointerMode;
     /** Predefined scrolling technique, scroll is rendered in `onUpdate` when not set */
     scrollMode?: ScrollMode;
@@ -64,17 +62,23 @@ export interface ScrollBoosterOptions {
     emulateScroll?: boolean;
     /** Prevents default wheel event in given direction when `emulateScroll` is enabled */
     preventDefaultOnEmulateScroll?: Axis | false;
-    /** Not used, kept for backward compatibility */
+    /** @deprecated Has no effect, native touch scrolling is controlled with CSS `touch-action` */
     preventPointerMoveDefault?: boolean;
-    /** Locks content scroll or prevents default touchmove depending on drag direction */
+    /**
+     * Touch drag in given direction moves content, drag in the other direction scrolls the page natively.
+     * `'all'` disables native touch gestures on viewport
+     */
     lockScrollOnDragDirection?: Direction | false;
-    /** Prevents default mousedown */
+    /** Prevents default mousedown on drag start: text selection, native drag of images and links */
     pointerDownPreventDefault?: boolean;
     /** Tolerance in degrees for horizontal or vertical drag detection */
     dragDirectionTolerance?: number;
-    onPointerDown?: (state: ScrollBoosterState, event: PointerLikeEvent, isTouch: boolean) => void;
-    onPointerUp?: (state: ScrollBoosterState, event: PointerLikeEvent, isTouch: boolean) => void;
-    onPointerMove?: (state: ScrollBoosterState, event: PointerLikeEvent, isTouch: boolean) => void;
+    /** Primary pointer pressed on viewport, called before drag guards */
+    onPointerDown?: (state: ScrollBoosterState, event: PointerEvent, isTouch: boolean) => void;
+    /** Drag pointer released or cancelled */
+    onPointerUp?: (state: ScrollBoosterState, event: PointerEvent, isTouch: boolean) => void;
+    /** Drag pointer moved */
+    onPointerMove?: (state: ScrollBoosterState, event: PointerEvent, isTouch: boolean) => void;
     /** Click handler */
     onClick?: (state: ScrollBoosterState, event: MouseEvent, isTouch: boolean) => void;
     /** State update handler */
@@ -82,5 +86,5 @@ export interface ScrollBoosterOptions {
     /** Wheel handler */
     onWheel?: (state: ScrollBoosterState, event: WheelEvent) => void;
     /** Predicate to allow or disable scroll on pointerdown */
-    shouldScroll?: (state: ScrollBoosterState, event: PointerLikeEvent) => boolean;
+    shouldScroll?: (state: ScrollBoosterState, event: PointerEvent) => boolean;
 }

@@ -1,10 +1,10 @@
 /**
- * Known bugs from the modernization plan (Б4–Б10), written as tests of the expected behavior.
+ * Known bugs from the modernization plan (Б5, Б6), written as tests of the expected behavior.
  * `it.fails` passes while the bug exists; when a fix lands, the test starts failing
  * and must be switched to `it` and moved to the relevant test file.
  */
-import { describe, expect, it, vi } from 'vitest';
-import { mount, roundedPosition, tick } from './helpers.js';
+import { describe, expect, it } from 'vitest';
+import { mount, tick } from './helpers.js';
 
 // Drag at constant speed (px/s) for given duration and release, at given refresh rate
 function flingAt(frameRate, { speed = 1000, duration = 200 } = {}) {
@@ -18,16 +18,6 @@ function flingAt(frameRate, { speed = 1000, duration = 200 } = {}) {
 }
 
 describe('known bugs', () => {
-    it.fails('Б4: lockScrollOnDragDirection "all" does not block page touch scroll outside of drag', () => {
-        mount({ lockScrollOnDragDirection: 'all' });
-        const event = new Event('touchmove', { bubbles: true, cancelable: true });
-        Object.defineProperty(event, 'touches', { value: [{ clientX: 0, clientY: 0, pageX: 0, pageY: 0 }] });
-
-        document.body.dispatchEvent(event);
-
-        expect(event.defaultPrevented).toBe(false);
-    });
-
     it.fails('Б5: inertia travels the same distance at 60 Hz and 120 Hz', () => {
         const at60 = flingAt(60);
         const at120 = flingAt(120);
@@ -42,50 +32,5 @@ describe('known bugs', () => {
         pointer.mouseDrag([200, 200], [100, 200]);
 
         expect(sb.getState().isDragging).toBe(false);
-    });
-
-    it.fails('Б7: middle mouse button does not start drag', () => {
-        const { sb, pointer } = mount();
-
-        pointer.mouseDown(200, 200, { button: 1 });
-        pointer.mouseMove(100, 100);
-        tick(10);
-
-        expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
-    });
-
-    it.fails('Б8: lifting second finger does not end drag', () => {
-        const { sb, pointer } = mount();
-
-        pointer.touchStart([[200, 200]]);
-        pointer.touchMove([[150, 200]]);
-        // Second finger lifted, first finger is still on the screen
-        pointer.touchEnd([[150, 200]]);
-        pointer.touchMove([[100, 200]]);
-        tick(100);
-
-        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
-    });
-
-    it.fails('Б9: mouse move without drag does not call onPointerMove', () => {
-        const onPointerMove = vi.fn();
-        const { pointer } = mount({ onPointerMove });
-
-        pointer.mouseMove(100, 100);
-
-        expect(onPointerMove).not.toHaveBeenCalled();
-    });
-
-    it.fails('Б10: no non-passive wheel and window touchmove listeners without features that need them', () => {
-        // Vitest browser mode wraps window.addEventListener, so window needs its own spy
-        const elementListeners = vi.spyOn(EventTarget.prototype, 'addEventListener');
-        const windowListeners = vi.spyOn(window, 'addEventListener');
-        mount({ emulateScroll: false });
-
-        const blocking = [...elementListeners.mock.calls, ...windowListeners.mock.calls]
-            .filter(([type, , options]) => ['wheel', 'touchmove'].includes(type) && options?.passive === false)
-            .map(([type]) => type);
-
-        expect(blocking).toEqual([]);
     });
 });

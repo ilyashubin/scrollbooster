@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import ScrollBooster from '../src/index.ts';
 import {
     createFixture,
     createPointer,
@@ -179,27 +180,26 @@ describe('destroy', () => {
 });
 
 describe('lockScrollOnDragDirection', () => {
-    it('horizontal: touch drag along locked direction moves content and prevents touchmove', () => {
-        const { sb, pointer } = mount({ lockScrollOnDragDirection: 'horizontal' });
+    it('horizontal: touch drag along locked direction moves content, vertical pan stays native', () => {
+        const { sb, pointer, viewport } = mount({ lockScrollOnDragDirection: 'horizontal' });
 
-        pointer.touchStart([[200, 100]]);
-        pointer.touchMove([[190, 100]]);
-        const move = pointer.touchMove([[100, 100]]);
+        pointer.touchStart(200, 100);
+        pointer.touchMove(190, 100);
+        pointer.touchMove(100, 100);
         tick(100);
 
-        expect(move.defaultPrevented).toBe(true);
+        expect(viewport.style.touchAction).toBe('pan-y pinch-zoom');
         expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
     });
 
-    it('horizontal: touch drag across locked direction keeps content and native scroll', () => {
+    it('horizontal: touch drag across locked direction keeps content', () => {
         const { sb, pointer } = mount({ lockScrollOnDragDirection: 'horizontal' });
 
-        pointer.touchStart([[100, 200]]);
-        pointer.touchMove([[100, 190]]);
-        const move = pointer.touchMove([[100, 100]]);
+        pointer.touchStart(100, 200);
+        pointer.touchMove(100, 190);
+        pointer.touchMove(100, 100);
         tick(100);
 
-        expect(move.defaultPrevented).toBe(false);
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
     });
 
@@ -212,12 +212,13 @@ describe('lockScrollOnDragDirection', () => {
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 100 });
     });
 
-    it('all: prevents touchmove in any direction', () => {
-        const { pointer } = mount({ lockScrollOnDragDirection: 'all' });
+    it('all: disables native touch gestures on viewport only', () => {
+        const addListener = vi.spyOn(window, 'addEventListener');
+        const { viewport } = mount({ lockScrollOnDragDirection: 'all' });
 
-        pointer.touchStart([[100, 200]]);
-
-        expect(pointer.touchMove([[100, 150]]).defaultPrevented).toBe(true);
+        expect(viewport.style.touchAction).toBe('none');
+        expect(getComputedStyle(document.body).touchAction).toBe('auto');
+        expect(addListener.mock.calls.map(([type]) => type)).not.toContain('touchmove');
     });
 
     it('detects drag direction with dragDirectionTolerance', () => {
@@ -228,5 +229,90 @@ describe('lockScrollOnDragDirection', () => {
         // 45° drag: tolerance 40 treats it as horizontal, tolerance 50 as vertical
         expect(sb.getDragDirection(sb.getDragAngle(100, 100), 40)).toBe('horizontal');
         expect(sb.getDragDirection(sb.getDragAngle(100, 100), 50)).toBe('vertical');
+    });
+});
+
+describe('touch-action', () => {
+    it.each([
+        ['all', 'pinch-zoom'],
+        ['horizontal', 'pan-y pinch-zoom'],
+        ['vertical', 'pan-x pinch-zoom'],
+    ])('direction %s leaves %s to the browser', (direction, touchAction) => {
+        const { viewport } = mount({ direction });
+
+        expect(viewport.style.touchAction).toBe(touchAction);
+    });
+
+    it('lockScrollOnDragDirection takes precedence over direction', () => {
+        const { viewport } = mount({ direction: 'horizontal', lockScrollOnDragDirection: 'vertical' });
+
+        expect(viewport.style.touchAction).toBe('pan-x pinch-zoom');
+    });
+
+    it('keeps viewport touch-action with pointerMode: mouse', () => {
+        const { viewport } = createFixture();
+        viewport.style.touchAction = 'manipulation';
+        const sb = new ScrollBooster({ viewport, pointerMode: 'mouse' });
+
+        expect(viewport.style.touchAction).toBe('manipulation');
+        sb.destroy();
+        viewport.remove();
+    });
+
+    it('follows updateOptions', () => {
+        const { sb, viewport } = mount();
+
+        sb.updateOptions({ direction: 'vertical' });
+        expect(viewport.style.touchAction).toBe('pan-x pinch-zoom');
+
+        sb.updateOptions({ pointerMode: 'mouse' });
+        expect(viewport.style.touchAction).toBe('');
+    });
+
+    it('restores initial inline value on destroy', () => {
+        const { viewport } = createFixture();
+        viewport.style.touchAction = 'pan-y';
+        const sb = new ScrollBooster({ viewport });
+
+        expect(viewport.style.touchAction).toBe('pinch-zoom');
+        sb.destroy();
+        expect(viewport.style.touchAction).toBe('pan-y');
+        viewport.remove();
+    });
+});
+
+describe('wheel listener', () => {
+    // Vitest browser mode wraps window.addEventListener, so window needs its own spy
+    function blockingListeners(callback) {
+        const elementListeners = vi.spyOn(EventTarget.prototype, 'addEventListener');
+        const windowListeners = vi.spyOn(window, 'addEventListener');
+        callback();
+        return [...elementListeners.mock.calls, ...windowListeners.mock.calls]
+            .filter(([, , options]) => options?.passive === false)
+            .map(([type]) => type);
+    }
+
+    it('is passive and no touch listeners block scroll by default', () => {
+        expect(blockingListeners(() => mount({ emulateScroll: true }))).toEqual([]);
+    });
+
+    it('stays passive with preventDefaultOnEmulateScroll but without emulateScroll', () => {
+        expect(blockingListeners(() => mount({ preventDefaultOnEmulateScroll: 'vertical' }))).toEqual([]);
+    });
+
+    it('is not passive with preventDefaultOnEmulateScroll', () => {
+        expect(
+            blockingListeners(() => mount({ emulateScroll: true, preventDefaultOnEmulateScroll: 'vertical' }))
+        ).toEqual(['wheel']);
+    });
+
+    it('becomes not passive when preventDefaultOnEmulateScroll is enabled later', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const { sb, viewport } = mount({ emulateScroll: true });
+        expect(wheel(viewport, 0, 100).defaultPrevented).toBe(false);
+
+        sb.updateOptions({ preventDefaultOnEmulateScroll: 'vertical' });
+
+        expect(wheel(viewport, 0, 100).defaultPrevented).toBe(true);
     });
 });

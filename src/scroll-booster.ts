@@ -9,25 +9,17 @@ import {
     getTargetForce,
     hasVelocity,
 } from './physics';
-import type {
-    Axis,
-    Edge,
-    Point,
-    PointerLikeEvent,
-    ScrollBoosterOptions,
-    ScrollBoosterState,
-    ScrollMode,
-    Size,
-} from './types';
+import type { Axis, Direction, Edge, Point, ScrollBoosterOptions, ScrollBoosterState, ScrollMode, Size } from './types';
 
 const CLICK_EVENT_THRESHOLD_PX = 5;
 
 type Props = Required<Omit<ScrollBoosterOptions, 'scrollMode'>> & { scrollMode: ScrollMode | undefined };
 
 interface EventHandlers {
-    pointerdown: (event: PointerLikeEvent) => void;
-    pointermove: (event: PointerLikeEvent) => void;
-    pointerup: (event: PointerLikeEvent) => void;
+    pointerdown: (event: PointerEvent) => void;
+    mousedown: (event: MouseEvent) => void;
+    pointermove: (event: PointerEvent) => void;
+    pointerup: (event: PointerEvent) => void;
     wheel: (event: WheelEvent) => void;
     scroll: () => void;
     click: (event: MouseEvent) => void;
@@ -39,9 +31,12 @@ interface Metrics {
     content: Size;
 }
 
-// Touch for touch events, the event itself for mouse events
-const getPointerData = (event: PointerLikeEvent, isTouch: boolean): Touch | MouseEvent =>
-    (isTouch ? (event as TouchEvent).touches[0] : event) as Touch | MouseEvent;
+// Native touch gestures left to the browser for each drag direction, the rest are handled as drag
+const TOUCH_ACTION: Record<Direction, string> = {
+    horizontal: 'pan-y pinch-zoom',
+    vertical: 'pan-x pinch-zoom',
+    all: 'pinch-zoom',
+};
 
 const isSameSize = (a: Size, b: Size): boolean => a.width === b.width && a.height === b.height;
 
@@ -83,6 +78,8 @@ export class ScrollBooster {
     declare private abortController: AbortController;
     declare private resizeObserver: ResizeObserver;
     declare private wheelTimer: ReturnType<typeof setTimeout> | undefined;
+    declare private dragController: AbortController | null;
+    declare private initialTouchAction: string;
 
     /**
      * Create ScrollBooster instance
@@ -150,6 +147,7 @@ export class ScrollBooster {
 
         this.rafID = null;
         this.wheelTimer = undefined;
+        this.dragController = null;
         this.events = {} as EventHandlers;
 
         this.updateMetrics();
@@ -173,6 +171,8 @@ export class ScrollBooster {
 
         if (nextProps.viewport === viewport && nextProps.content === content) {
             this.props = nextProps;
+            this.bindWheel();
+            this.applyTouchAction();
             this.props.onUpdate(this.getState());
             this.startAnimationLoop();
             return;
@@ -441,13 +441,16 @@ export class ScrollBooster {
         const clientOrigin = { x: 0, y: 0 };
         let dragDirection: Axis | null = null;
         let isTouch = false;
+        let activePointerId: number | null = null;
+        let isCaptured = false;
+        let preventMouseDown = false;
 
-        const setDragPosition = (event: PointerLikeEvent) => {
+        const setDragPosition = (event: PointerEvent) => {
             if (!this.isDragging) {
                 return;
             }
 
-            const { pageX, pageY, clientX, clientY } = getPointerData(event, isTouch);
+            const { pageX, pageY, clientX, clientY } = event;
 
             this.dragOffset.x = pageX - dragOrigin.x;
             this.dragOffset.y = pageY - dragOrigin.y;
@@ -484,12 +487,30 @@ export class ScrollBooster {
             }
         };
 
+        const endDrag = (event: PointerEvent) => {
+            if (event.pointerId !== activePointerId) {
+                return;
+            }
+            this.isDragging = false;
+            dragDirection = null;
+            activePointerId = null;
+            this.dragController?.abort();
+            this.dragController = null;
+            this.props.onPointerUp(this.getState(), event, isTouch);
+        };
+
         this.events.pointerdown = (event) => {
-            isTouch = !!(event as TouchEvent).touches?.[0];
+            // One pointer drags at a time, other fingers on viewport are ignored until it is released
+            if (activePointerId !== null && event.pointerId !== activePointerId) {
+                return;
+            }
+
+            isTouch = event.pointerType === 'touch';
+            preventMouseDown = false;
 
             this.props.onPointerDown(this.getState(), event, isTouch);
 
-            const { pageX, pageY, clientX, clientY } = getPointerData(event, isTouch);
+            const { pageX, pageY, clientX, clientY } = event;
 
             const { viewport } = this.props;
             const rect = viewport.getBoundingClientRect();
@@ -509,8 +530,8 @@ export class ScrollBooster {
                 return;
             }
 
-            // disable right mouse button scroll
-            if ((event as MouseEvent).button === 2) {
+            // only main mouse button, touch and pen contact report button 0 too
+            if (event.button !== 0) {
                 return;
             }
 
@@ -542,6 +563,8 @@ export class ScrollBooster {
             }
 
             this.isDragging = true;
+            activePointerId = event.pointerId;
+            isCaptured = false;
 
             dragOrigin.x = pageX;
             dragOrigin.y = pageY;
@@ -555,29 +578,44 @@ export class ScrollBooster {
             setDragPosition(event);
             this.startAnimationLoop();
 
-            if (!isTouch && this.props.pointerDownPreventDefault) {
+            // Pointer may leave viewport before capture, so drag events are listened on window until release
+            this.dragController?.abort();
+            this.dragController = new AbortController();
+            const options = { capture: true, signal: this.dragController.signal };
+            window.addEventListener('pointermove', this.events.pointermove, options);
+            window.addEventListener('pointerup', this.events.pointerup, options);
+            window.addEventListener('pointercancel', this.events.pointerup, options);
+
+            // Canceling pointerdown would also suppress mousedown for other listeners, like "click outside" handlers
+            preventMouseDown = !isTouch && this.props.pointerDownPreventDefault;
+        };
+
+        // Compatibility mousedown follows pointerdown, its default action is text selection and native drag
+        this.events.mousedown = (event) => {
+            if (preventMouseDown) {
+                preventMouseDown = false;
                 event.preventDefault();
             }
         };
 
         this.events.pointermove = (event) => {
-            // prevent default scroll if scroll direction is locked
-            if (
-                event.cancelable &&
-                (this.props.lockScrollOnDragDirection === 'all' ||
-                    this.props.lockScrollOnDragDirection === dragDirection)
-            ) {
-                event.preventDefault();
+            if (event.pointerId !== activePointerId) {
+                return;
             }
             setDragPosition(event);
+            // Capture right away would retarget a plain click on content to viewport, so wait for the click threshold
+            if (!isCaptured && this.isPastClickThreshold()) {
+                isCaptured = true;
+                try {
+                    this.props.viewport.setPointerCapture(event.pointerId);
+                } catch {
+                    // Pointer is not active anymore
+                }
+            }
             this.props.onPointerMove(this.getState(), event, isTouch);
         };
 
-        this.events.pointerup = (event) => {
-            this.isDragging = false;
-            dragDirection = null;
-            this.props.onPointerUp(this.getState(), event, isTouch);
-        };
+        this.events.pointerup = endDrag;
 
         this.events.wheel = (event) => {
             const state = this.getState();
@@ -626,9 +664,7 @@ export class ScrollBooster {
 
         this.events.click = (event) => {
             const state = this.getState();
-            const dragOffsetX = this.props.direction !== 'vertical' ? state.dragOffset.x : 0;
-            const dragOffsetY = this.props.direction !== 'horizontal' ? state.dragOffset.y : 0;
-            if (Math.max(Math.abs(dragOffsetX), Math.abs(dragOffsetY)) > CLICK_EVENT_THRESHOLD_PX) {
+            if (this.isPastClickThreshold()) {
                 event.preventDefault();
                 event.stopPropagation();
             }
@@ -641,17 +677,16 @@ export class ScrollBooster {
         const { signal } = this.abortController;
         const { viewport, content } = this.props;
 
-        viewport.addEventListener('mousedown', this.events.pointerdown, { signal });
-        viewport.addEventListener('touchstart', this.events.pointerdown, { passive: false, signal });
+        viewport.addEventListener('pointerdown', this.events.pointerdown, { signal });
+        viewport.addEventListener('mousedown', this.events.mousedown, { signal });
         viewport.addEventListener('click', this.events.click, { signal });
-        viewport.addEventListener('wheel', this.events.wheel, { passive: false, signal });
         viewport.addEventListener('scroll', this.events.scroll, { signal });
         // ResizeObserver misses scrollWidth growth of fixed-size content, so loaded images still update metrics
         content.addEventListener('load', this.events.contentLoad, { capture: true, signal });
-        window.addEventListener('mousemove', this.events.pointermove, { signal });
-        window.addEventListener('touchmove', this.events.pointermove, { passive: false, signal });
-        window.addEventListener('mouseup', this.events.pointerup, { signal });
-        window.addEventListener('touchend', this.events.pointerup, { signal });
+        this.bindWheel();
+
+        this.initialTouchAction = viewport.style.touchAction;
+        this.applyTouchAction();
 
         this.resizeObserver = new ResizeObserver(() => {
             // Initial notification after observe() usually has nothing new
@@ -669,7 +704,45 @@ export class ScrollBooster {
      */
     private unbindEvents(): void {
         this.abortController.abort();
+        this.dragController?.abort();
+        this.dragController = null;
         this.resizeObserver.disconnect();
+        this.props.viewport.style.touchAction = this.initialTouchAction;
+    }
+
+    /**
+     * Wheel listener blocks page scroll only when it may prevent default
+     */
+    private bindWheel(): void {
+        const { viewport, emulateScroll, preventDefaultOnEmulateScroll } = this.props;
+        viewport.removeEventListener('wheel', this.events.wheel);
+        viewport.addEventListener('wheel', this.events.wheel, {
+            passive: !(emulateScroll && preventDefaultOnEmulateScroll),
+            signal: this.abortController.signal,
+        });
+    }
+
+    /**
+     * Leave native touch scroll to the browser only in directions that do not drag content
+     */
+    private applyTouchAction(): void {
+        const { viewport, pointerMode, direction, lockScrollOnDragDirection } = this.props;
+        if (pointerMode === 'mouse') {
+            viewport.style.touchAction = this.initialTouchAction;
+        } else if (lockScrollOnDragDirection === 'all') {
+            viewport.style.touchAction = 'none';
+        } else {
+            viewport.style.touchAction = TOUCH_ACTION[lockScrollOnDragDirection || direction];
+        }
+    }
+
+    /**
+     * Check if pointer moved far enough along scroll directions to count as drag, not click
+     */
+    private isPastClickThreshold(): boolean {
+        const x = this.props.direction !== 'vertical' ? this.dragOffset.x : 0;
+        const y = this.props.direction !== 'horizontal' ? this.dragOffset.y : 0;
+        return Math.max(Math.abs(x), Math.abs(y)) > CLICK_EVENT_THRESHOLD_PX;
     }
 
     /**

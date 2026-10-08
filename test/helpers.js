@@ -101,77 +101,99 @@ export function cleanup() {
     clock = null;
 }
 
-function dispatchMouse(target, type, x, y, init = {}) {
-    const event = new MouseEvent(type, {
+const MOUSE_ID = 1;
+const TOUCH_ID = 10;
+
+function dispatchPointer(target, type, x, y, init = {}) {
+    const event = new PointerEvent(type, {
         bubbles: true,
         cancelable: true,
+        composed: true,
         clientX: x,
         clientY: y,
-        button: 0,
+        isPrimary: true,
         ...init,
     });
     target.dispatchEvent(event);
     return event;
 }
 
-// Synthetic TouchEvent is not constructible in desktop WebKit and Firefox, so touches are attached manually
-function dispatchTouch(target, type, touches) {
-    const event = new Event(type, { bubbles: true, cancelable: true });
-    const list = touches.map(([x, y]) => ({
-        clientX: x,
-        clientY: y,
-        pageX: x + window.scrollX,
-        pageY: y + window.scrollY,
-    }));
-    Object.defineProperty(event, 'touches', { value: list });
-    target.dispatchEvent(event);
-    return event;
-}
-
 /**
- * Pointer helpers with coordinates relative to the viewport top left corner
+ * Pointer helpers with coordinates relative to the viewport top left corner.
+ * Events follow browser order: mouse pointerdown is followed by compatibility mousedown,
+ * moves of a pressed mouse go to the element under the pointer, touch moves go to the pointerdown target.
  */
 export function createPointer(viewport) {
     const toClient = (x, y) => {
         const rect = viewport.getBoundingClientRect();
         return [rect.left + x, rect.top + y];
     };
+    const elementAt = (clientX, clientY) => document.elementFromPoint(clientX, clientY) ?? document.documentElement;
     let mouseTarget = viewport;
+    const touchTargets = new Map();
+
+    const mouse = (type, x, y, init) => {
+        const [clientX, clientY] = toClient(x, y);
+        const target = type === 'pointerdown' ? mouseTarget : elementAt(clientX, clientY);
+        return dispatchPointer(target, type, clientX, clientY, { pointerType: 'mouse', pointerId: MOUSE_ID, ...init });
+    };
+    const touch = (type, x, y, { id = TOUCH_ID, isPrimary = id === TOUCH_ID } = {}) => {
+        const [clientX, clientY] = toClient(x, y);
+        return dispatchPointer(touchTargets.get(id), type, clientX, clientY, {
+            pointerType: 'touch',
+            pointerId: id,
+            isPrimary,
+            width: 20,
+            height: 20,
+        });
+    };
 
     return {
+        /**
+         * Returns compatibility mousedown, it is not dispatched when pointerdown is canceled
+         */
         mouseDown(x, y, init = {}, target = viewport.firstElementChild) {
             mouseTarget = target;
-            return dispatchMouse(target, 'mousedown', ...toClient(x, y), init);
+            const buttonInit = { button: 0, buttons: 1, ...init };
+            const pointerdown = mouse('pointerdown', x, y, buttonInit);
+            if (pointerdown.defaultPrevented) {
+                return pointerdown;
+            }
+            const [clientX, clientY] = toClient(x, y);
+            const mousedown = new MouseEvent('mousedown', {
+                bubbles: true,
+                cancelable: true,
+                clientX,
+                clientY,
+                ...buttonInit,
+            });
+            target.dispatchEvent(mousedown);
+            return mousedown;
         },
-        mouseMove(x, y) {
-            return dispatchMouse(window, 'mousemove', ...toClient(x, y));
+        mouseMove(x, y, init = {}) {
+            return mouse('pointermove', x, y, { button: -1, buttons: 1, ...init });
         },
         mouseUp(x, y) {
-            return dispatchMouse(window, 'mouseup', ...toClient(x, y));
+            return mouse('pointerup', x, y, { button: 0, buttons: 0 });
         },
         click(x, y) {
-            return dispatchMouse(mouseTarget, 'click', ...toClient(x, y));
+            const [clientX, clientY] = toClient(x, y);
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true, clientX, clientY });
+            mouseTarget.dispatchEvent(event);
+            return event;
         },
-        touchStart(points, target = viewport.firstElementChild) {
-            return dispatchTouch(
-                target,
-                'touchstart',
-                points.map(([x, y]) => toClient(x, y))
-            );
+        touchStart(x, y, options = {}) {
+            touchTargets.set(options.id ?? TOUCH_ID, options.target ?? viewport.firstElementChild);
+            return touch('pointerdown', x, y, options);
         },
-        touchMove(points) {
-            return dispatchTouch(
-                window,
-                'touchmove',
-                points.map(([x, y]) => toClient(x, y))
-            );
+        touchMove(x, y, options) {
+            return touch('pointermove', x, y, options);
         },
-        touchEnd(points = []) {
-            return dispatchTouch(
-                window,
-                'touchend',
-                points.map(([x, y]) => toClient(x, y))
-            );
+        touchEnd(x, y, options) {
+            return touch('pointerup', x, y, options);
+        },
+        touchCancel(x, y, options) {
+            return touch('pointercancel', x, y, options);
         },
         /**
          * Drag with mouse from one point to another in equal steps, one animation frame per step
@@ -187,13 +209,13 @@ export function createPointer(viewport) {
             }
         },
         touchDrag([fromX, fromY], [toX, toY], { steps = 10, release = true } = {}) {
-            this.touchStart([[fromX, fromY]]);
+            this.touchStart(fromX, fromY);
             for (let i = 1; i <= steps; i++) {
-                this.touchMove([[fromX + ((toX - fromX) * i) / steps, fromY + ((toY - fromY) * i) / steps]]);
+                this.touchMove(fromX + ((toX - fromX) * i) / steps, fromY + ((toY - fromY) * i) / steps);
                 tick(1);
             }
             if (release) {
-                this.touchEnd();
+                this.touchEnd(toX, toY);
             }
         },
     };
