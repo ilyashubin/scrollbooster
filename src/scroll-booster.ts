@@ -1,17 +1,33 @@
 import { clearTextSelection, getFullHeight, getFullWidth, textNodeFromPoint } from './dom';
 import {
+    approach,
     clamp,
+    coast,
+    FRAME_DURATION,
     getDragAngle,
     getDragDirection,
-    getDragForce,
-    getEdgeForce,
-    getScrollForce,
-    getTargetForce,
+    getEdgeMode,
     hasVelocity,
+    type Motion,
+    spring,
+    TARGET_SCROLL_FACTOR,
 } from './physics';
 import type { Axis, Direction, Edge, Point, ScrollBoosterOptions, ScrollBoosterState, ScrollMode, Size } from './types';
 
 const CLICK_EVENT_THRESHOLD_PX = 5;
+
+// Longer frames (hidden tab, long task) advance animation by this duration only
+const MAX_FRAME_DURATION = 100;
+
+let reducedMotionQuery: MediaQueryList | undefined;
+
+const prefersReducedMotion = (): boolean => {
+    if (typeof matchMedia !== 'function') {
+        return false;
+    }
+    reducedMotionQuery ??= matchMedia('(prefers-reduced-motion: reduce)');
+    return reducedMotionQuery.matches;
+};
 
 type Props = Required<Omit<ScrollBoosterOptions, 'scrollMode'>> & { scrollMode: ScrollMode | undefined };
 
@@ -80,6 +96,8 @@ export class ScrollBooster {
     declare private wheelTimer: ReturnType<typeof setTimeout> | undefined;
     declare private dragController: AbortController | null;
     declare private initialTouchAction: string;
+    declare private lastFrameTime: number | null;
+    declare private frameDuration: number;
 
     /**
      * Create ScrollBooster instance
@@ -109,6 +127,7 @@ export class ScrollBooster {
             lockScrollOnDragDirection: false, // 'vertical', 'horizontal', 'all'
             pointerDownPreventDefault: true,
             dragDirectionTolerance: 40,
+            reducedMotion: 'auto',
             onPointerDown() {},
             onPointerUp() {},
             onPointerMove() {},
@@ -146,6 +165,8 @@ export class ScrollBooster {
         this.scrollOffset = { ...START_COORDINATES };
 
         this.rafID = null;
+        this.lastFrameTime = null;
+        this.frameDuration = FRAME_DURATION;
         this.wheelTimer = undefined;
         this.dragController = null;
         this.events = {} as EventHandlers;
@@ -226,120 +247,139 @@ export class ScrollBooster {
         if (this.isDestroyed) {
             return;
         }
+        if (!this.isRunning) {
+            this.lastFrameTime = null;
+        }
         this.isRunning = true;
         cancelAnimationFrame(this.rafID as number);
-        this.rafID = requestAnimationFrame(() => this.animate());
+        this.rafID = requestAnimationFrame((time) => this.animate(time));
     }
 
     /**
      * Main animation loop
      */
-    animate(): void {
+    animate(time?: number): void {
         if (!this.isRunning || this.isDestroyed) {
             return;
         }
-        this.updateScrollPosition();
+        const frames = this.getElapsedFrames(time);
+        if (frames > 0) {
+            this.updateScrollPosition(frames);
+        }
         // stop animation loop if nothing moves
         if (!this.isMoving()) {
+            this.settle();
             this.isRunning = false;
             this.isTargetScroll = false;
         }
         const state = this.getState();
         this.setContentPosition(state);
         this.props.onUpdate(state);
-        this.rafID = requestAnimationFrame(() => this.animate());
+        this.rafID = requestAnimationFrame((nextTime) => this.animate(nextTime));
     }
 
     /**
-     * Calculate and set new scroll position
+     * Time since the previous animation frame, in 60 Hz frames. The first frame of a loop has no previous one
+     * and reuses the last measured frame duration.
      */
-    updateScrollPosition(): void {
-        this.applyEdgeForce();
-        this.applyDragForce();
-        this.applyScrollForce();
-        this.applyTargetForce();
+    private getElapsedFrames(time: number | undefined): number {
+        if (time === undefined) {
+            return 1;
+        }
+        const previousTime = this.lastFrameTime;
+        this.lastFrameTime = time;
+        if (previousTime === null) {
+            return this.frameDuration / FRAME_DURATION;
+        }
+        const duration = Math.min(time - previousTime, MAX_FRAME_DURATION);
+        if (duration > 0) {
+            this.frameDuration = duration;
+        }
+        return Math.max(duration, 0) / FRAME_DURATION;
+    }
 
-        const inverseFriction = 1 - this.props.friction;
-        this.velocity.x *= inverseFriction;
-        this.velocity.y *= inverseFriction;
+    /**
+     * Finish exactly at the scroll target or at the edge, motion stops a fraction of a pixel short of them
+     */
+    private settle(): void {
+        if (this.isTargetScroll) {
+            if (this.props.direction !== 'vertical') {
+                this.position.x = this.targetPosition.x;
+            }
+            if (this.props.direction !== 'horizontal') {
+                this.position.y = this.targetPosition.y;
+            }
+        } else {
+            this.position.x = clamp(this.position.x, this.edgeX);
+            this.position.y = clamp(this.position.y, this.edgeY);
+        }
+        this.velocity.x = 0;
+        this.velocity.y = 0;
+    }
 
+    /**
+     * Calculate and set new scroll position after given number of 60 Hz frames
+     */
+    updateScrollPosition(frames = 1): void {
+        const bounce = this.props.bounce && !this.isReducedMotion();
+        // Disabled axis keeps no velocity: in 3.x scrollTo along it kept the animation loop running forever
         if (this.props.direction !== 'vertical') {
-            this.position.x += this.velocity.x;
+            ({ position: this.position.x, velocity: this.velocity.x } = this.getAxisMotion('x', frames, bounce));
+        } else {
+            this.velocity.x = 0;
         }
         if (this.props.direction !== 'horizontal') {
-            this.position.y += this.velocity.y;
+            ({ position: this.position.y, velocity: this.velocity.y } = this.getAxisMotion('y', frames, bounce));
+        } else {
+            this.velocity.y = 0;
         }
 
+        this.scrollOffset.x = 0;
+        this.scrollOffset.y = 0;
+
         // disable bounce effect
-        if ((!this.props.bounce || this.isScrolling) && !this.isTargetScroll) {
+        if ((!bounce || this.isScrolling) && !this.isTargetScroll) {
             this.position.x = clamp(this.position.x, this.edgeX);
             this.position.y = clamp(this.position.y, this.edgeY);
         }
     }
 
     /**
-     * Increase general scroll velocity by given force amount
+     * Motion along one axis. Modes go in order of precedence: in 3.x forces of later modes overwrote velocity
      */
-    applyForce(force: Point): void {
-        this.velocity.x += force.x;
-        this.velocity.y += force.y;
+    private getAxisMotion(axis: 'x' | 'y', frames: number, bounce: boolean): Motion {
+        const { friction, bounceForce } = this.props;
+        const retention = 1 - friction;
+        const position = this.position[axis];
+        const velocity = this.velocity[axis];
+
+        if (this.isTargetScroll) {
+            return approach(position, this.targetPosition[axis], 1 - TARGET_SCROLL_FACTOR * retention, frames);
+        }
+        // Wheel moves content once per event, regardless of frame duration
+        if (this.isScrolling) {
+            const step = this.scrollOffset[axis] * retention;
+            return { position: position + step, velocity: step };
+        }
+        if (this.isDragging) {
+            return approach(position, this.dragPosition[axis], friction, frames);
+        }
+        if (bounce) {
+            const edge = axis === 'x' ? this.edgeX : this.edgeY;
+            const mode = getEdgeMode(position, velocity, edge, bounceForce, friction);
+            if (mode === 'return') {
+                return approach(position, clamp(position, edge), 1 - bounceForce * retention, frames);
+            }
+            if (mode === 'spring') {
+                return spring(position, velocity, clamp(position, edge), bounceForce, friction, frames);
+            }
+        }
+        return coast(position, velocity, friction, frames);
     }
 
-    /**
-     * Apply force for bounce effect
-     */
-    applyEdgeForce(): void {
-        if (!this.props.bounce || this.isDragging) {
-            return;
-        }
-
-        const force = getEdgeForce(
-            this.position,
-            this.velocity,
-            this.edgeX,
-            this.edgeY,
-            this.props.bounceForce,
-            this.props.friction
-        );
-        if (force) {
-            this.applyForce(force);
-        }
-    }
-
-    /**
-     * Apply force to move content while dragging with mouse/touch
-     */
-    applyDragForce(): void {
-        if (!this.isDragging) {
-            return;
-        }
-
-        this.applyForce(getDragForce(this.dragPosition, this.position, this.velocity));
-    }
-
-    /**
-     * Apply force to emulate mouse wheel or trackpad
-     */
-    applyScrollForce(): void {
-        if (!this.isScrolling) {
-            return;
-        }
-
-        this.applyForce(getScrollForce(this.scrollOffset, this.velocity));
-
-        this.scrollOffset.x = 0;
-        this.scrollOffset.y = 0;
-    }
-
-    /**
-     * Apply force to scroll to given target coordinate
-     */
-    applyTargetForce(): void {
-        if (!this.isTargetScroll) {
-            return;
-        }
-
-        this.applyForce(getTargetForce(this.targetPosition, this.position, this.velocity));
+    private isReducedMotion(): boolean {
+        const { reducedMotion } = this.props;
+        return reducedMotion === 'auto' ? prefersReducedMotion() : reducedMotion === 'always';
     }
 
     /**
@@ -356,6 +396,10 @@ export class ScrollBooster {
         if (this.isDestroyed) {
             return;
         }
+        if (this.isReducedMotion()) {
+            this.setPosition(position);
+            return;
+        }
         this.isTargetScroll = true;
         this.targetPosition.x = -(position.x as number) || 0;
         this.targetPosition.y = -(position.y as number) || 0;
@@ -369,6 +413,7 @@ export class ScrollBooster {
         if (this.isDestroyed) {
             return;
         }
+        this.isTargetScroll = false;
         this.velocity.x = 0;
         this.velocity.y = 0;
         this.position.x = -(position.x as number) || 0;
@@ -394,7 +439,8 @@ export class ScrollBooster {
         return {
             isMoving: this.isMoving(),
             isDragging: !!(this.dragOffset.x || this.dragOffset.y),
-            position: { x: -this.position.x, y: -this.position.y },
+            // 0 - value avoids -0 at the start edge
+            position: { x: 0 - this.position.x, y: 0 - this.position.y },
             dragOffset: this.dragOffset,
             dragAngle: this.getDragAngle(this.clientOffset.x, this.clientOffset.y),
             borderCollision: {
@@ -494,6 +540,10 @@ export class ScrollBooster {
             this.isDragging = false;
             dragDirection = null;
             activePointerId = null;
+            if (this.isReducedMotion()) {
+                this.velocity.x = 0;
+                this.velocity.y = 0;
+            }
             this.dragController?.abort();
             this.dragController = null;
             this.props.onPointerUp(this.getState(), event, isTouch);
@@ -563,6 +613,7 @@ export class ScrollBooster {
             }
 
             this.isDragging = true;
+            this.isTargetScroll = false;
             activePointerId = event.pointerId;
             isCaptured = false;
 
@@ -625,6 +676,7 @@ export class ScrollBooster {
             this.velocity.x = 0;
             this.velocity.y = 0;
             this.isScrolling = true;
+            this.isTargetScroll = false;
 
             this.scrollOffset.x = -event.deltaX;
             this.scrollOffset.y = -event.deltaY;

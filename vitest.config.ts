@@ -1,6 +1,7 @@
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
-import { mouse } from './test/commands/mouse';
+import { emulateReducedMotion } from './test/commands/media.ts';
+import { mouse } from './test/commands/mouse.ts';
 
 export default defineConfig({
     test: {
@@ -20,7 +21,7 @@ export default defineConfig({
                         enabled: true,
                         provider: playwright(),
                         headless: true,
-                        commands: { mouse },
+                        commands: { emulateReducedMotion, mouse },
                         // Each instance is a project, run a subset with `--project chromium`
                         instances: [
                             { browser: 'chromium', name: 'chromium' },

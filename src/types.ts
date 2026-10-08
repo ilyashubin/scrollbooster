@@ -21,6 +21,8 @@ export type PointerMode = 'all' | 'touch' | 'mouse';
 
 export type ScrollMode = 'transform' | 'native';
 
+export type ReducedMotion = 'auto' | 'always' | 'never';
+
 export interface BorderCollision {
     left: boolean;
     right: boolean;
@@ -50,9 +52,9 @@ export interface ScrollBoosterOptions {
     scrollMode?: ScrollMode;
     /** Bounce effect */
     bounce?: boolean;
-    /** Bounce effect factor */
+    /** Bounce effect factor, per 60 Hz frame */
     bounceForce?: number;
-    /** Scroll friction factor */
+    /** Scroll friction factor, per 60 Hz frame: the same motion on any refresh rate */
     friction?: number;
     /** Enables text selection */
     textSelection?: boolean;
@@ -73,6 +75,11 @@ export interface ScrollBoosterOptions {
     pointerDownPreventDefault?: boolean;
     /** Tolerance in degrees for horizontal or vertical drag detection */
     dragDirectionTolerance?: number;
+    /**
+     * Reduced motion: no inertia and bounce, `scrollTo` jumps to the target.
+     * `'auto'` follows `prefers-reduced-motion` media query
+     */
+    reducedMotion?: ReducedMotion;
     /** Primary pointer pressed on viewport, called before drag guards */
     onPointerDown?: (state: ScrollBoosterState, event: PointerEvent, isTouch: boolean) => void;
     /** Drag pointer released or cancelled */

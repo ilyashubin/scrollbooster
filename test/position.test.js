@@ -65,10 +65,7 @@ describe('setPosition', () => {
         sb.setPosition({ x: -100, y: 2000 });
         tick(200);
 
-        // Motion stops once velocity drops below 0.01, slightly short of the edge
-        const { x, y } = sb.getState().position;
-        expect(x).toBeCloseTo(0, 0);
-        expect(y).toBeCloseTo(700, 0);
+        expect(sb.getState().position).toEqual({ x: 0, y: 700 });
     });
 });
 
@@ -81,10 +78,7 @@ describe('scrollTo', () => {
         const trajectory = recordTrajectory(sb, 120, 10);
 
         expect(trajectory).toMatchSnapshot();
-        // Motion stops once velocity drops below 0.01, slightly short of the target
-        const { x, y } = sb.getState().position;
-        expect(x).toBeCloseTo(200, 0);
-        expect(y).toBeCloseTo(100, 0);
+        expect(sb.getState().position).toEqual({ x: 200, y: 100 });
 
         tick(200);
         expect(sb.getState().isMoving).toBe(false);

@@ -1,50 +1,141 @@
 import { describe, expect, it } from 'vitest';
 import {
+    approach,
     clamp,
+    coast,
     getDragAngle,
     getDragDirection,
-    getDragForce,
-    getEdgeForce,
-    getScrollForce,
-    getTargetForce,
+    getEdgeMode,
     hasVelocity,
+    type Motion,
+    spring,
 } from '../../src/physics';
 
 const edgeX = { from: -700, to: 0 };
-const edgeY = { from: -700, to: 0 };
-const still = { x: 0, y: 0 };
+const friction = 0.05;
+const retention = 1 - friction;
+const bounceForce = 0.1;
 
-describe('getEdgeForce', () => {
-    it('returns null within edges', () => {
-        expect(getEdgeForce({ x: -100, y: -100 }, still, edgeX, edgeY, 0.1, 0.05)).toBeNull();
+// Frame step of ScrollBooster 3.x: forces change velocity, then friction, then position
+function legacyFrame(position: number, velocity: number, force: (velocity: number) => number): Motion {
+    const next = (velocity + force(velocity)) * retention;
+    return { position: position + next, velocity: next };
+}
+
+function repeat(frames: number, step: (motion: Motion) => Motion, start: Motion): Motion {
+    let motion = start;
+    for (let i = 0; i < frames; i++) {
+        motion = step(motion);
+    }
+    return motion;
+}
+
+function expectMotion(actual: Motion, expected: Motion) {
+    expect(actual.position).toBeCloseTo(expected.position, 9);
+    expect(actual.velocity).toBeCloseTo(expected.velocity, 9);
+}
+
+describe('approach', () => {
+    it('matches 3.x drag force on whole frames', () => {
+        // 3.x drag force sets velocity to the distance to the pointer
+        const legacy = repeat(3, (m) => legacyFrame(m.position, m.velocity, (v) => -100 - m.position - v), {
+            position: 0,
+            velocity: 0,
+        });
+        const motion = repeat(3, (m) => approach(m.position, -100, friction, 1), { position: 0, velocity: 0 });
+
+        expectMotion(motion, legacy);
     });
 
-    it('pulls back towards the nearest edge only along the axis beyond edges', () => {
-        // rest position 50 + (5 - 5) / 0.05 = 50 is still beyond the edge, so only the spring force applies
-        expect(getEdgeForce({ x: 50, y: -100 }, { x: 5, y: 0 }, edgeX, edgeY, 0.1, 0.05)).toEqual({ x: -5, y: 0 });
+    it('matches 3.x scrollTo force on whole frames', () => {
+        const legacy = repeat(10, (m) => legacyFrame(m.position, m.velocity, (v) => (-200 - m.position) * 0.08 - v), {
+            position: 0,
+            velocity: 0,
+        });
+        const motion = repeat(10, (m) => approach(m.position, -200, 1 - 0.08 * retention, 1), {
+            position: 0,
+            velocity: 0,
+        });
+
+        expectMotion(motion, legacy);
     });
 
-    it('cancels velocity when content would come to rest inside edges', () => {
-        // rest position 50 + (-10 - 5) / 0.05 = -250 is inside edges, so velocity -10 is compensated
-        expect(getEdgeForce({ x: 50, y: 0 }, { x: -10, y: 0 }, edgeX, edgeY, 0.1, 0.05)).toEqual({ x: 5, y: 0 });
-    });
+    it('two half frames equal one frame', () => {
+        const half = approach(approach(0, -100, friction, 0.5).position, -100, friction, 0.5);
 
-    it('works beyond the far edge', () => {
-        expect(getEdgeForce({ x: -800, y: -750 }, still, edgeX, edgeY, 0.1, 0.05)).toEqual({ x: 10, y: 5 });
+        expect(half.position).toBeCloseTo(approach(0, -100, friction, 1).position, 9);
     });
 });
 
-describe('forces', () => {
-    it('drag force sets velocity to the distance to pointer', () => {
-        expect(getDragForce({ x: -100, y: 0 }, { x: -40, y: 0 }, { x: -10, y: 2 })).toEqual({ x: -50, y: -2 });
+describe('coast', () => {
+    it('matches 3.x inertia on whole frames', () => {
+        const start = { position: -300, velocity: -20 };
+        const legacy = repeat(30, (m) => legacyFrame(m.position, m.velocity, () => 0), start);
+
+        expectMotion(coast(start.position, start.velocity, friction, 30), legacy);
     });
 
-    it('scroll force sets velocity to the wheel offset', () => {
-        expect(getScrollForce({ x: 0, y: -100 }, { x: 3, y: -20 })).toEqual({ x: -3, y: -80 });
+    it('fractional frames compose', () => {
+        const thirds = repeat(3, (m) => coast(m.position, m.velocity, friction, 1 / 3), { position: 0, velocity: 10 });
+
+        expectMotion(thirds, coast(0, 10, friction, 1));
     });
 
-    it('target force moves 8% of the remaining distance', () => {
-        expect(getTargetForce({ x: -200, y: 0 }, { x: -100, y: 0 }, still)).toEqual({ x: -8, y: 0 });
+    it('keeps velocity without friction', () => {
+        expect(coast(0, 10, 0, 2)).toEqual({ position: 20, velocity: 10 });
+    });
+});
+
+describe('spring', () => {
+    const legacySpring = (m: Motion) => legacyFrame(m.position, m.velocity, () => (0 - m.position) * bounceForce);
+
+    it('matches 3.x edge force on whole frames', () => {
+        const start = { position: 20, velocity: 15 };
+
+        expectMotion(spring(20, 15, 0, bounceForce, friction, 4), repeat(4, legacySpring, start));
+    });
+
+    it('fractional frames compose', () => {
+        const halves = repeat(8, (m) => spring(m.position, m.velocity, 0, bounceForce, friction, 0.5), {
+            position: 20,
+            velocity: 15,
+        });
+
+        expectMotion(halves, repeat(4, legacySpring, { position: 20, velocity: 15 }));
+    });
+
+    it.each([
+        ['overdamped', 0.6],
+        ['critically damped', (1 - Math.sqrt(retention)) ** 2 / retention],
+    ])('works with %s spring', (_, force) => {
+        const legacy = repeat(3, (m) => legacyFrame(m.position, m.velocity, () => -m.position * force), {
+            position: 20,
+            velocity: 0,
+        });
+        const halves = repeat(6, (m) => spring(m.position, m.velocity, 0, force, friction, 0.5), {
+            position: 20,
+            velocity: 0,
+        });
+
+        expectMotion(halves, legacy);
+    });
+});
+
+describe('getEdgeMode', () => {
+    it('is inside within edges', () => {
+        expect(getEdgeMode(-100, 50, edgeX, bounceForce, friction)).toBe('inside');
+    });
+
+    it('springs while content would come to rest beyond the edge', () => {
+        // rest position 50 + (5 - 5) / 0.05 = 50 is beyond the edge
+        expect(getEdgeMode(50, 5, edgeX, bounceForce, friction)).toBe('spring');
+        expect(getEdgeMode(-750, -10, edgeX, bounceForce, friction)).toBe('spring');
+    });
+
+    it('returns when content would come to rest inside edges', () => {
+        // rest position 50 + (-10 - 5) / 0.05 = -250 is inside edges
+        expect(getEdgeMode(50, -10, edgeX, bounceForce, friction)).toBe('return');
+        expect(getEdgeMode(-750, 0, edgeX, bounceForce, friction)).toBe('return');
     });
 });
 

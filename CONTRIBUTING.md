@@ -21,6 +21,7 @@ Browser tests live in `test/` and run in real browsers with Vitest browser mode.
 clock (`tick()` in `test/helpers.js`), so physics advances frame by frame and trajectories are deterministic.
 Pointer helpers dispatch synthetic `PointerEvent`s in browser order. Browser default actions, pointer capture and
 click targets need real input, these tests in `test/real-input.test.js` drive Playwright mouse through the `mouse`
-command from `test/commands/mouse.ts`.
+command. Browser commands live in `test/commands/`, `emulateReducedMotion` switches `prefers-reduced-motion`.
+Physics is defined per 60 Hz frame; `tick(frames, frameDuration)` with another duration checks other refresh rates.
 Known bugs are kept in `test/known-bugs.test.js` as `it.fails`: when a fix makes such a test fail, switch it to `it`
 and move it next to related tests.

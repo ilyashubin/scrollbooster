@@ -9,6 +9,7 @@ export type {
     Edge,
     Point,
     PointerMode,
+    ReducedMotion,
     ScrollBoosterOptions,
     ScrollBoosterState,
     ScrollMode,
