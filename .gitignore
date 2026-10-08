@@ -12,3 +12,6 @@ yarn-error.log
 
 # Build output
 dist/
+
+# Vitest
+.vitest/

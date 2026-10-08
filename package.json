@@ -24,6 +24,8 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "start": "pnpm run --parallel \"/^start:/\"",
     "start:build": "tsdown --watch",
     "start:serve": "vite --host 0.0.0.0 --open",
@@ -44,7 +46,10 @@
   "homepage": "https://ilyashubin.github.io/scrollbooster",
   "packageManager": "pnpm@12.10.1",
   "devDependencies": {
+    "@vitest/browser-playwright": "^5.0.3",
+    "playwright": "~1.63.0",
     "tsdown": "^0.23.0",
-    "vite": "~8.3.3"
+    "vite": "~8.3.3",
+    "vitest": "^5.0.3"
   }
 }
