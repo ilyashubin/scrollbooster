@@ -9,3 +9,6 @@ yarn-error.log
 *.ntvs*
 *.njsproj
 *.sln
+
+# Build output
+dist/
