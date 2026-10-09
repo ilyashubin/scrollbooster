@@ -33,7 +33,10 @@ Browser tests live in `test/` and run in real browsers with Vitest browser mode.
 clock (`tick()` in `test/helpers.ts`), so physics advances frame by frame and trajectories are deterministic.
 Pointer helpers dispatch synthetic `PointerEvent`s in browser order. Browser default actions, pointer capture and
 click targets need real input, these tests in `test/real-input.test.ts` drive Playwright mouse through the `mouse`
-command. Browser commands live in `test/commands/`, `emulateReducedMotion` switches `prefers-reduced-motion`.
+command. `touch-action`, page scroll by a swipe and `pointercancel` need real touch: `test/real-touch.test.ts` sends
+touches through Chrome DevTools Protocol with the `touch` command and runs in Chromium only. Browser commands live in
+`test/commands/` and are typed in `test/commands/index.d.ts`, `emulateReducedMotion` switches
+`prefers-reduced-motion`.
 Physics is defined per 60 Hz frame; `tick(frames, frameDuration)` with another duration checks other refresh rates.
 A known bug that is not fixed yet can be written as `it.fails` next to related tests: when a fix makes it fail,
 switch it to `it`.
