@@ -91,6 +91,21 @@ describe('nested instances', () => {
         expect(roundedPosition(outer.sb)).toEqual({ x: 0, y: 0 });
     });
 
+    it('click after a drag of the row reaches only the row', () => {
+        const outerClick = vi.fn();
+        const innerClick = vi.fn();
+        const { pointer, row } = mountNested({ direction: 'all', onClick: outerClick }, { onClick: innerClick });
+        const rowContent = row.firstElementChild as HTMLElement;
+
+        pointer.touchDrag([150, 50], [140, 50], { steps: 2 });
+        const event = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 });
+        rowContent.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(innerClick).toHaveBeenCalledTimes(1);
+        expect(outerClick).not.toHaveBeenCalled();
+    });
+
     it('holds both contents until the click threshold', () => {
         const { outer, inner, pointer } = mountNested({ direction: 'all' });
 

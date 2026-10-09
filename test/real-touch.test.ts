@@ -175,6 +175,20 @@ describe.runIf(server.browser === 'chromium')('real touch', () => {
         expect(onClick.mock.calls[0][1].defaultPrevented).toBe(true);
     });
 
+    it('drag within tap distance does not click the element under the finger', async () => {
+        const onClick = vi.fn();
+        const { content, viewport } = mount({ onClick });
+        const onContentClick = vi.fn();
+        content.addEventListener('click', onContentClick);
+
+        await swipe(at(viewport, 150, 150), at(viewport, 140, 150), 2);
+        await settle();
+
+        expect(onContentClick).not.toHaveBeenCalled();
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(onClick.mock.calls[0][1].target).toBe(content);
+    });
+
     it('keyboard activates a link after swipe', async () => {
         const { content, viewport } = mount();
         const link = document.createElement('a');

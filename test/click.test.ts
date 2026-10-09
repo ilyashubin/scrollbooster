@@ -31,6 +31,36 @@ describe('click', () => {
         expect(onClick).toHaveBeenCalledTimes(1);
     });
 
+    // A touch drag within the tap distance of the browser clicks the element under the finger
+    it('stops click after drag before handlers of content elements', () => {
+        const onClick = vi.fn();
+        const { pointer, content } = mount({ onClick });
+        const onContentClick = vi.fn();
+        content.addEventListener('click', onContentClick);
+
+        pointer.touchDrag([100, 100], [110, 100], { steps: 2 });
+        const event = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 });
+        content.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(onContentClick).not.toHaveBeenCalled();
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(onClick).toHaveBeenCalledWith(expect.anything(), event);
+    });
+
+    it('passes click to content handlers before onClick', () => {
+        const calls: string[] = [];
+        const { content } = mount({ onClick: (_state, event) => calls.push(`onClick ${event.defaultPrevented}`) });
+        content.addEventListener('click', (event) => {
+            calls.push('content');
+            event.preventDefault();
+        });
+
+        content.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }));
+
+        expect(calls).toEqual(['content', 'onClick true']);
+    });
+
     it('ignores drag offset along disabled direction', () => {
         const { pointer } = mount({ direction: 'horizontal' });
 

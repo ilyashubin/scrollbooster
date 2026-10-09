@@ -222,20 +222,26 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         }
     };
 
-    const onClick = (event: MouseEvent) => {
-        // Click of the pointer that ended a drag. A touch drag past the tap distance has no click, then the next
-        // click may come from keyboard or element.click() with detail 0 and must not be prevented.
+    // Click of the pointer that ended a drag, stopped in the capture phase: a touch drag within the tap distance of
+    // the browser clicks the element under the finger, and its own handlers must not run. A touch drag past the tap
+    // distance has no click, then the next click may come from keyboard or element.click() with detail 0.
+    const onClickCapture = (event: MouseEvent) => {
         if (preventClick && event.detail > 0) {
             preventClick = false;
             event.preventDefault();
             event.stopPropagation();
+            host.props().onClick(host.getState(), event);
         }
-        host.props().onClick(host.getState(), event);
     };
+
+    // Other clicks reach onClick after content handlers. The stopped one does not get here: stopPropagation() in the
+    // capture phase also skips bubble listeners of the target, and a nested instance may have stopped it.
+    const onClick = (event: MouseEvent) => host.props().onClick(host.getState(), event);
 
     viewport.addEventListener('pointerdown', onPointerDown, { signal });
     viewport.addEventListener('selectstart', preventDuringDrag, { signal });
     viewport.addEventListener('dragstart', preventDuringDrag, { signal });
+    viewport.addEventListener('click', onClickCapture, { capture: true, signal });
     viewport.addEventListener('click', onClick, { signal });
     signal.addEventListener('abort', stop);
     return press;

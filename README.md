@@ -141,7 +141,8 @@ sb.destroy();
 
 ### Recipes
 
-Gallery with links: clicks on links work, the click that ends a drag is prevented, nothing to set up.
+Gallery with links: clicks on links and buttons work, the click that ends a drag is prevented and does not reach
+handlers of content elements, nothing to set up.
 
 ``` js
 new ScrollBooster({ viewport, direction: 'horizontal' });

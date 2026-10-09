@@ -47,8 +47,9 @@ Mouse and touch listeners are replaced with Pointer Events.
 - One pointer drags at a time: a second finger on the same viewport is ignored and lifting it does not end the drag.
   If the browser never delivers `pointerup` of the dragging finger (the element was removed, capture was lost), the
   next touch starts a new drag, `onPointerUp` is not called for the lost one.
-- After a mouse drag `click` goes to the viewport and is prevented, so `click` handlers on elements inside the
-  content do not run after a drag. A click without movement reaches them as usual. Only the click of the pointer
+- The click that ends a drag is prevented and stopped on the viewport before it reaches elements inside the content,
+  so their `click` handlers do not run after a drag. After a mouse drag the click goes to the viewport itself, after a
+  short touch drag the browser clicks the element under the finger, both are stopped. A click without movement reaches them as usual. Only the click of the pointer
   that ended the drag is prevented: a touch drag longer than the browser tap distance has no click, and keyboard
   activation or `element.click()` after it is not prevented. In `onClick` use `event.defaultPrevented` to tell a
   click after drag from a plain click.
