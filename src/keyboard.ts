@@ -10,19 +10,21 @@ const PAGE_OVERLAP = 0.875;
 const EDITABLE_NODES = ['input', 'textarea', 'select'];
 
 /**
- * Arrows scroll in screen directions (`x` grows to the right), page keys forward and back from the start edge,
- * Home and End to the edges
+ * Scroll by `delta` of the public position, or to the start or end edge
  */
-export type KeyScroll =
-    | { axis: 'x' | 'y'; arrow: number }
-    | { axis: 'x' | 'y'; page: number }
-    | { axis: 'x' | 'y'; edge: 'start' | 'end' };
+export type KeyScroll = { axis: 'x' | 'y'; delta: number } | { axis: 'x' | 'y'; edge: 'start' | 'end' };
 
 /**
- * Scroll by a key like native scroll does. Page keys and Home, End scroll along x when only horizontal direction
- * is allowed. Null for keys that do not scroll.
+ * Scroll by a key like native scroll does. Arrows follow the screen, so left and right swap in a right-to-left
+ * viewport, page keys go forward and back from the start edge. Page keys and Home, End scroll along x when only
+ * horizontal direction is allowed. Null for keys that do not scroll.
  */
-export function getKeyScroll(event: KeyboardEvent, viewport: Size, direction: Direction): KeyScroll | null {
+export function getKeyScroll(
+    event: KeyboardEvent,
+    viewport: Size,
+    direction: Direction,
+    isRtl: boolean
+): KeyScroll | null {
     const { target, key, shiftKey } = event;
     if (event.altKey || event.ctrlKey || event.metaKey) {
         return null;
@@ -35,22 +37,23 @@ export function getKeyScroll(event: KeyboardEvent, viewport: Size, direction: Di
     }
     const mainAxis = direction === 'horizontal' ? 'x' : 'y';
     const page = (direction === 'horizontal' ? viewport.width : viewport.height) * PAGE_OVERLAP;
+    const right = isRtl ? -LINE_PX : LINE_PX;
     switch (key) {
         case 'ArrowDown':
-            return { axis: 'y', arrow: LINE_PX };
+            return { axis: 'y', delta: LINE_PX };
         case 'ArrowUp':
-            return { axis: 'y', arrow: -LINE_PX };
+            return { axis: 'y', delta: -LINE_PX };
         case 'ArrowRight':
-            return { axis: 'x', arrow: LINE_PX };
+            return { axis: 'x', delta: right };
         case 'ArrowLeft':
-            return { axis: 'x', arrow: -LINE_PX };
+            return { axis: 'x', delta: -right };
         case 'PageDown':
-            return { axis: mainAxis, page };
+            return { axis: mainAxis, delta: page };
         case 'PageUp':
-            return { axis: mainAxis, page: -page };
+            return { axis: mainAxis, delta: -page };
         case ' ':
             // Space presses a focused button
-            return target instanceof HTMLButtonElement ? null : { axis: mainAxis, page: shiftKey ? -page : page };
+            return target instanceof HTMLButtonElement ? null : { axis: mainAxis, delta: shiftKey ? -page : page };
         case 'Home':
             return { axis: mainAxis, edge: 'start' };
         case 'End':

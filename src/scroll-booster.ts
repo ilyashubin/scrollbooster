@@ -309,16 +309,14 @@ export class ScrollBooster {
                 }
                 this.#snap();
             },
-            // Drag to the right moves the position to the left, to the right in a right-to-left viewport
-            canDrag: (axis, offset) =>
-                this.#motion.canScroll(axis, axis === 'x' && this.#isRtl ? offset : -offset, this.#props.direction),
+            // Drag to the right scrolls to the left
+            canDrag: (axis, offset) => this.#canScrollBy(axis, -offset),
         });
         this.#wheel = bindWheel(viewport, signal, {
             props,
             getState,
             isDragging: () => this.#press.isActive,
-            canScroll: (axis, delta) =>
-                this.#motion.canScroll(axis, axis === 'x' && this.#isRtl ? -delta : delta, this.#props.direction),
+            canScroll: (axis, delta) => this.#canScrollBy(axis, delta),
             scroll: () => {
                 this.#motion.interrupt();
                 this.#loop.start();
@@ -385,6 +383,13 @@ export class ScrollBooster {
     }
 
     /**
+     * Check if a scroll by the delta in DOM directions (`x` grows to the right) moves content
+     */
+    #canScrollBy(axis: 'x' | 'y', delta: number): boolean {
+        return this.#motion.canScroll(axis, axis === 'x' && this.#isRtl ? -delta : delta, this.#props.direction);
+    }
+
+    /**
      * Keyboard scroll of the focused viewport or of content with focus. A key goes to the page when content cannot
      * move along its axis, like wheel.
      */
@@ -393,7 +398,7 @@ export class ScrollBooster {
         if (!keyboard || event.defaultPrevented || this.#press.isActive) {
             return;
         }
-        const key = getKeyScroll(event, this.#metrics.viewport, direction);
+        const key = getKeyScroll(event, this.#metrics.viewport, direction, this.#isRtl);
         if (!key) {
             return;
         }
@@ -406,11 +411,10 @@ export class ScrollBooster {
             }
             return;
         }
-        const delta = 'page' in key ? key.page : axis === 'x' && this.#isRtl ? -key.arrow : key.arrow;
-        if (this.#motion.canScroll(axis, delta, direction)) {
+        if (this.#motion.canScroll(axis, key.delta, direction)) {
             event.preventDefault();
             // Key repeat adds up like repeated wheel events
-            this.scrollBy({ [axis]: delta });
+            this.scrollBy({ [axis]: key.delta });
         }
     }
 
