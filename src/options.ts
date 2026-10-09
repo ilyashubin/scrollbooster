@@ -19,6 +19,7 @@ const DEFAULTS: Omit<Props, 'viewport' | 'content'> = {
     onClick() {},
     onUpdate() {},
     onWheel() {},
+    snap: () => undefined,
     shouldDrag() {
         return true;
     },
@@ -64,6 +65,7 @@ const CHECKS: Record<string, Check> = {
     onClick: FUNCTION,
     onUpdate: FUNCTION,
     onWheel: FUNCTION,
+    snap: FUNCTION,
     shouldDrag: FUNCTION,
 };
 

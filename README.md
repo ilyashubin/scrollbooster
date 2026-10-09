@@ -66,6 +66,7 @@ onPointerDown | Function | noop | Called when a press starts dragging, after `sh
 onPointerUp | Function | noop | Called when the pointer that drags content is released or cancelled
 onPointerMove | Function | noop | Called when the pointer that drags content moves
 onWheel | Function | noop | Called for each `wheel` event that scrolls content, before it moves
+snap | Function | none | Where content stops after a drag or a wheel gesture, for carousels and paging. Receives the position where inertia would stop and the state, returns the position to scroll to, for example `(rest) => ({ x: Math.round(rest.x / 300) * 300 })`. A missing coordinate keeps its rest position, returning nothing keeps the inertia
 shouldDrag | Function | () => true | Decides whether a press starts dragging. Receives state and `PointerEvent`, called on `pointerdown` in the viewport. Return `false` to leave the press to the page, for example on buttons. Wheel is switched with the `wheel` option
 
 Touch dragging relies on CSS `touch-action`: ScrollBooster sets it on the viewport, so the browser keeps the

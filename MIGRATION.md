@@ -126,6 +126,9 @@ only options that used it.
   keep that: `scrollTo({ x: 100, y: 0 })`. During a running `scrollTo()` the missing coordinate keeps its target.
 - `scrollTo()` and `setPosition()` keep the position within edges: `scrollTo({ y: 99999 })` stops at the end. In
   3.x the target was not limited and content could stay beyond the edge, or bounce back after `setPosition()`.
+- New `snap` option chooses where content stops after a drag or a wheel gesture: it receives the position where
+  inertia would stop and returns the position to scroll to. Carousels do not need to restart the motion from
+  `onPointerUp` anymore.
 - New `scrollBy()` scrolls by an offset from the target of a running scroll, so repeated calls from "next" buttons
   add up. `scrollTo({ x: getState().position.x + 300 })` counted from the current position and lost the rest of
   the running scroll.

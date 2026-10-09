@@ -220,6 +220,15 @@ export class ContentMotion {
         return { x: 0 - target.x, y: 0 - target.y };
     }
 
+    /**
+     * Public position where inertia stops within edges, with bounce content returns to the edge it flies beyond
+     */
+    getRestPosition(friction: number): Point {
+        const rest = (axis: Axis) =>
+            clamp(this.position[axis] + (this.velocity[axis] * (1 - friction)) / friction, this.getEdge(axis));
+        return { x: 0 - rest('x'), y: 0 - rest('y') };
+    }
+
     getMaxPosition(): Point {
         return { x: 0 - this.edgeX.from, y: 0 - this.edgeY.from };
     }

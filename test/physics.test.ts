@@ -360,8 +360,15 @@ describe('settling', () => {
 });
 
 describe('reducedMotion', () => {
+    // Firefox and WebKit update media query matches on the next rendering update
+    async function emulate(value: 'reduce' | 'no-preference' | 'reset') {
+        await commands.emulateReducedMotion(value);
+        await nextRender();
+    }
+
+    // Reset must apply before the next test, which may use reducedMotion: 'auto'
     afterEach(async () => {
-        await commands.emulateReducedMotion('reset');
+        await emulate('reset');
     });
 
     it('always: no inertia after release', () => {
@@ -394,12 +401,6 @@ describe('reducedMotion', () => {
         expect(pendingFrames()).toBe(0);
     });
 
-    // Firefox and WebKit update media query matches on the next rendering update
-    async function emulate(value: 'reduce' | 'no-preference' | 'reset') {
-        await commands.emulateReducedMotion(value);
-        await nextRender();
-    }
-
     it('auto: follows prefers-reduced-motion', async () => {
         await emulate('reduce');
         const { sb } = mount();
@@ -422,5 +423,94 @@ describe('reducedMotion', () => {
         tick(1);
 
         expect(sb.getState().position.x).toBeLessThan(200);
+    });
+});
+
+describe('snap', () => {
+    // Fling to the left at about 10 px per frame
+    function fling(pointer: Mounted['pointer']) {
+        pointer.mouseDrag([250, 150], [150, 150], { steps: 10 });
+    }
+
+    it('receives the position where inertia stops', () => {
+        const free = mount();
+        fling(free.pointer);
+        tick(500);
+        const snap = vi.fn(() => undefined);
+        const snapped = mount({ snap });
+
+        fling(snapped.pointer);
+        tick(500);
+
+        expect(snap).toHaveBeenCalledTimes(1);
+        const [rest, state] = snap.mock.calls[0] as unknown as [{ x: number; y: number }, { isDragging: boolean }];
+        expect(rest.x).toBeCloseTo(free.sb.getState().position.x, 0);
+        expect(rest.y).toBe(0);
+        expect(state.isDragging).toBe(false);
+        // Returning nothing keeps the inertia
+        expect(roundedPosition(snapped.sb, 6)).toEqual(roundedPosition(free.sb, 6));
+    });
+
+    it('scrolls to the returned position', () => {
+        const { sb, pointer } = mount({ snap: (rest) => ({ x: Math.round(rest.x / 100) * 100 }) });
+
+        fling(pointer);
+        tick(500);
+
+        expect(sb.getState().position.x % 100).toBe(0);
+        expect(sb.getState().position.x).toBeGreaterThan(100);
+        expect(sb.getState().isMoving).toBe(false);
+    });
+
+    it('keeps the rest position for a missing coordinate', () => {
+        const free = mount();
+        free.pointer.mouseDrag([250, 250], [150, 150], { steps: 10 });
+        tick(500);
+        const { sb, pointer } = mount({ snap: () => ({ x: 300 }) });
+
+        pointer.mouseDrag([250, 250], [150, 150], { steps: 10 });
+        tick(500);
+
+        expect(sb.getState().position.x).toBe(300);
+        expect(sb.getState().position.y).toBeCloseTo(free.sb.getState().position.y, 0);
+    });
+
+    it('returns to the edge position when content flies beyond it', () => {
+        const snap = vi.fn(() => undefined);
+        const { pointer } = mount({ snap });
+
+        pointer.mouseDrag([150, 150], [250, 150], { steps: 10 });
+
+        expect(snap).toHaveBeenCalledWith({ x: 0, y: 0 }, expect.anything());
+    });
+
+    it('is called at the end of a wheel gesture', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const snap = vi.fn((rest: { x: number; y: number }) => ({ y: Math.round(rest.y / 100) * 100 }));
+        const { sb, viewport } = mount({ snap });
+
+        wheel(viewport, 0, 70);
+        tick();
+        wheel(viewport, 0, 70);
+        tick();
+        expect(snap).not.toHaveBeenCalled();
+
+        vi.advanceTimersByTime(100);
+        tick(300);
+
+        expect(snap).toHaveBeenCalledWith({ x: 0, y: 140 }, expect.anything());
+        expect(sb.getState().position).toEqual({ x: 0, y: 100 });
+    });
+
+    it('jumps with reduced motion from the release position', () => {
+        const { sb, pointer } = mount({
+            reducedMotion: 'always',
+            snap: (rest) => ({ x: Math.round(rest.x / 100) * 100 }),
+        });
+
+        pointer.mouseDrag([250, 150], [180, 150], { steps: 10 });
+        tick();
+
+        expect(sb.getState().position.x).toBe(100);
     });
 });

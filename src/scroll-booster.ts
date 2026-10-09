@@ -238,6 +238,17 @@ export class ScrollBooster {
     }
 
     /**
+     * Let the snap option choose where content stops after a drag or a wheel gesture
+     */
+    private snap(): void {
+        const rest = this.motion.getRestPosition(this.props.friction);
+        const target = this.props.snap(rest, this.getState());
+        if (target) {
+            this.scrollTo({ x: target.x ?? rest.x, y: target.y ?? rest.y });
+        }
+    }
+
+    /**
      * Collisions with the sides of viewport, the start edge is on the right in right-to-left viewport
      */
     private getBorderCollision(): BorderCollision {
@@ -292,6 +303,7 @@ export class ScrollBooster {
                 if (this.isReducedMotion()) {
                     this.motion.stop();
                 }
+                this.snap();
             },
         });
         this.wheel = bindWheel(viewport, signal, {
@@ -304,6 +316,7 @@ export class ScrollBooster {
                 this.motion.interrupt();
                 this.loop.start();
             },
+            end: () => this.snap(),
         });
 
         // Scroll of the page comes to window, not to the root element

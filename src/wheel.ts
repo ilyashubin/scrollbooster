@@ -28,6 +28,8 @@ export interface WheelHost {
     canScroll(axis: 'x' | 'y', delta: number): boolean;
     /** Wheel event is taken, before onWheel gets the state */
     scroll(): void;
+    /** Gesture ended: no events for the gesture timeout */
+    end(): void;
 }
 
 /**
@@ -66,6 +68,7 @@ export function bindWheel(viewport: HTMLElement, signal: AbortSignal, host: Whee
         clearTimeout(timer);
         timer = setTimeout(() => {
             gesture.isActive = false;
+            host.end();
         }, GESTURE_TIMEOUT_MS);
     };
 

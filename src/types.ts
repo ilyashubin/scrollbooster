@@ -100,6 +100,12 @@ export interface ScrollBoosterOptions {
     onUpdate?: (state: ScrollBoosterState) => void;
     /** Wheel event that scrolls content, called before the content moves */
     onWheel?: (state: ScrollBoosterState, event: WheelEvent) => void;
+    /**
+     * Where content stops after a drag or a wheel gesture, for carousels and paging. Receives the position where
+     * inertia would stop within edges and returns the position to scroll to, a missing coordinate goes to its rest
+     * position. Returning nothing keeps the inertia.
+     */
+    snap?: (rest: Point, state: ScrollBoosterState) => Partial<Point> | undefined;
     /** Decides on `pointerdown` whether the press starts dragging. Wheel is switched with the `wheel` option */
     shouldDrag?: (state: ScrollBoosterState, event: PointerEvent) => boolean;
 }
