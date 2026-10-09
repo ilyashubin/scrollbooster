@@ -266,7 +266,7 @@ describe('reducedMotion', () => {
         tick(1);
 
         expect(sb.getState().position).toEqual({ x: 200, y: 100 });
-        expect(pendingFrames()).toBe(1);
+        expect(pendingFrames()).toBe(0);
     });
 
     // Firefox and WebKit update media query matches on the next rendering update

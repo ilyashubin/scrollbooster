@@ -62,6 +62,29 @@ describe('mouse drag', () => {
         expect(position(sb)).toEqual({ x: 0, y: 300 });
     });
 
+    it('reports isDragging only while pointer is pressed and moved', () => {
+        const { sb, pointer } = mount();
+
+        pointer.mouseDown(200, 200);
+        expect(sb.getState().isDragging).toBe(false);
+
+        pointer.mouseMove(150, 200);
+        expect(sb.getState().isDragging).toBe(true);
+
+        pointer.mouseUp(150, 200);
+        expect(sb.getState().isDragging).toBe(false);
+    });
+
+    it('keeps dragOffset of the last drag until next pointerdown', () => {
+        const { sb, pointer } = mount();
+
+        pointer.mouseDrag([200, 200], [150, 200]);
+        expect(sb.getState().dragOffset).toEqual({ x: -50, y: 0 });
+
+        pointer.mouseDown(150, 200);
+        expect(sb.getState().dragOffset).toEqual({ x: 0, y: 0 });
+    });
+
     it('captures pointer on viewport only after click threshold', () => {
         const capture = vi.spyOn(Element.prototype, 'setPointerCapture');
         const { pointer, viewport } = mount();
@@ -160,6 +183,29 @@ describe('touch drag', () => {
         expect(onPointerDown).toHaveBeenCalledTimes(1);
         expect(onPointerUp).not.toHaveBeenCalled();
         expect(position(sb)).toEqual({ x: 100, y: 0 });
+    });
+
+    it('starts a new drag when release of the previous touch was lost', () => {
+        const onPointerUp = vi.fn();
+        const { sb, pointer } = mount({ onPointerUp });
+
+        pointer.touchStart(200, 200, { id: 10 });
+        pointer.touchMove(150, 200, { id: 10 });
+        tick(100);
+        // pointerup of finger 10 never arrives, the next touch is primary again
+        const next = { id: 11, isPrimary: true };
+        pointer.touchStart(200, 200, next);
+        pointer.touchMove(100, 200, next);
+        tick(100);
+        expect(position(sb)).toEqual({ x: 150, y: 0 });
+
+        // Late release of the lost finger does not end the new drag
+        pointer.touchEnd(150, 200, { id: 10 });
+        expect(sb.isDragging).toBe(true);
+        expect(onPointerUp).not.toHaveBeenCalled();
+
+        pointer.touchEnd(100, 200, next);
+        expect(onPointerUp).toHaveBeenCalledTimes(1);
     });
 
     it('drags with a finger that is not primary on the page', () => {

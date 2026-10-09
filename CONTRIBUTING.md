@@ -24,8 +24,8 @@ Pointer helpers dispatch synthetic `PointerEvent`s in browser order. Browser def
 click targets need real input, these tests in `test/real-input.test.js` drive Playwright mouse through the `mouse`
 command. Browser commands live in `test/commands/`, `emulateReducedMotion` switches `prefers-reduced-motion`.
 Physics is defined per 60 Hz frame; `tick(frames, frameDuration)` with another duration checks other refresh rates.
-Known bugs are kept in `test/known-bugs.test.js` as `it.fails`: when a fix makes such a test fail, switch it to `it`
-and move it next to related tests.
+A known bug that is not fixed yet can be written as `it.fails` next to related tests: when a fix makes it fail,
+switch it to `it`.
 
 ## Checks
 

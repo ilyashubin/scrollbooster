@@ -81,6 +81,57 @@ describe('updateOptions', () => {
     });
 });
 
+describe('updateOptions scrollMode', () => {
+    function scrolled(scrollMode) {
+        const mounted = mount({ scrollMode });
+        mounted.sb.setPosition({ x: 100, y: 50 });
+        tick();
+        return mounted;
+    }
+
+    it('transform to native: removes transform and scrolls natively', () => {
+        const { sb, content, viewport } = scrolled('transform');
+
+        sb.updateOptions({ scrollMode: 'native' });
+
+        expect(content.style.transform).toBe('');
+        expect([viewport.scrollLeft, viewport.scrollTop]).toEqual([100, 50]);
+        expect(sb.getState().position).toEqual({ x: 100, y: 50 });
+    });
+
+    it('native to transform: resets native scroll and moves content with transform', () => {
+        const { sb, content, viewport } = scrolled('native');
+
+        sb.updateOptions({ scrollMode: 'transform' });
+
+        expect([viewport.scrollLeft, viewport.scrollTop]).toEqual([0, 0]);
+        expect(content.style.transform).toBe('translate(-100px, -50px)');
+        expect(sb.getState().position).toEqual({ x: 100, y: 50 });
+    });
+
+    it('transform to custom rendering: removes transform', () => {
+        const { sb, content } = scrolled('transform');
+
+        sb.updateOptions({ scrollMode: undefined });
+        tick(5);
+
+        expect(content.style.transform).toBe('');
+    });
+
+    it('new content: removes transform from previous content', () => {
+        const { sb, content, viewport } = scrolled('transform');
+        const next = document.createElement('div');
+        next.style.cssText = 'width: 1000px; height: 1000px;';
+        viewport.append(next);
+
+        sb.updateOptions({ content: next });
+        tick();
+
+        expect(content.style.transform).toBe('');
+        expect(next.style.transform).toBe('translate(-100px, -50px)');
+    });
+});
+
 describe('destroy', () => {
     it('removes pointer, click and wheel listeners', () => {
         const callbacks = {
@@ -282,6 +333,33 @@ describe('touch-action', () => {
 });
 
 describe('wheel listener', () => {
+    function wheelListeners(callback) {
+        const add = vi.spyOn(EventTarget.prototype, 'addEventListener');
+        callback();
+        return add.mock.calls.filter(([type]) => type === 'wheel').length;
+    }
+
+    it('is not added without emulateScroll', () => {
+        expect(wheelListeners(() => mount())).toBe(0);
+    });
+
+    it('follows emulateScroll in updateOptions', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const { sb, viewport } = mount();
+
+        expect(wheelListeners(() => sb.updateOptions({ emulateScroll: true }))).toBe(1);
+        wheel(viewport, 0, 100);
+        tick(10);
+        expect(roundedPosition(sb).y).toBeGreaterThan(0);
+
+        sb.setPosition({ y: 0 });
+        vi.advanceTimersByTime(100);
+        sb.updateOptions({ emulateScroll: false });
+        wheel(viewport, 0, 100);
+        tick(10);
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
+    });
+
     // Vitest browser mode wraps window.addEventListener, so window needs its own spy
     function blockingListeners(callback) {
         const elementListeners = vi.spyOn(EventTarget.prototype, 'addEventListener');
@@ -314,5 +392,76 @@ describe('wheel listener', () => {
         sb.updateOptions({ preventDefaultOnEmulateScroll: 'vertical' });
 
         expect(wheel(viewport, 0, 100).defaultPrevented).toBe(true);
+    });
+});
+
+describe('options validation', () => {
+    function warnings(callback) {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        callback();
+        return warn.mock.calls.map(([message]) => message);
+    }
+
+    it('accepts valid options silently', () => {
+        expect(
+            warnings(() =>
+                mount({
+                    direction: 'horizontal',
+                    pointerMode: 'touch',
+                    scrollMode: 'native',
+                    reducedMotion: 'never',
+                    lockScrollOnDragDirection: 'all',
+                    preventDefaultOnEmulateScroll: 'vertical',
+                    friction: 0.2,
+                    bounceForce: 0.3,
+                    onUpdate() {},
+                })
+            )
+        ).toEqual([]);
+    });
+
+    it('warns about unknown option', () => {
+        const messages = warnings(() => mount({ scrollMethod: 'transform' }));
+
+        expect(messages).toEqual([expect.stringContaining('option "scrollMethod" is unknown')]);
+    });
+
+    it.each([
+        ['direction', 'diagonal'],
+        ['pointerMode', 'pen'],
+        ['scrollMode', 'smooth'],
+        ['reducedMotion', true],
+        ['lockScrollOnDragDirection', 'both'],
+        ['preventDefaultOnEmulateScroll', 'all'],
+        ['direction', undefined],
+    ])('warns about %s: %s', (key, value) => {
+        const messages = warnings(() => mount({ [key]: value }));
+
+        expect(messages).toEqual([expect.stringContaining(`option "${key}" must be one of`)]);
+    });
+
+    it.each([
+        ['friction', 0],
+        ['friction', 1],
+        ['bounceForce', -0.1],
+        ['bounceForce', '0.1'],
+    ])('warns about %s: %s', (key, value) => {
+        const messages = warnings(() => mount({ [key]: value }));
+
+        expect(messages).toEqual([expect.stringContaining(`option "${key}" must be a number between 0 and 1`)]);
+    });
+
+    it('warns about deprecated preventPointerMoveDefault', () => {
+        const messages = warnings(() => mount({ preventPointerMoveDefault: false }));
+
+        expect(messages).toEqual([expect.stringContaining('"preventPointerMoveDefault" is deprecated')]);
+    });
+
+    it('checks options passed to updateOptions', () => {
+        const { sb } = mount();
+
+        const messages = warnings(() => sb.updateOptions({ direction: 'diagonal', bounse: false }));
+
+        expect(messages).toHaveLength(2);
     });
 });

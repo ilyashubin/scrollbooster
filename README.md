@@ -1,6 +1,6 @@
 # ScrollBooster
 
-Enjoyable drag-to-scroll micro library (~4 kB gzipped). Supports smooth content scroll via mouse, touch and pen
+Enjoyable drag-to-scroll micro library (~5 kB gzipped). Supports smooth content scroll via mouse, touch and pen
 dragging, trackpad or mouse wheel, with inertia and elastic bounce that feel the same on 60 Hz and 120 Hz screens.
 Zero dependencies, TypeScript types included.
 
@@ -82,8 +82,8 @@ native gestures that do not drag content. With `direction: 'horizontal'` vertica
 
 Method | Description
 ------ | -----------
-setPosition | Sets new scroll position in viewport. Receives an object with properties `x` and `y`
-scrollTo | Smooth scroll to position in viewport. Receives an object with properties `x` and `y`
+setPosition | Sets new scroll position in viewport. Receives an object with properties `x` and `y`, a missing one keeps its value
+scrollTo | Smooth scroll to position in viewport. Receives an object with properties `x` and `y`, a missing one keeps its value. Does nothing while the user drags content
 updateMetrics | Forces to recalculate elements metrics. Viewport and content resizes are tracked automatically, use it for changes that do not resize them
 updateOptions | Sets option value. All properties from `Options` config object are supported, including `viewport` and `content`
 getState | Returns current scroll state in a same format as `onUpdate`

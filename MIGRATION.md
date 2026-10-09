@@ -1,8 +1,9 @@
 # Migrating from 3.x to 4.0
 
 4.0 keeps the options, methods and `onUpdate` state of 3.x. Most apps only need to check the
-[browser support](#browser-support) and the [input changes](#input-pointer-events). Everything below is a list of
-behavior changes, each with what to do if it affects you.
+[browser support](#browser-support), the [input changes](#input-pointer-events) and
+[`scrollTo()` with one coordinate](#methods-and-state). Everything below is a list of behavior changes, each with
+what to do if it affects you.
 
 ## Browser support
 
@@ -33,6 +34,8 @@ Mouse and touch listeners are replaced with Pointer Events.
   (`pointercancel`, `event.type` tells which). In 3.x it was called on every `mouseup` and `touchend` on the page.
 - Only the main mouse button drags. Middle and side buttons are ignored, in 3.x only the right button was.
 - One pointer drags at a time: a second finger on the same viewport is ignored and lifting it does not end the drag.
+  If the browser never delivers `pointerup` of the dragging finger (the element was removed, capture was lost), the
+  next touch starts a new drag, `onPointerUp` is not called for the lost one.
 - After a mouse drag `click` goes to the viewport and is prevented as before, so `click` handlers on elements
   inside the content do not run anymore after a drag. A click without movement reaches them as usual.
 - `pointerDownPreventDefault` still prevents `mousedown` (text selection, native drag of images and links), other
@@ -60,8 +63,31 @@ The previous inline value is restored by `destroy()`.
 
 ### Wheel
 
-The `wheel` listener is passive unless `emulateScroll` and `preventDefaultOnEmulateScroll` are both set, so the
-page can scroll without waiting for JavaScript.
+Without `emulateScroll` there is no `wheel` listener on the viewport. With it the listener is passive unless
+`preventDefaultOnEmulateScroll` is set too, so the page can scroll without waiting for JavaScript.
+
+## Methods and state
+
+- `scrollTo()` and `setPosition()` keep a coordinate that is not passed: `scrollTo({ x: 100 })` scrolls
+  horizontally and leaves the vertical position as is. In 3.x a missing coordinate meant 0, pass it explicitly to
+  keep that: `scrollTo({ x: 100, y: 0 })`. During a running `scrollTo()` the missing coordinate keeps its target.
+- `scrollTo()` does nothing while the user drags content. In 3.x it took the content from under the pointer and
+  ignored the pointer until release.
+- `getState().isDragging` is `true` only while the pointer is pressed and has moved. In 3.x it stayed `true` after
+  release until the next press. `dragOffset` still keeps the offset of the last drag until the next `pointerdown`,
+  so `onClick` can read it.
+- `getState()` and `onUpdate` get new objects every time: a saved state does not change with later motion, and
+  changing it does not affect the instance. In 3.x `dragOffset` was the internal object.
+- `updateOptions({ scrollMode })` removes the rendering of the previous mode: leaving `'transform'` removes the
+  transform from content, switching to `'transform'` moves native scroll into the transform. In 3.x the offsets of
+  both modes added up. A new `content` in `'transform'` mode leaves the previous content without transform.
+
+## Options
+
+Unknown options and invalid values log a `console.warn`, for example `scrollMethod` instead of `scrollMode`,
+`direction: 'diagonal'` or `friction: 0`. The options are applied as before, fix them to remove the warning.
+`friction` and `bounceForce` must be numbers between 0 and 1 exclusive. `preventPointerMoveDefault` warns as
+deprecated.
 
 ## Physics
 

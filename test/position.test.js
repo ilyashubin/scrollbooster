@@ -39,14 +39,14 @@ describe('setPosition', () => {
         expect(viewport.scrollLeft).toBe(100);
     });
 
-    it('treats missing coordinate as zero', () => {
+    it('keeps missing coordinate', () => {
         const { sb } = mount();
 
         sb.setPosition({ x: 100, y: 100 });
         sb.setPosition({ x: 40 });
         tick();
 
-        expect(roundedPosition(sb)).toEqual({ x: 40, y: 0 });
+        expect(roundedPosition(sb)).toEqual({ x: 40, y: 100 });
     });
 
     it('does not touch DOM without scrollMode', () => {
@@ -83,6 +83,54 @@ describe('scrollTo', () => {
         tick(200);
         expect(sb.getState().isMoving).toBe(false);
         expect(pendingFrames()).toBe(0);
+    });
+
+    it('keeps missing coordinate', () => {
+        const { sb } = mount();
+        sb.setPosition({ x: 100, y: 200 });
+        tick();
+
+        sb.scrollTo({ x: 300 });
+        tick(300);
+
+        expect(sb.getState().position).toEqual({ x: 300, y: 200 });
+    });
+
+    it('keeps target of running scrollTo for missing coordinate', () => {
+        const { sb } = mount();
+        sb.scrollTo({ y: 500 });
+        tick(2);
+
+        sb.scrollTo({ x: 300 });
+        tick(300);
+
+        expect(sb.getState().position).toEqual({ x: 300, y: 500 });
+    });
+
+    it('settles missing coordinate within edges when content is beyond them', () => {
+        const { sb } = mount();
+        sb.setPosition({ x: 100, y: -50 });
+        tick();
+
+        sb.scrollTo({ x: 300 });
+        tick(300);
+
+        expect(sb.getState().position).toEqual({ x: 300, y: 0 });
+    });
+
+    it.each(['never', 'always'])('is ignored while dragging, reducedMotion: %s', (reducedMotion) => {
+        const { sb, pointer } = mount({ reducedMotion });
+        pointer.mouseDown(250, 250);
+        pointer.mouseMove(200, 250);
+        tick(60);
+
+        sb.scrollTo({ x: 600 });
+        tick();
+        expect(roundedPosition(sb)).toEqual({ x: 50, y: 0 });
+
+        pointer.mouseMove(150, 250);
+        tick(60);
+        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
     });
 
     // Former test/scrollto.test.js only had a manual button: check that target beyond edges is allowed
@@ -138,7 +186,61 @@ describe('updateMetrics', () => {
     });
 });
 
+describe('animation loop', () => {
+    it('requests no frame after motion stops', () => {
+        const { sb } = mount();
+
+        sb.setPosition({ x: 10 });
+        tick();
+
+        expect(sb.getState().isMoving).toBe(false);
+        expect(pendingFrames()).toBe(0);
+    });
+
+    it('keeps a single loop when onUpdate starts motion on the last frame', () => {
+        let restarted = false;
+        const { sb } = mount(() => ({
+            onUpdate(state) {
+                if (!state.isMoving && state.position.x === 10 && !restarted) {
+                    restarted = true;
+                    sb.scrollTo({ x: 100 });
+                }
+            },
+        }));
+
+        sb.setPosition({ x: 10 });
+        tick();
+
+        expect(restarted).toBe(true);
+        expect(pendingFrames()).toBe(1);
+    });
+});
+
 describe('getState', () => {
+    it('returns objects that are not changed by later motion', () => {
+        const { sb, pointer } = mount();
+        pointer.mouseDrag([200, 200], [150, 200], { release: false });
+        const state = sb.getState();
+        const snapshot = structuredClone(state);
+
+        pointer.mouseMove(100, 150);
+        tick(10);
+
+        expect(state).toEqual(snapshot);
+    });
+
+    it('returns objects that do not change the instance', () => {
+        const { sb, pointer } = mount();
+        pointer.mouseDrag([200, 200], [180, 200], { steps: 2 });
+
+        const state = sb.getState();
+        state.dragOffset.x = 0;
+        state.position.x = 500;
+
+        expect(sb.getState().dragOffset).toEqual({ x: -20, y: 0 });
+        expect(pointer.click(180, 200).defaultPrevented).toBe(true);
+    });
+
     it('reports border collisions', () => {
         const { sb } = mount();
 
