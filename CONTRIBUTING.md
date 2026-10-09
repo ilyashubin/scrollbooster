@@ -19,8 +19,10 @@ Source is TypeScript in `src/`: `index.ts` is the ESM entry, `global.ts` is the 
 build. `scroll-booster.ts` holds the public class and connects the modules:
 
 - `options.ts`: defaults, validation and merging of options, `touch-action` for each direction;
-- `input.ts`: drag with Pointer Events, click threshold, pointer capture, the click after drag;
+- `input.ts`: drag with Pointer Events, click threshold, pointer capture, the click after drag, the gesture of
+  nested instances;
 - `wheel.ts`: wheel and trackpad, which gesture the content takes;
+- `keyboard.ts`: which keys scroll and by how much;
 - `motion.ts`: content position, drag, wheel, `scrollTo`, inertia and bounce, without DOM;
 - `physics.ts`: formulas of motion per 60 Hz frame, without DOM;
 - `loop.ts`: `requestAnimationFrame` loop that measures frame duration;
