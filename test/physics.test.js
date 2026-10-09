@@ -132,12 +132,17 @@ describe('refresh rate', () => {
     });
 
     it.each(RATES)('bounce at %i Hz matches 60 Hz', (frameRate) => {
+        // Hold content 150 px beyond the start edge until it stops, then release
         const bounce = (rate) => {
-            const { sb } = mount();
+            const { sb, pointer } = mount();
             warmUp(sb, rate);
-            sb.setPosition({ x: -150 });
-            const time = runUntilStopped(sb, rate);
-            return time;
+            pointer.mouseDown(100, 150);
+            pointer.mouseMove(250, 150);
+            for (let time = 0; time < 1000; time += 1000 / rate) {
+                tick(1, 1000 / rate);
+            }
+            pointer.mouseUp(250, 150);
+            return runUntilStopped(sb, rate);
         };
 
         expect(Math.abs(bounce(frameRate) - bounce(60))).toBeLessThan(bounce(60) * 0.05);
@@ -207,13 +212,26 @@ describe('settling', () => {
         expect(pendingFrames()).toBe(0);
     });
 
-    it('keeps target beyond edges with bounce: false', () => {
-        const { sb } = mount({ bounce: false });
+    it.each([true, false])('stops scrollTo at edges, bounce: %s', (bounce) => {
+        const { sb } = mount({ bounce });
 
-        sb.scrollTo({ y: 900 });
+        sb.scrollTo({ x: -100, y: 900 });
+        const trajectory = recordTrajectory(sb, 300);
+
+        expect(sb.getState().position).toEqual({ x: 0, y: 700 });
+        expect(Math.max(...trajectory.map(([, y]) => y))).toBe(700);
+    });
+
+    it('keeps scrollTo target within edges that shrink during the motion', () => {
+        const { sb, content } = mount();
+
+        sb.scrollTo({ y: 700 });
+        tick(5);
+        content.style.height = '500px';
+        sb.updateMetrics();
         tick(300);
 
-        expect(sb.getState().position.y).toBe(900);
+        expect(sb.getState().position.y).toBe(200);
     });
 
     it.each([

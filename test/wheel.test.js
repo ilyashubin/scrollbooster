@@ -14,14 +14,53 @@ describe('wheel', () => {
         expect(event.defaultPrevented).toBe(false);
     });
 
-    it('emulateScroll: moves content by wheel delta with friction', () => {
+    it('emulateScroll: moves content by wheel delta', () => {
         vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
         const { sb, viewport } = mount({ emulateScroll: true });
 
         wheel(viewport, 20, 100);
         tick();
 
-        expect(roundedPosition(sb, 3)).toEqual({ x: 19, y: 95 });
+        expect(roundedPosition(sb, 3)).toEqual({ x: 20, y: 100 });
+    });
+
+    it('emulateScroll: adds up wheel events within one frame', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const { sb, viewport } = mount({ emulateScroll: true });
+
+        wheel(viewport, 0, 30);
+        wheel(viewport, 0, 40);
+        tick();
+
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 70 });
+    });
+
+    it.each([
+        ['lines', WheelEvent.DOM_DELTA_LINE, { x: 16, y: 48 }],
+        ['pages', WheelEvent.DOM_DELTA_PAGE, { x: 300, y: 600 }],
+    ])('emulateScroll: converts deltas in %s to pixels', (_, deltaMode, expected) => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const { sb, viewport } = mount({ emulateScroll: true }, { contentHeight: 2000 });
+
+        wheel(viewport, 1, 3, deltaMode);
+        if (deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+            wheel(viewport, 0, -1, deltaMode);
+        }
+        tick();
+
+        expect(roundedPosition(sb)).toEqual(expected);
+    });
+
+    it('emulateScroll: stops right after the last wheel event, without inertia', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const { sb, viewport } = mount({ emulateScroll: true });
+
+        wheel(viewport, 0, 100);
+        tick();
+        vi.advanceTimersByTime(80);
+        tick(30);
+
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 100 });
     });
 
     it('emulateScroll: stops at edges without bounce', () => {

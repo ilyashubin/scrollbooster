@@ -1,9 +1,9 @@
 # Migrating from 3.x to 4.0
 
-4.0 keeps the options, methods and `onUpdate` state of 3.x. Most apps only need to check the
-[browser support](#browser-support), the [input changes](#input-pointer-events) and
-[`scrollTo()` with one coordinate](#methods-and-state). Everything below is a list of behavior changes, each with
-what to do if it affects you.
+4.0 keeps the option names, methods and the shape of the `onUpdate` state of 3.x, but fixes their behavior where
+3.x was wrong, without keeping old quirks. Check at least [options](#options) (invalid options throw now),
+[input](#input-pointer-events), [methods and state](#methods-and-state) and [`onUpdate` timing](#onupdate-timing).
+Everything below is a list of behavior changes, each with what to do if it affects you.
 
 ## Browser support
 
@@ -30,14 +30,18 @@ Mouse and touch listeners are replaced with Pointer Events.
   `MouseEvent` or `TouchEvent`. `event.touches` is gone: read `clientX`, `pageX` and others from the event itself.
   `isTouch` is `true` for `event.pointerType === 'touch'`, pen counts as mouse like in 3.x.
 - `onPointerMove` is called only while dragging. In 3.x it was called on every mouse move over the page.
+- `onPointerDown` and `onPointerUp` come in pairs for a press that starts dragging. `onPointerDown` is not called
+  anymore for presses that do not drag: other mouse buttons, scrollbars, form inputs with `inputsFocus`, presses
+  rejected by `shouldScroll` or `pointerMode`. `shouldScroll` is called before `onPointerDown`.
 - `onPointerUp` is called only for the pointer that started the drag, also when the browser cancels it
   (`pointercancel`, `event.type` tells which). In 3.x it was called on every `mouseup` and `touchend` on the page.
 - Only the main mouse button drags. Middle and side buttons are ignored, in 3.x only the right button was.
 - One pointer drags at a time: a second finger on the same viewport is ignored and lifting it does not end the drag.
   If the browser never delivers `pointerup` of the dragging finger (the element was removed, capture was lost), the
   next touch starts a new drag, `onPointerUp` is not called for the lost one.
-- After a mouse drag `click` goes to the viewport and is prevented as before, so `click` handlers on elements
-  inside the content do not run anymore after a drag. A click without movement reaches them as usual.
+- After a mouse drag `click` goes to the viewport and is prevented, so `click` handlers on elements inside the
+  content do not run after a drag. A click without movement reaches them as usual. Only the first click after the
+  drag is prevented. In `onClick` use `event.defaultPrevented` to tell a click after drag from a plain click.
 - `pointerDownPreventDefault` still prevents `mousedown` (text selection, native drag of images and links), other
   `mousedown` listeners on the page keep working.
 
@@ -59,35 +63,58 @@ The previous inline value is restored by `destroy()`.
   the content barely moved. If you need the page to scroll, use `direction: 'horizontal'` or `'vertical'`.
 - `lockScrollOnDragDirection: 'all'` blocks native gestures only on the viewport, not on the whole page.
 - To use your own `touch-action`, set it in CSS with `!important` or use `pointerMode: 'mouse'`.
-- `preventPointerMoveDefault` is deprecated and does nothing.
+- `preventPointerMoveDefault` is removed, passing it throws. Native touch scrolling is controlled with
+  `touch-action`.
 
 ### Wheel
 
 Without `emulateScroll` there is no `wheel` listener on the viewport. With it the listener is passive unless
 `preventDefaultOnEmulateScroll` is set too, so the page can scroll without waiting for JavaScript.
 
+With `emulateScroll` content moves exactly by the wheel delta. 3.x moved it by 95% of the delta, took only the last
+event of a frame, and treated deltas in lines and pages as pixels (Firefox mouse wheels report lines, so content
+moved by 3 px per notch). Now all events of a frame add up, lines are 16 px and a page is the viewport size.
+
 ## Methods and state
 
 - `scrollTo()` and `setPosition()` keep a coordinate that is not passed: `scrollTo({ x: 100 })` scrolls
   horizontally and leaves the vertical position as is. In 3.x a missing coordinate meant 0, pass it explicitly to
   keep that: `scrollTo({ x: 100, y: 0 })`. During a running `scrollTo()` the missing coordinate keeps its target.
+- `scrollTo()` and `setPosition()` keep the position within edges: `scrollTo({ y: 99999 })` stops at the end. In
+  3.x the target was not limited and content could stay beyond the edge, or bounce back after `setPosition()`.
 - `scrollTo()` does nothing while the user drags content. In 3.x it took the content from under the pointer and
   ignored the pointer until release.
-- `getState().isDragging` is `true` only while the pointer is pressed and has moved. In 3.x it stayed `true` after
-  release until the next press. `dragOffset` still keeps the offset of the last drag until the next `pointerdown`,
-  so `onClick` can read it.
+- `getState().isDragging` is `true` only while the pointer is pressed and has moved more than 5 px along allowed
+  directions, the same threshold that tells a drag from a click. In 3.x it turned `true` on any movement and stayed
+  `true` after release until the next press.
+- `dragOffset` and `dragAngle` describe the current press and return to 0 on release. `onPointerUp` gets the values
+  of the press that ended. In 3.x they kept the last drag until the next press, `onClick` saw them.
 - `getState()` and `onUpdate` get new objects every time: a saved state does not change with later motion, and
   changing it does not affect the instance. In 3.x `dragOffset` was the internal object.
 - `updateOptions({ scrollMode })` removes the rendering of the previous mode: leaving `'transform'` removes the
   transform from content, switching to `'transform'` moves native scroll into the transform. In 3.x the offsets of
   both modes added up. A new `content` in `'transform'` mode leaves the previous content without transform.
 
+## `onUpdate` timing
+
+`onUpdate` is called only on animation frames, right before the browser paints. The constructor,
+`updateOptions()` and `updateMetrics()` do not call it synchronously anymore: the first call comes on the first
+frame after `new ScrollBooster()`, so `onUpdate` can use the instance variable. The frame is always before the
+first paint, nothing flickers. Read `getState()` if you need the state right away.
+
 ## Options
 
-Unknown options and invalid values log a `console.warn`, for example `scrollMethod` instead of `scrollMode`,
-`direction: 'diagonal'` or `friction: 0`. The options are applied as before, fix them to remove the warning.
-`friction` and `bounceForce` must be numbers between 0 and 1 exclusive. `preventPointerMoveDefault` warns as
-deprecated.
+The constructor and `updateOptions()` throw `TypeError` for invalid options, before anything is applied:
+
+- unknown option, for example `scrollMethod` instead of `scrollMode` or the removed `preventPointerMoveDefault`;
+- a value of the wrong type or outside the allowed set, for example `direction: 'diagonal'`, `bounce: 'yes'`,
+  `onUpdate: null`, explicit `undefined` for anything but `scrollMode`;
+- `friction` or `bounceForce` not between 0 and 1 exclusive, `dragDirectionTolerance` outside 0 to 90;
+- `viewport` that is not an `HTMLElement`, a viewport without child element and no `content`, `content` that is not
+  inside `viewport`.
+
+3.x logged an error and returned a broken instance or threw a `TypeError` from the middle of the constructor. If
+options come from user input, catch the error.
 
 ## Physics
 
@@ -106,12 +133,11 @@ deprecated.
 
 New option `reducedMotion` defaults to `'auto'`: when the user has `prefers-reduced-motion: reduce`, content stops
 right after release without inertia, does not bounce beyond edges, and `scrollTo()` jumps to the target. Dragging
-follows the pointer as usual. Set `reducedMotion: 'never'` to keep the 3.x behavior, `'always'` to force it.
+follows the pointer as usual. Set `reducedMotion: 'never'` to keep motion regardless of the setting, `'always'` to
+force reduced motion.
 
 ## Lifecycle
 
-- Invalid options (no `viewport`, no content) log an error as before, but the constructor does not throw a
-  `TypeError` anymore. Methods of such an instance do nothing.
 - A viewport that is already scrolled keeps its scroll position on init. 3.x reset it to 0.
 - Size changes of the viewport and content are tracked with `ResizeObserver`. The window `resize` listener is gone,
   call `updateMetrics()` only for changes that do not resize viewport or content.

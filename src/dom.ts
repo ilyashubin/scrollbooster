@@ -2,12 +2,10 @@ export const getFullWidth = (elem: HTMLElement): number => Math.max(elem.offsetW
 
 export const getFullHeight = (elem: HTMLElement): number => Math.max(elem.offsetHeight, elem.scrollHeight);
 
-export const textNodeFromPoint = (element: Element, x: number, y: number): Node | false => {
-    const nodes = element.childNodes;
+export const textNodeFromPoint = (element: Element, x: number, y: number): Node | null => {
     const range = document.createRange();
-    for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i] as Node;
-        if (node.nodeType !== 3) {
+    for (const node of element.childNodes) {
+        if (node.nodeType !== Node.TEXT_NODE) {
             continue;
         }
         range.selectNodeContents(node);
@@ -16,25 +14,9 @@ export const textNodeFromPoint = (element: Element, x: number, y: number): Node 
             return node;
         }
     }
-    return false;
+    return null;
 };
 
-// document.selection is the legacy IE API, there is no IE support anymore but the port keeps behavior as is
-interface LegacySelection {
-    removeAllRanges?: () => void;
-    empty?: () => void;
-}
-
 export const clearTextSelection = (): void => {
-    const selection: LegacySelection | null = window.getSelection
-        ? window.getSelection()
-        : (document as unknown as { selection?: LegacySelection }).selection || null;
-    if (!selection) {
-        return;
-    }
-    if (selection.removeAllRanges) {
-        selection.removeAllRanges();
-    } else if (selection.empty) {
-        selection.empty();
-    }
+    window.getSelection()?.removeAllRanges();
 };

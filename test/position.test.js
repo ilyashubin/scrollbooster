@@ -59,13 +59,14 @@ describe('setPosition', () => {
         expect(viewport.scrollTop).toBe(0);
     });
 
-    it('bounces back when position is set beyond edges', () => {
+    it('clamps position to edges', () => {
         const { sb } = mount();
 
         sb.setPosition({ x: -100, y: 2000 });
-        tick(200);
+        tick();
 
         expect(sb.getState().position).toEqual({ x: 0, y: 700 });
+        expect(sb.getState().isMoving).toBe(false);
     });
 });
 
@@ -108,9 +109,11 @@ describe('scrollTo', () => {
     });
 
     it('settles missing coordinate within edges when content is beyond them', () => {
-        const { sb } = mount();
-        sb.setPosition({ x: 100, y: -50 });
-        tick();
+        const { sb, pointer } = mount();
+        pointer.mouseDrag([100, 100], [100, 150], { release: false });
+        tick(20);
+        pointer.mouseUp(100, 150);
+        expect(sb.getState().position.y).toBeLessThan(0);
 
         sb.scrollTo({ x: 300 });
         tick(300);
@@ -131,16 +134,6 @@ describe('scrollTo', () => {
         pointer.mouseMove(150, 250);
         tick(60);
         expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
-    });
-
-    // Former test/scrollto.test.js only had a manual button: check that target beyond edges is allowed
-    it('does not clamp target to edges', () => {
-        const { sb } = mount({ bounce: false });
-
-        sb.scrollTo({ x: 0, y: 900 });
-        tick(60);
-
-        expect(sb.getState().position.y).toBeGreaterThan(700);
     });
 });
 
@@ -231,14 +224,14 @@ describe('getState', () => {
 
     it('returns objects that do not change the instance', () => {
         const { sb, pointer } = mount();
-        pointer.mouseDrag([200, 200], [180, 200], { steps: 2 });
+        pointer.mouseDrag([200, 200], [180, 200], { steps: 2, release: false });
 
         const state = sb.getState();
         state.dragOffset.x = 0;
         state.position.x = 500;
 
         expect(sb.getState().dragOffset).toEqual({ x: -20, y: 0 });
-        expect(pointer.click(180, 200).defaultPrevented).toBe(true);
+        expect(sb.getState().position.x).toBeLessThan(30);
     });
 
     it('reports border collisions', () => {

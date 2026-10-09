@@ -12,17 +12,19 @@ import {
 } from './helpers.js';
 
 describe('updateOptions', () => {
-    it('merges options, calls onUpdate and restarts animation loop', () => {
+    it('merges options and calls onUpdate on the next frame', () => {
         const onUpdate = vi.fn();
         const { sb } = mount({ onUpdate });
         tick(5);
         onUpdate.mockClear();
 
         sb.updateOptions({ bounce: false, friction: 0.2 });
-
         expect(sb.props).toMatchObject({ bounce: false, friction: 0.2, direction: 'all' });
+        expect(onUpdate).not.toHaveBeenCalled();
+
+        tick();
         expect(onUpdate).toHaveBeenCalledTimes(1);
-        expect(pendingFrames()).toBe(1);
+        expect(pendingFrames()).toBe(0);
     });
 
     it('applies new direction to next drag', () => {
@@ -70,13 +72,12 @@ describe('updateOptions', () => {
         next.viewport.remove();
     });
 
-    it('logs an error and keeps current elements for invalid viewport', () => {
-        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    it('throws TypeError and keeps current elements for viewport without content', () => {
         const { sb, viewport } = mount();
 
-        sb.updateOptions({ viewport: document.createElement('div') });
-
-        expect(error).toHaveBeenCalledWith(expect.stringContaining('Viewport does not have any content'));
+        expect(() => sb.updateOptions({ viewport: document.createElement('div') })).toThrow(
+            'viewport has no child element'
+        );
         expect(sb.props.viewport).toBe(viewport);
     });
 });
@@ -396,72 +397,54 @@ describe('wheel listener', () => {
 });
 
 describe('options validation', () => {
-    function warnings(callback) {
-        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-        callback();
-        return warn.mock.calls.map(([message]) => message);
-    }
-
-    it('accepts valid options silently', () => {
-        expect(
-            warnings(() =>
-                mount({
-                    direction: 'horizontal',
-                    pointerMode: 'touch',
-                    scrollMode: 'native',
-                    reducedMotion: 'never',
-                    lockScrollOnDragDirection: 'all',
-                    preventDefaultOnEmulateScroll: 'vertical',
-                    friction: 0.2,
-                    bounceForce: 0.3,
-                    onUpdate() {},
-                })
-            )
-        ).toEqual([]);
+    it('accepts valid options', () => {
+        expect(() =>
+            mount({
+                direction: 'horizontal',
+                pointerMode: 'touch',
+                scrollMode: 'native',
+                reducedMotion: 'never',
+                lockScrollOnDragDirection: 'all',
+                preventDefaultOnEmulateScroll: 'vertical',
+                friction: 0.2,
+                bounceForce: 0.3,
+                dragDirectionTolerance: 0,
+                bounce: false,
+                onUpdate() {},
+            })
+        ).not.toThrow();
     });
 
-    it('warns about unknown option', () => {
-        const messages = warnings(() => mount({ scrollMethod: 'transform' }));
-
-        expect(messages).toEqual([expect.stringContaining('option "scrollMethod" is unknown')]);
+    it.each(['scrollMethod', 'preventPointerMoveDefault'])('throws for unknown option %s', (key) => {
+        expect(() => mount({ [key]: true })).toThrow(new TypeError(`ScrollBooster: unknown option "${key}"`));
     });
 
     it.each([
-        ['direction', 'diagonal'],
-        ['pointerMode', 'pen'],
-        ['scrollMode', 'smooth'],
-        ['reducedMotion', true],
-        ['lockScrollOnDragDirection', 'both'],
-        ['preventDefaultOnEmulateScroll', 'all'],
-        ['direction', undefined],
-    ])('warns about %s: %s', (key, value) => {
-        const messages = warnings(() => mount({ [key]: value }));
-
-        expect(messages).toEqual([expect.stringContaining(`option "${key}" must be one of`)]);
+        ['direction', 'diagonal', 'one of all, horizontal, vertical'],
+        ['direction', undefined, 'one of all, horizontal, vertical'],
+        ['pointerMode', 'pen', 'one of all, touch, mouse'],
+        ['scrollMode', 'smooth', 'one of undefined, transform, native'],
+        ['reducedMotion', true, 'one of auto, always, never'],
+        ['lockScrollOnDragDirection', 'both', 'one of false, all, horizontal, vertical'],
+        ['preventDefaultOnEmulateScroll', 'all', 'one of false, horizontal, vertical'],
+        ['friction', 0, 'a number between 0 and 1'],
+        ['friction', 1, 'a number between 0 and 1'],
+        ['bounceForce', '0.1', 'a number between 0 and 1'],
+        ['dragDirectionTolerance', 91, 'a number of degrees from 0 to 90'],
+        ['bounce', 'yes', 'a boolean'],
+        ['onUpdate', null, 'a function'],
+        ['content', '.content', 'an HTMLElement'],
+    ])('throws for %s: %s', (key, value, expected) => {
+        expect(() => mount({ [key]: value })).toThrow(
+            new TypeError(`ScrollBooster: option "${key}" must be ${expected}`)
+        );
     });
 
-    it.each([
-        ['friction', 0],
-        ['friction', 1],
-        ['bounceForce', -0.1],
-        ['bounceForce', '0.1'],
-    ])('warns about %s: %s', (key, value) => {
-        const messages = warnings(() => mount({ [key]: value }));
-
-        expect(messages).toEqual([expect.stringContaining(`option "${key}" must be a number between 0 and 1`)]);
-    });
-
-    it('warns about deprecated preventPointerMoveDefault', () => {
-        const messages = warnings(() => mount({ preventPointerMoveDefault: false }));
-
-        expect(messages).toEqual([expect.stringContaining('"preventPointerMoveDefault" is deprecated')]);
-    });
-
-    it('checks options passed to updateOptions', () => {
+    it('updateOptions throws and applies nothing when any option is invalid', () => {
         const { sb } = mount();
 
-        const messages = warnings(() => sb.updateOptions({ direction: 'diagonal', bounse: false }));
-
-        expect(messages).toHaveLength(2);
+        expect(() => sb.updateOptions({ friction: 0.2, direction: 'diagonal' })).toThrow(TypeError);
+        expect(() => sb.updateOptions({ friction: 0.2, bounse: false })).toThrow('unknown option "bounse"');
+        expect(sb.props).toMatchObject({ friction: 0.05, direction: 'all' });
     });
 });

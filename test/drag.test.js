@@ -62,10 +62,13 @@ describe('mouse drag', () => {
         expect(position(sb)).toEqual({ x: 0, y: 300 });
     });
 
-    it('reports isDragging only while pointer is pressed and moved', () => {
+    it('reports isDragging only while pointer is pressed and moved past the click threshold', () => {
         const { sb, pointer } = mount();
 
         pointer.mouseDown(200, 200);
+        expect(sb.getState().isDragging).toBe(false);
+
+        pointer.mouseMove(195, 200);
         expect(sb.getState().isDragging).toBe(false);
 
         pointer.mouseMove(150, 200);
@@ -75,14 +78,42 @@ describe('mouse drag', () => {
         expect(sb.getState().isDragging).toBe(false);
     });
 
-    it('keeps dragOffset of the last drag until next pointerdown', () => {
-        const { sb, pointer } = mount();
+    it('ignores movement along disabled direction for isDragging', () => {
+        const { sb, pointer } = mount({ direction: 'horizontal' });
+
+        pointer.mouseDown(200, 200);
+        pointer.mouseMove(200, 100);
+
+        expect(sb.getState().isDragging).toBe(false);
+    });
+
+    it('resets dragOffset and dragAngle on release, onPointerUp gets the final ones', () => {
+        const onPointerUp = vi.fn();
+        const { sb, pointer } = mount({ onPointerUp });
 
         pointer.mouseDrag([200, 200], [150, 200]);
-        expect(sb.getState().dragOffset).toEqual({ x: -50, y: 0 });
 
-        pointer.mouseDown(150, 200);
-        expect(sb.getState().dragOffset).toEqual({ x: 0, y: 0 });
+        expect(onPointerUp.mock.calls[0][0]).toMatchObject({
+            isDragging: false,
+            dragOffset: { x: -50, y: 0 },
+            dragAngle: -90,
+        });
+        expect(sb.getState()).toMatchObject({ dragOffset: { x: 0, y: 0 }, dragAngle: 0 });
+    });
+
+    it('calls onPointerDown only for a press that starts dragging', () => {
+        const onPointerDown = vi.fn();
+        const { pointer } = mount(({ content }) => ({
+            onPointerDown,
+            shouldScroll: (_, event) => event.target === content,
+        }));
+
+        pointer.mouseDown(100, 100, { button: 2, buttons: 2 });
+        pointer.mouseDown(100, 100, {}, document.body);
+        expect(onPointerDown).not.toHaveBeenCalled();
+
+        pointer.mouseDown(100, 100);
+        expect(onPointerDown).toHaveBeenCalledTimes(1);
     });
 
     it('captures pointer on viewport only after click threshold', () => {

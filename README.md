@@ -66,9 +66,9 @@ lockScrollOnDragDirection | String | false | Touch drag in given direction moves
 dragDirectionTolerance | Number | 40 | Tolerance in degrees for horizontal or vertical drag detection
 pointerDownPreventDefault | Boolean | true | Prevents default `mousedown` on drag start: text selection, native drag of images and links
 reducedMotion | String | 'auto' | 'always' disables inertia and bounce and makes `scrollTo` jump to the target, 'never' keeps them, 'auto' follows `prefers-reduced-motion` user setting
-onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates
+onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates. Called on animation frames, the first time on the frame after the constructor
 onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives object with scrolling metrics, event object and `isTouch`. Calls after each `click` in scrollable area
-onPointerDown | Function | noop | `pointerdown` handler. Receives state, `PointerEvent` and `isTouch`
+onPointerDown | Function | noop | Called when a press starts dragging, after `shouldScroll` allowed it. Receives state, `PointerEvent` and `isTouch`
 onPointerUp | Function | noop | Called when the pointer that drags content is released or cancelled
 onPointerMove | Function | noop | Called when the pointer that drags content moves
 onWheel | Function | noop | `wheel` event handler, called with `emulateScroll`
@@ -82,8 +82,8 @@ native gestures that do not drag content. With `direction: 'horizontal'` vertica
 
 Method | Description
 ------ | -----------
-setPosition | Sets new scroll position in viewport. Receives an object with properties `x` and `y`, a missing one keeps its value
-scrollTo | Smooth scroll to position in viewport. Receives an object with properties `x` and `y`, a missing one keeps its value. Does nothing while the user drags content
+setPosition | Jumps to position within edges and stops motion. Receives an object with properties `x` and `y`, a missing one keeps its value
+scrollTo | Smooth scroll to position within edges. Receives an object with properties `x` and `y`, a missing one keeps its value. Does nothing while the user drags content
 updateMetrics | Forces to recalculate elements metrics. Viewport and content resizes are tracked automatically, use it for changes that do not resize them
 updateOptions | Sets option value. All properties from `Options` config object are supported, including `viewport` and `content`
 getState | Returns current scroll state in a same format as `onUpdate`

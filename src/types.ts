@@ -64,8 +64,6 @@ export interface ScrollBoosterOptions {
     emulateScroll?: boolean;
     /** Prevents default wheel event in given direction when `emulateScroll` is enabled */
     preventDefaultOnEmulateScroll?: Axis | false;
-    /** @deprecated Has no effect, native touch scrolling is controlled with CSS `touch-action` */
-    preventPointerMoveDefault?: boolean;
     /**
      * Touch drag in given direction moves content, drag in the other direction scrolls the page natively.
      * `'all'` disables native touch gestures on viewport

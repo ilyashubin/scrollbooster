@@ -50,7 +50,6 @@ describe('init', () => {
             inputsFocus: true,
             emulateScroll: false,
             preventDefaultOnEmulateScroll: false,
-            preventPointerMoveDefault: true,
             lockScrollOnDragDirection: false,
             pointerDownPreventDefault: true,
             dragDirectionTolerance: 40,
@@ -58,44 +57,49 @@ describe('init', () => {
     });
 
     it.each([
-        ['without options', undefined],
-        ['without viewport', {}],
-        ['with non-element viewport', { viewport: { children: [] } }],
-    ])('logs an error instead of throwing %s', (_, options) => {
-        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-        expect(() => new ScrollBooster(options)).not.toThrow();
-        expect(error).toHaveBeenCalledWith(expect.stringContaining('"viewport" config property must be present'));
+        ['without options', undefined, 'options must be an object'],
+        ['without viewport', {}, 'option "viewport" must be an HTMLElement'],
+        ['with non-element viewport', { viewport: { children: [] } }, 'option "viewport" must be an HTMLElement'],
+    ])('throws TypeError %s', (_, options, message) => {
+        expect(() => new ScrollBooster(options)).toThrow(new TypeError(`ScrollBooster: ${message}`));
     });
 
-    it('keeps instance with invalid options inert', () => {
-        vi.spyOn(console, 'error').mockImplementation(() => {});
-        const sb = new ScrollBooster({});
-
-        expect(() => {
-            sb.updateOptions({ friction: 0.1 });
-            sb.updateMetrics();
-            sb.setPosition({ x: 10 });
-            sb.scrollTo({ x: 10 });
-            sb.destroy();
-        }).not.toThrow();
-        expect(pendingFrames()).toBe(0);
-    });
-
-    it('logs an error when viewport has no content', () => {
-        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    it('throws TypeError when viewport has no child element', () => {
         const viewport = document.createElement('div');
         document.body.append(viewport);
-        new ScrollBooster({ viewport });
 
-        expect(error).toHaveBeenCalledWith(expect.stringContaining('Viewport does not have any content'));
+        expect(() => new ScrollBooster({ viewport })).toThrow('viewport has no child element');
         viewport.remove();
     });
 
-    it('calls onUpdate synchronously with initial state', () => {
+    it.each([
+        ['viewport itself', ({ viewport }) => viewport],
+        ['element outside viewport', () => document.body],
+    ])('throws TypeError when content is %s', (_, getContent) => {
+        const fixture = createFixture();
+
+        expect(() => new ScrollBooster({ viewport: fixture.viewport, content: getContent(fixture) })).toThrow(
+            'option "content" must be an element inside "viewport"'
+        );
+        fixture.viewport.remove();
+    });
+
+    it('adds no listeners when options are invalid', () => {
+        const addListener = vi.spyOn(EventTarget.prototype, 'addEventListener');
+        const { viewport } = createFixture();
+
+        expect(() => new ScrollBooster({ viewport, direction: 'diagonal' })).toThrow(TypeError);
+        expect(addListener).not.toHaveBeenCalled();
+        expect(pendingFrames()).toBe(0);
+        viewport.remove();
+    });
+
+    it('calls onUpdate with initial state on the first frame, not in the constructor', () => {
         const onUpdate = vi.fn();
         mount({ onUpdate });
+        expect(onUpdate).not.toHaveBeenCalled();
 
+        tick();
         expect(onUpdate).toHaveBeenCalledTimes(1);
         expect(onUpdate.mock.calls[0][0]).toEqual({
             isMoving: false,

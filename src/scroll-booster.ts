@@ -1,5 +1,5 @@
 import { clearTextSelection, getFullHeight, getFullWidth, textNodeFromPoint } from './dom';
-import { validateOptions } from './options';
+import { validateElements, validateOptions } from './options';
 import {
     approach,
     clamp,
@@ -66,15 +66,8 @@ const getScrollPosition = (viewport: HTMLElement): Point => ({ x: -viewport.scro
 const toInternal = (value: number | undefined, current: number): number =>
     value === undefined ? current : -value || 0;
 
-const getElementsError = (viewport: unknown, content: unknown): string | null => {
-    if (!(viewport instanceof Element)) {
-        return '"viewport" config property must be present and must be Element';
-    }
-    if (!content) {
-        return 'Viewport does not have any content';
-    }
-    return null;
-};
+// Wheel deltas in lines are converted with this line height, in pages with the viewport size
+const WHEEL_LINE_HEIGHT = 16;
 
 export class ScrollBooster {
     // Fields are declared without initializers to keep runtime shape of the JavaScript version
@@ -107,19 +100,14 @@ export class ScrollBooster {
     declare private frameDuration: number;
 
     /**
-     * Create ScrollBooster instance
+     * Create ScrollBooster instance. Throws TypeError for invalid options.
      */
-    constructor(options: ScrollBoosterOptions = {} as ScrollBoosterOptions) {
-        // Instance stays inert if init fails: public methods do nothing
-        this.isDestroyed = true;
-
-        if (!(options.viewport instanceof Element)) {
-            console.error(`ScrollBooster init error: ${getElementsError(options.viewport, null)}`);
-            return;
-        }
+    constructor(options: ScrollBoosterOptions) {
+        validateOptions(options);
+        validateElements(options.viewport, options.content ?? options.viewport?.firstElementChild);
 
         const defaults: Omit<Props, 'viewport'> = {
-            content: options.viewport.children[0] as HTMLElement,
+            content: options.viewport.firstElementChild as HTMLElement,
             direction: 'all', // 'vertical', 'horizontal'
             pointerMode: 'all', // 'touch', 'mouse'
             scrollMode: undefined, // 'transform', 'native'
@@ -130,7 +118,6 @@ export class ScrollBooster {
             inputsFocus: true,
             emulateScroll: false,
             preventDefaultOnEmulateScroll: false, // 'vertical', 'horizontal'
-            preventPointerMoveDefault: true,
             lockScrollOnDragDirection: false, // 'vertical', 'horizontal', 'all'
             pointerDownPreventDefault: true,
             dragDirectionTolerance: 40,
@@ -146,14 +133,7 @@ export class ScrollBooster {
             },
         };
 
-        validateOptions(options, ['viewport', ...Object.keys(defaults)]);
         this.props = { ...defaults, ...options } as Props;
-
-        const error = getElementsError(this.props.viewport, this.props.content);
-        if (error) {
-            console.error(`ScrollBooster init error: ${error}`);
-            return;
-        }
 
         this.isDestroyed = false;
         this.isDragging = false;
@@ -188,20 +168,21 @@ export class ScrollBooster {
     }
 
     /**
-     * Update options object with new given values
+     * Update options with given values. Throws TypeError for invalid options and keeps the current ones.
      */
-    updateOptions(options: Partial<ScrollBoosterOptions> = {}): void {
+    updateOptions(options: Partial<ScrollBoosterOptions>): void {
         if (this.isDestroyed) {
             return;
         }
 
-        validateOptions(options, Object.keys(this.props));
+        validateOptions(options);
         const { viewport, content, scrollMode } = this.props;
         const nextProps = { ...this.props, ...options };
         // New viewport without explicit content gets its first child as content
-        if (options.viewport !== undefined && options.viewport !== viewport && !('content' in options)) {
-            nextProps.content = options.viewport?.children?.[0] as HTMLElement;
+        if (options.viewport && options.viewport !== viewport && !options.content) {
+            nextProps.content = options.viewport.firstElementChild as HTMLElement;
         }
+        validateElements(nextProps.viewport, nextProps.content);
 
         if (nextProps.viewport === viewport && nextProps.content === content) {
             this.props = nextProps;
@@ -210,14 +191,7 @@ export class ScrollBooster {
             if (this.props.scrollMode !== scrollMode) {
                 this.switchScrollMode(scrollMode);
             }
-            this.props.onUpdate(this.getState());
-            this.startAnimationLoop();
-            return;
-        }
-
-        const error = getElementsError(nextProps.viewport, nextProps.content);
-        if (error) {
-            console.error(`ScrollBooster updateOptions error: ${error}`);
+            this.updateMetrics();
             return;
         }
 
@@ -256,7 +230,7 @@ export class ScrollBooster {
             to: 0,
         };
 
-        this.props.onUpdate(this.getState());
+        // Next frame renders new state and returns content within new edges
         this.startAnimationLoop();
     }
 
@@ -324,7 +298,8 @@ export class ScrollBooster {
     }
 
     /**
-     * Finish exactly at the scroll target or at the edge, motion stops a fraction of a pixel short of them
+     * Finish exactly at the scroll target or at the edge, motion stops a fraction of a pixel short of them.
+     * Edges may have shrunk since scrollTo, so the target is kept within them too.
      */
     private settle(): void {
         if (this.isTargetScroll) {
@@ -334,10 +309,9 @@ export class ScrollBooster {
             if (this.props.direction !== 'horizontal') {
                 this.position.y = this.targetPosition.y;
             }
-        } else {
-            this.position.x = clamp(this.position.x, this.edgeX);
-            this.position.y = clamp(this.position.y, this.edgeY);
         }
+        this.position.x = clamp(this.position.x, this.edgeX);
+        this.position.y = clamp(this.position.y, this.edgeY);
         this.velocity.x = 0;
         this.velocity.y = 0;
     }
@@ -347,7 +321,7 @@ export class ScrollBooster {
      */
     updateScrollPosition(frames = 1): void {
         const bounce = this.props.bounce && !this.isReducedMotion();
-        // Disabled axis keeps no velocity: in 3.x scrollTo along it kept the animation loop running forever
+        // Disabled axis keeps no velocity, otherwise scrollTo along it would keep the animation loop running forever
         if (this.props.direction !== 'vertical') {
             ({ position: this.position.x, velocity: this.velocity.x } = this.getAxisMotion('x', frames, bounce));
         } else {
@@ -362,15 +336,15 @@ export class ScrollBooster {
         this.scrollOffset.x = 0;
         this.scrollOffset.y = 0;
 
-        // disable bounce effect
-        if ((!bounce || this.isScrolling) && !this.isTargetScroll) {
+        // Content goes beyond edges only with bounce, and never with wheel
+        if (!bounce || this.isScrolling) {
             this.position.x = clamp(this.position.x, this.edgeX);
             this.position.y = clamp(this.position.y, this.edgeY);
         }
     }
 
     /**
-     * Motion along one axis. Modes go in order of precedence: in 3.x forces of later modes overwrote velocity
+     * Motion along one axis. Modes go in order of precedence, each one sets velocity on its own
      */
     private getAxisMotion(axis: 'x' | 'y', frames: number, bounce: boolean): Motion {
         const { friction, bounceForce } = this.props;
@@ -381,10 +355,10 @@ export class ScrollBooster {
         if (this.isTargetScroll) {
             return approach(position, this.targetPosition[axis], 1 - TARGET_SCROLL_FACTOR * retention, frames);
         }
-        // Wheel moves content once per event, regardless of frame duration
+        // Wheel moves content by the deltas of events since the previous frame, regardless of frame duration
         if (this.isScrolling) {
-            const step = this.scrollOffset[axis] * retention;
-            return { position: position + step, velocity: step };
+            const step = this.scrollOffset[axis];
+            return { position: position + step, velocity: 0 };
         }
         if (this.isDragging) {
             return approach(position, this.dragPosition[axis], friction, frames);
@@ -415,7 +389,7 @@ export class ScrollBooster {
     }
 
     /**
-     * Set scroll target coordinate for smooth scroll
+     * Smoothly scroll to the position within edges. Does nothing while the user drags content
      */
     scrollTo(position: Partial<Point> = {}): void {
         // Drag takes precedence: content stays under the pointer
@@ -426,18 +400,16 @@ export class ScrollBooster {
             this.setPosition(position);
             return;
         }
-        // Missing coordinate keeps the target of a running scrollTo or the current position within edges
-        const current = this.isTargetScroll
-            ? this.targetPosition
-            : { x: clamp(this.position.x, this.edgeX), y: clamp(this.position.y, this.edgeY) };
-        this.targetPosition.x = toInternal(position.x, current.x);
-        this.targetPosition.y = toInternal(position.y, current.y);
+        // Missing coordinate keeps the target of a running scrollTo or the current position, all within edges
+        const current = this.isTargetScroll ? this.targetPosition : this.position;
+        this.targetPosition.x = clamp(toInternal(position.x, current.x), this.edgeX);
+        this.targetPosition.y = clamp(toInternal(position.y, current.y), this.edgeY);
         this.isTargetScroll = true;
         this.startAnimationLoop();
     }
 
     /**
-     * Manual position setting
+     * Jump to the position within edges, stops any motion
      */
     setPosition(position: Partial<Point> = {}): void {
         if (this.isDestroyed) {
@@ -446,8 +418,8 @@ export class ScrollBooster {
         this.isTargetScroll = false;
         this.velocity.x = 0;
         this.velocity.y = 0;
-        this.position.x = toInternal(position.x, this.position.x);
-        this.position.y = toInternal(position.y, this.position.y);
+        this.position.x = clamp(toInternal(position.x, this.position.x), this.edgeX);
+        this.position.y = clamp(toInternal(position.y, this.position.y), this.edgeY);
         this.startAnimationLoop();
     }
 
@@ -468,8 +440,8 @@ export class ScrollBooster {
     getState(): ScrollBoosterState {
         return {
             isMoving: this.isMoving(),
-            // Pressed pointer counts as dragging once it moves, dragOffset keeps the last drag until next pointerdown
-            isDragging: this.isDragging && !!(this.dragOffset.x || this.dragOffset.y),
+            // A press becomes a drag past the click threshold, before it the gesture may still be a click
+            isDragging: this.isDragging && this.isPastClickThreshold(),
             // 0 - value avoids -0 at the start edge
             position: { x: 0 - this.position.x, y: 0 - this.position.y },
             dragOffset: { ...this.dragOffset },
@@ -538,6 +510,8 @@ export class ScrollBooster {
         let activePointerType = '';
         let isCaptured = false;
         let preventMouseDown = false;
+        // The click that follows a drag past the click threshold is prevented
+        let preventClick = false;
 
         const setDragPosition = (event: PointerEvent) => {
             if (!this.isDragging) {
@@ -585,6 +559,10 @@ export class ScrollBooster {
             this.isDragging = false;
             dragDirection = null;
             activePointerId = null;
+            this.dragOffset.x = 0;
+            this.dragOffset.y = 0;
+            this.clientOffset.x = 0;
+            this.clientOffset.y = 0;
             this.dragController?.abort();
             this.dragController = null;
         };
@@ -593,12 +571,16 @@ export class ScrollBooster {
             if (event.pointerId !== activePointerId) {
                 return;
             }
-            stopDragging();
+            preventClick = this.isPastClickThreshold();
+            this.isDragging = false;
             if (this.isReducedMotion()) {
                 this.velocity.x = 0;
                 this.velocity.y = 0;
             }
-            this.props.onPointerUp(this.getState(), event, isTouch);
+            // onPointerUp gets offset and angle of the drag that ended
+            const state = this.getState();
+            stopDragging();
+            this.props.onPointerUp(state, event, isTouch);
         };
 
         this.events.pointerdown = (event) => {
@@ -614,8 +596,7 @@ export class ScrollBooster {
 
             isTouch = event.pointerType === 'touch';
             preventMouseDown = false;
-
-            this.props.onPointerDown(this.getState(), event, isTouch);
+            preventClick = false;
 
             const { pageX, pageY, clientX, clientY } = event;
 
@@ -685,6 +666,7 @@ export class ScrollBooster {
             this.dragStartPosition.y = this.position.y;
 
             setDragPosition(event);
+            this.props.onPointerDown(this.getState(), event, isTouch);
             this.startAnimationLoop();
 
             // Pointer may leave viewport before capture, so drag events are listened on window until release
@@ -734,8 +716,12 @@ export class ScrollBooster {
             this.isScrolling = true;
             this.isTargetScroll = false;
 
-            this.scrollOffset.x = -event.deltaX;
-            this.scrollOffset.y = -event.deltaY;
+            // Deltas of all events until the next frame add up, line and page deltas are converted to pixels
+            const { deltaMode } = event;
+            const { clientWidth, clientHeight } = this.props.viewport;
+            const pixels = deltaMode === WheelEvent.DOM_DELTA_LINE ? WHEEL_LINE_HEIGHT : 1;
+            this.scrollOffset.x -= event.deltaX * (deltaMode === WheelEvent.DOM_DELTA_PAGE ? clientWidth : pixels);
+            this.scrollOffset.y -= event.deltaY * (deltaMode === WheelEvent.DOM_DELTA_PAGE ? clientHeight : pixels);
 
             this.props.onWheel(state, event);
 
@@ -782,12 +768,12 @@ export class ScrollBooster {
         };
 
         this.events.click = (event) => {
-            const state = this.getState();
-            if (this.isPastClickThreshold()) {
+            if (preventClick) {
+                preventClick = false;
                 event.preventDefault();
                 event.stopPropagation();
             }
-            this.props.onClick(state, event, isTouch);
+            this.props.onClick(this.getState(), event, isTouch);
         };
 
         this.events.contentLoad = () => this.updateMetrics();
@@ -832,10 +818,9 @@ export class ScrollBooster {
         this.velocity.x = 0;
         this.velocity.y = 0;
         this.isTargetScroll = false;
-        // Render right away: focus scroll and scroll events happen before the next paint
-        const state = this.getState();
-        this.setContentPosition(state);
-        this.props.onUpdate(state);
+        // Render right away: browser computes focus scroll from the current layout
+        this.setContentPosition(this.getState());
+        this.startAnimationLoop();
     }
 
     /**

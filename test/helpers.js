@@ -221,8 +221,8 @@ export function createPointer(viewport) {
     };
 }
 
-export function wheel(target, deltaX, deltaY) {
-    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX, deltaY });
+export function wheel(target, deltaX, deltaY, deltaMode = WheelEvent.DOM_DELTA_PIXEL) {
+    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaX, deltaY, deltaMode });
     target.dispatchEvent(event);
     return event;
 }
