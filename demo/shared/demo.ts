@@ -33,6 +33,7 @@ const LOGGED_EVENTS = [
     'gotpointercapture',
     'lostpointercapture',
     'touchstart',
+    'touchmove',
     'touchend',
     'touchcancel',
     'mousedown',
@@ -112,6 +113,7 @@ function mountEventLog(): void {
 
     const moveButtons = new Map<number, number>();
     let lastWheel = Number.NEGATIVE_INFINITY;
+    let lastTouchMove = '';
     const log = (event: Event) => {
         if (event.target instanceof Node && panel.contains(event.target)) {
             return;
@@ -121,6 +123,23 @@ function mountEventLog(): void {
                 return;
             }
             moveButtons.set(event.pointerId, event.buttons);
+        }
+        // Touch moves: the first one and every change of cancelable or prevented
+        if (event.type === 'touchmove') {
+            setTimeout(() => {
+                const key = `${event.cancelable} ${event.defaultPrevented}`;
+                if (key !== lastTouchMove) {
+                    lastTouchMove = key;
+                    lines.push(
+                        `${`${Math.round(event.timeStamp - start)}`.padStart(6)} touchmove cancelable=${event.cancelable}${event.defaultPrevented ? ' prevented' : ''}`
+                    );
+                    render();
+                }
+            });
+            return;
+        }
+        if (event.type === 'touchstart') {
+            lastTouchMove = '';
         }
         if (event.type === 'wheel') {
             const isNewGesture = event.timeStamp - lastWheel > 300;
