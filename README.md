@@ -101,7 +101,7 @@ const sb = new ScrollBooster({
   textSelection: false,
   onUpdate: (state) => {
     // state: position, maxPosition, viewport, content, isMoving, isDragging, dragOffset, dragAngle, borderCollision
-    // with scrollMode: 'none' you render the scroll yourself
+    // with scrollMode: 'none' you render the scroll yourself, set `will-change: transform` on content in CSS
     // (in a right-to-left viewport position.x grows to the left, translate by +x):
     content.style.transform = `translate(
       ${-state.position.x}px,
@@ -134,7 +134,8 @@ sb.destroy();
 - `'transform'` (default) moves content with CSS transform. Only it bounces beyond the edges. The viewport usually has
   `overflow: hidden`, so the browser itself cannot scroll it: `position: sticky` inside content, smooth
   `element.scrollIntoView()` and other libraries that listen to `scroll` of the viewport do not work, use
-  `sb.scrollIntoView()` instead.
+  `sb.scrollIntoView()` instead. Content gets `will-change: transform`: its own compositing layer, so moving it
+  does not repaint it every frame.
 - `'native'` sets `scrollLeft` and `scrollTop` of the viewport. Content does not bounce, everything the browser does
   with a scroller works, and with `overflow: auto` touch, wheel and keyboard keep native scrolling.
 - `'none'` renders nothing, draw the position yourself in `onUpdate`.

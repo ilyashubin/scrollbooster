@@ -175,6 +175,10 @@ only options that used it.
 nothing was rendered without `scrollMode`. If you render the scroll yourself in `onUpdate`, pass
 `scrollMode: 'none'`, `undefined` is not a valid value anymore.
 
+In `'transform'` mode content gets inline `will-change: transform`, its own compositing layer: a transform changed
+every frame otherwise repaints the content on each frame. `destroy()`, another `scrollMode` and new `content`
+restore the inline value the instance found.
+
 ## `onUpdate` timing
 
 `onUpdate` is called only on animation frames, right before the browser paints. The constructor,

@@ -158,6 +158,47 @@ describe('updateOptions scrollMode', () => {
     });
 });
 
+// Content moved with transform gets its own compositing layer, the instance restores the inline value it found
+describe('will-change', () => {
+    it.each([
+        ['transform', 'transform'],
+        ['native', 'opacity'],
+        ['none', 'opacity'],
+    ] as const)('%s mode sets %s', (scrollMode, willChange) => {
+        const { viewport, content } = mount((fixture) => {
+            fixture.content.style.willChange = 'opacity';
+            return { scrollMode };
+        });
+
+        expect(content.style.willChange).toBe(willChange);
+        expect(viewport.style.willChange).toBe('');
+    });
+
+    it('follows scrollMode changes', () => {
+        const { sb, content } = mount();
+
+        sb.updateOptions({ scrollMode: 'native' });
+        expect(content.style.willChange).toBe('');
+        sb.updateOptions({ scrollMode: 'transform' });
+        expect(content.style.willChange).toBe('transform');
+    });
+
+    it('moves to new content and is restored on previous content and on destroy', () => {
+        const { sb, content, viewport } = mount();
+        content.style.willChange = 'transform';
+        const next = document.createElement('div');
+        next.style.willChange = 'opacity';
+        viewport.append(next);
+
+        sb.updateOptions({ content: next });
+        expect(content.style.willChange).toBe('');
+        expect(next.style.willChange).toBe('transform');
+
+        sb.destroy();
+        expect(next.style.willChange).toBe('opacity');
+    });
+});
+
 describe('destroy', () => {
     it('removes pointer, click and wheel listeners', () => {
         const callbacks = {

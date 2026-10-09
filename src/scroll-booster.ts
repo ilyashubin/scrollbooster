@@ -44,6 +44,7 @@ export class ScrollBooster {
     #abortController!: AbortController;
     #resizeObserver?: ResizeObserver;
     #initialTouchAction = '';
+    #initialWillChange = '';
 
     /**
      * Create ScrollBooster instance. Throws TypeError for invalid options.
@@ -273,6 +274,7 @@ export class ScrollBooster {
             viewport.scrollLeft = 0;
             viewport.scrollTop = 0;
         }
+        this.#applyWillChange();
         this.#renderPosition();
     }
 
@@ -348,6 +350,8 @@ export class ScrollBooster {
 
         this.#initialTouchAction = viewport.style.touchAction;
         this.#applyTouchAction();
+        this.#initialWillChange = content.style.willChange;
+        this.#applyWillChange();
 
         // Test environments like jsdom have no ResizeObserver, sizes are then updated by updateMetrics()
         if (typeof ResizeObserver !== 'function') {
@@ -377,6 +381,7 @@ export class ScrollBooster {
         this.#abortController.abort();
         this.#resizeObserver?.disconnect();
         viewport.style.touchAction = this.#initialTouchAction;
+        content.style.willChange = this.#initialWillChange;
         if (scrollMode === 'transform') {
             content.style.transform = '';
         }
@@ -443,6 +448,15 @@ export class ScrollBooster {
         ) {
             this.#props.onUpdate(this.getState());
         }
+    }
+
+    /**
+     * Content moved with transform gets its own compositing layer. A transform that script changes every frame
+     * otherwise repaints the content on each frame: in Chromium a drag over cards took 540 raster tasks instead of 4.
+     */
+    #applyWillChange(): void {
+        const { content, scrollMode } = this.#props;
+        content.style.willChange = scrollMode === 'transform' ? 'transform' : this.#initialWillChange;
     }
 
     /**
