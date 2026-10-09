@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsdown';
 
 const shared = {
-    target: 'es2020',
+    target: 'es2022',
     platform: 'browser',
     sourcemap: true,
 } as const;

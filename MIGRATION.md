@@ -7,8 +7,8 @@ Everything below is a list of behavior changes, each with what to do if it affec
 
 ## Browser support
 
-4.0 targets browsers released since 2021: Chrome and Edge 90+, Firefox 86+, Safari and iOS Safari 15+. IE11 and
-old Edge are not supported anymore, the build is ES2020 without polyfills. If you need IE11, stay on 3.x.
+4.0 targets browsers released since 2021: Chrome and Edge 90+, Firefox 90+, Safari and iOS Safari 15+. IE11 and
+old Edge are not supported anymore, the build is ES2022 without polyfills. If you need IE11, stay on 3.x.
 
 ## Package
 

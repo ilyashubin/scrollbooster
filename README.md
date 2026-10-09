@@ -251,7 +251,7 @@ do. Direction is read on `updateMetrics()`, call it after changing `direction` o
 
 ### Browser support
 
-Chrome and Edge 90+, Firefox 86+, Safari and iOS Safari 15+. Version 3.x supports IE11.
+Chrome and Edge 90+, Firefox 90+, Safari and iOS Safari 15+. Version 3.x supports IE11.
 
 ### Special thanks
 

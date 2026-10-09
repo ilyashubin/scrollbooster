@@ -27,26 +27,34 @@ const isAxisAllowed = (axis: Axis, direction: Direction): boolean =>
  * Coordinates are content offsets: the public ones with the opposite sign, from the end edge to 0.
  */
 export class ContentMotion {
-    position: Point;
-    velocity: Point = { x: 0, y: 0 };
-    target: Point = { x: 0, y: 0 };
-    isTargetScroll = false;
+    #position: Point;
+    #velocity: Point = { x: 0, y: 0 };
+    #target: Point = { x: 0, y: 0 };
+    #isTargetScroll = false;
     // Position when the drag started, the pointer offset is added to it
-    dragStart: Point = { x: 0, y: 0 };
-    edgeX: Edge = { from: 0, to: 0 };
-    edgeY: Edge = { from: 0, to: 0 };
+    #dragStart: Point = { x: 0, y: 0 };
+    #edgeX: Edge = { from: 0, to: 0 };
+    #edgeY: Edge = { from: 0, to: 0 };
 
     constructor(position: Point) {
-        this.position = position;
+        this.#position = position;
+    }
+
+    /**
+     * Take the internal position as is, without edges and motion: a new viewport keeps its native scroll
+     */
+    reset(position: Point): void {
+        this.#position = position;
+        this.interrupt();
     }
 
     setSizes(viewport: Size, content: Size): void {
-        this.edgeX = { from: Math.min(viewport.width - content.width, 0), to: 0 };
-        this.edgeY = { from: Math.min(viewport.height - content.height, 0), to: 0 };
+        this.#edgeX = { from: Math.min(viewport.width - content.width, 0), to: 0 };
+        this.#edgeY = { from: Math.min(viewport.height - content.height, 0), to: 0 };
     }
 
     isMoving(): boolean {
-        return hasVelocity(this.velocity);
+        return hasVelocity(this.#velocity);
     }
 
     /**
@@ -57,7 +65,7 @@ export class ContentMotion {
         // Disabled axis keeps no velocity, otherwise scrollTo along it would keep the animation loop running forever
         for (const axis of AXES) {
             if (isAxisAllowed(axis, options.direction)) {
-                ({ position: this.position[axis], velocity: this.velocity[axis] } = this.getAxisMotion(
+                ({ position: this.#position[axis], velocity: this.#velocity[axis] } = this.#getAxisMotion(
                     axis,
                     frames,
                     options,
@@ -66,19 +74,19 @@ export class ContentMotion {
                     wheel
                 ));
             } else {
-                this.velocity[axis] = 0;
+                this.#velocity[axis] = 0;
             }
         }
         // Content goes beyond edges only with bounce, and never with wheel
         if (!bounce || wheel) {
-            this.clampPosition();
+            this.#clampPosition();
         }
     }
 
     /**
      * Motion along one axis. Modes go in order of precedence, each one sets velocity on its own
      */
-    private getAxisMotion(
+    #getAxisMotion(
         axis: Axis,
         frames: number,
         { friction, bounceForce }: MotionOptions,
@@ -87,21 +95,21 @@ export class ContentMotion {
         wheel: Point | null
     ): Motion {
         const retention = 1 - friction;
-        const position = this.position[axis];
-        const velocity = this.velocity[axis];
+        const position = this.#position[axis];
+        const velocity = this.#velocity[axis];
 
-        if (this.isTargetScroll) {
-            return approach(position, this.target[axis], 1 - TARGET_SCROLL_FACTOR * retention, frames);
+        if (this.#isTargetScroll) {
+            return approach(position, this.#target[axis], 1 - TARGET_SCROLL_FACTOR * retention, frames);
         }
         // Wheel moves content by the deltas of events since the previous frame, regardless of frame duration
         if (wheel) {
             return { position: position + wheel[axis], velocity: 0 };
         }
         if (drag) {
-            return approach(position, this.dragStart[axis] + drag[axis], friction, frames);
+            return approach(position, this.#dragStart[axis] + drag[axis], friction, frames);
         }
         if (bounce) {
-            const edge = this.getEdge(axis);
+            const edge = this.#getEdge(axis);
             const mode = getEdgeMode(position, velocity, edge, bounceForce, friction);
             if (mode === 'return') {
                 return approach(position, clamp(position, edge), 1 - bounceForce * retention, frames);
@@ -118,21 +126,21 @@ export class ContentMotion {
      * Edges may have shrunk since scrollTo, so the target is kept within them too.
      */
     settle(direction: Direction): void {
-        if (this.isTargetScroll) {
+        if (this.#isTargetScroll) {
             for (const axis of AXES) {
                 if (isAxisAllowed(axis, direction)) {
-                    this.position[axis] = this.target[axis];
+                    this.#position[axis] = this.#target[axis];
                 }
             }
-            this.isTargetScroll = false;
+            this.#isTargetScroll = false;
         }
-        this.clampPosition();
+        this.#clampPosition();
         this.stop();
     }
 
     startDrag(): void {
-        this.isTargetScroll = false;
-        this.dragStart = { ...this.position };
+        this.#isTargetScroll = false;
+        this.#dragStart = { ...this.#position };
     }
 
     /**
@@ -140,10 +148,10 @@ export class ContentMotion {
      * current position.
      */
     scrollTo(position: Partial<Point>): void {
-        const current = this.isTargetScroll ? this.target : this.position;
-        this.target.x = clamp(toInternal(position.x, current.x), this.edgeX);
-        this.target.y = clamp(toInternal(position.y, current.y), this.edgeY);
-        this.isTargetScroll = true;
+        const current = this.#isTargetScroll ? this.#target : this.#position;
+        this.#target.x = clamp(toInternal(position.x, current.x), this.#edgeX);
+        this.#target.y = clamp(toInternal(position.y, current.y), this.#edgeY);
+        this.#isTargetScroll = true;
     }
 
     /**
@@ -151,8 +159,8 @@ export class ContentMotion {
      */
     setPosition(position: Partial<Point>): void {
         this.interrupt();
-        this.position.x = clamp(toInternal(position.x, this.position.x), this.edgeX);
-        this.position.y = clamp(toInternal(position.y, this.position.y), this.edgeY);
+        this.#position.x = clamp(toInternal(position.x, this.#position.x), this.#edgeX);
+        this.#position.y = clamp(toInternal(position.y, this.#position.y), this.#edgeY);
     }
 
     /**
@@ -161,7 +169,7 @@ export class ContentMotion {
     jumpBy(offset: Point, direction: Direction): void {
         for (const axis of AXES) {
             if (isAxisAllowed(axis, direction)) {
-                this.position[axis] = clamp(this.position[axis] - offset[axis], this.getEdge(axis));
+                this.#position[axis] = clamp(this.#position[axis] - offset[axis], this.#getEdge(axis));
             }
         }
         this.interrupt();
@@ -174,8 +182,8 @@ export class ContentMotion {
         if (!isAxisAllowed(axis, direction)) {
             return false;
         }
-        const edge = this.getEdge(axis);
-        const position = this.position[axis];
+        const edge = this.#getEdge(axis);
+        const position = this.#position[axis];
         return delta > 0 ? position > edge.from : delta < 0 && position < edge.to;
     }
 
@@ -187,9 +195,9 @@ export class ContentMotion {
         const tolerance = isAtRest ? NATIVE_SCROLL_TOLERANCE_AT_REST_PX : NATIVE_SCROLL_TOLERANCE_PX;
         let isChanged = false;
         for (const axis of AXES) {
-            if (Math.abs(this.position[axis] + scroll[axis]) > tolerance) {
-                this.position[axis] = -scroll[axis];
-                this.velocity[axis] = 0;
+            if (Math.abs(this.#position[axis] + scroll[axis]) > tolerance) {
+                this.#position[axis] = -scroll[axis];
+                this.#velocity[axis] = 0;
                 isChanged = true;
             }
         }
@@ -200,8 +208,8 @@ export class ContentMotion {
      * Stop inertia
      */
     stop(): void {
-        this.velocity.x = 0;
-        this.velocity.y = 0;
+        this.#velocity.x = 0;
+        this.#velocity.y = 0;
     }
 
     /**
@@ -209,21 +217,21 @@ export class ContentMotion {
      */
     interrupt(): void {
         this.stop();
-        this.isTargetScroll = false;
+        this.#isTargetScroll = false;
     }
 
     /**
      * Public position, 0 - value avoids -0 at the start edge
      */
     getPosition(): Point {
-        return { x: 0 - this.position.x, y: 0 - this.position.y };
+        return { x: 0 - this.#position.x, y: 0 - this.#position.y };
     }
 
     /**
      * Public target of a running scrollTo, the position otherwise
      */
     getTarget(): Point {
-        const target = this.isTargetScroll ? this.target : this.position;
+        const target = this.#isTargetScroll ? this.#target : this.#position;
         return { x: 0 - target.x, y: 0 - target.y };
     }
 
@@ -232,29 +240,29 @@ export class ContentMotion {
      */
     getRestPosition(friction: number): Point {
         const rest = (axis: Axis) =>
-            clamp(this.position[axis] + (this.velocity[axis] * (1 - friction)) / friction, this.getEdge(axis));
+            clamp(this.#position[axis] + (this.#velocity[axis] * (1 - friction)) / friction, this.#getEdge(axis));
         return { x: 0 - rest('x'), y: 0 - rest('y') };
     }
 
     getMaxPosition(): Point {
-        return { x: 0 - this.edgeX.from, y: 0 - this.edgeY.from };
+        return { x: 0 - this.#edgeX.from, y: 0 - this.#edgeY.from };
     }
 
     getBorderCollision(): BorderCollision {
         return {
-            left: this.position.x >= this.edgeX.to,
-            right: this.position.x <= this.edgeX.from,
-            top: this.position.y >= this.edgeY.to,
-            bottom: this.position.y <= this.edgeY.from,
+            left: this.#position.x >= this.#edgeX.to,
+            right: this.#position.x <= this.#edgeX.from,
+            top: this.#position.y >= this.#edgeY.to,
+            bottom: this.#position.y <= this.#edgeY.from,
         };
     }
 
-    private getEdge(axis: Axis): Edge {
-        return axis === 'x' ? this.edgeX : this.edgeY;
+    #getEdge(axis: Axis): Edge {
+        return axis === 'x' ? this.#edgeX : this.#edgeY;
     }
 
-    private clampPosition(): void {
-        this.position.x = clamp(this.position.x, this.edgeX);
-        this.position.y = clamp(this.position.y, this.edgeY);
+    #clampPosition(): void {
+        this.#position.x = clamp(this.#position.x, this.#edgeX);
+        this.#position.y = clamp(this.#position.y, this.#edgeY);
     }
 }

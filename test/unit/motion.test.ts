@@ -36,7 +36,7 @@ describe('ContentMotion', () => {
         run(motion);
 
         expect(motion.getPosition()).toEqual({ x: 300, y: 50 });
-        expect(motion.isTargetScroll).toBe(false);
+        expect(motion.getTarget()).toEqual(motion.getPosition());
     });
 
     it('keeps targets and positions within edges', () => {
@@ -46,7 +46,7 @@ describe('ContentMotion', () => {
         expect(motion.getPosition()).toEqual({ x: 0, y: 700 });
 
         motion.scrollTo({ x: 5000 });
-        expect(motion.target.x).toBe(-700);
+        expect(motion.getTarget().x).toBe(700);
     });
 
     it('drag follows the pointer offset from the drag start', () => {
@@ -62,7 +62,9 @@ describe('ContentMotion', () => {
 
     it('bounces back to the edge after a throw beyond it', () => {
         const motion = create();
-        motion.velocity.x = 40;
+        // One frame of a drag 40 px beyond the start edge leaves velocity of 38 px per frame
+        motion.startDrag();
+        motion.step(1, options, true, { x: 40, y: 0 }, null);
 
         const frames = run(motion);
 
@@ -76,7 +78,7 @@ describe('ContentMotion', () => {
         motion.step(1, options, true, null, { x: -20, y: 100 });
 
         expect(motion.getPosition()).toEqual({ x: 20, y: 0 });
-        expect(motion.velocity).toEqual({ x: 0, y: 0 });
+        expect(motion.isMoving()).toBe(false);
     });
 
     it('can scroll only along allowed directions and away from edges', () => {
@@ -92,13 +94,15 @@ describe('ContentMotion', () => {
 
     it('jumpBy moves along allowed directions and stops motion', () => {
         const motion = create();
-        motion.velocity.y = 10;
+        // One drag frame moves content by 9.5 px and leaves velocity
+        motion.startDrag();
+        motion.step(1, options, true, { x: 0, y: -10 }, null);
         motion.scrollTo({ x: 500 });
 
         motion.jumpBy({ x: 50, y: 50 }, 'vertical');
 
-        expect(motion.getPosition()).toEqual({ x: 0, y: 50 });
+        expect(motion.getPosition()).toEqual({ x: 0, y: 59.5 });
         expect(motion.isMoving()).toBe(false);
-        expect(motion.isTargetScroll).toBe(false);
+        expect(motion.getTarget()).toEqual(motion.getPosition());
     });
 });

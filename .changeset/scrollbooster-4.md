@@ -5,8 +5,8 @@
 ScrollBooster 4.0, see [MIGRATION.md](https://github.com/ilyashubin/scrollbooster/blob/master/MIGRATION.md) for
 all behavior changes.
 
-- ESM and `<script>` builds with TypeScript types, no CommonJS build, the class is a named export only. ES2020
-  build for Chrome 90+, Firefox 86+, Safari 15+, IE11 is not supported anymore.
+- ESM and `<script>` builds with TypeScript types, no CommonJS build, the class is a named export only. ES2022
+  build for Chrome 90+, Firefox 90+, Safari 15+, IE11 is not supported anymore.
 - Input on Pointer Events and CSS `touch-action`: only the main mouse button drags, extra fingers are ignored,
   `pointercancel` is handled, page scroll outside the viewport is never blocked, no listeners on `window` outside
   of a drag.
