@@ -70,10 +70,13 @@ function mountEventLog(): void {
     const copy = document.createElement('button');
     copy.type = 'button';
     copy.textContent = 'Copy';
+    const send = document.createElement('button');
+    send.type = 'button';
+    send.textContent = 'Send';
     const clear = document.createElement('button');
     clear.type = 'button';
     clear.textContent = 'Clear';
-    tools.append(copy, clear);
+    tools.append(clear, copy, send);
     const output = document.createElement('pre');
     panel.append(tools, output);
     document.body.append(panel);
@@ -84,10 +87,22 @@ function mountEventLog(): void {
         output.textContent = lines.join('\n');
         output.scrollTop = output.scrollHeight;
     };
+    // Clipboard API needs a secure context: a page opened by the network address of the dev server is not one
     copy.addEventListener('click', () => {
-        navigator.clipboard?.writeText(lines.join('\n')).then(
-            () => toast('Copied'),
-            () => toast('Copy failed, select the text')
+        const field = document.createElement('textarea');
+        field.value = lines.join('\n');
+        panel.append(field);
+        field.select();
+        field.setSelectionRange(0, field.value.length);
+        const isCopied = document.execCommand('copy');
+        field.remove();
+        toast(isCopied ? 'Copied' : 'Copy failed, use Send');
+    });
+    // The dev server keeps the last sent log at /__events
+    send.addEventListener('click', () => {
+        fetch('/__events', { method: 'POST', body: lines.join('\n') }).then(
+            (response) => toast(response.ok ? 'Sent' : 'Send failed: not the dev server'),
+            () => toast('Send failed')
         );
     });
     clear.addEventListener('click', () => {

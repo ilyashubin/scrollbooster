@@ -70,7 +70,8 @@ Before a release try `index.html` and `gallery.html` on real devices: a high ref
 Tests do not catch how scrolling feels. `pnpm dev` is reachable from a phone in the same network at the `Network`
 address it prints. Add `?events` to a page address to see raw input events on the page, for devices without
 devtools: pointer, touch, mouse and click events, capture, selection and native drag, the start of a wheel gesture,
-and which of them were prevented. The Copy button puts the log to the clipboard.
+and which of them were prevented. Send keeps the log in the dev server, read it with
+`curl localhost:5173/__events`; Copy puts it to the clipboard.
 
 ## Checks
 
