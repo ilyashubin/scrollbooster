@@ -69,6 +69,10 @@ Mouse and touch listeners are replaced with Pointer Events.
   any other place, and a long touch press without movement selects a word and ends the press, so the finger then
   moves the selection. In 3.x a swipe that started on text was left to the browser. Text with `user-select: none` on
   the element or an ancestor drags. With `textSelection: false` a long touch press does not select text either.
+- `inputsFocus` also covers presses inside a control, like an icon in a button or a span in a label, and presses on
+  `summary`, `audio` and `video` with controls and editable content (`contenteditable`). In 3.x only a press on
+  `input`, `textarea`, `button`, `select` or `label` itself did not drag, and an editable element could not be
+  selected in.
 
 ### Native touch gestures
 

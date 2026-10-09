@@ -57,7 +57,7 @@ bounce | boolean | `true` | Content bounces back when dragged or thrown beyond t
 friction | number | `0.05` | How fast motion slows down after release, between 0 and 1
 bounceForce | number | `0.1` | How fast content returns from beyond an edge, between 0 and 1
 textSelection | boolean | `false` | Text can be selected: a mouse press on text selects it instead of dragging, a long touch press selects a word
-inputsFocus | boolean | `true` | A press on `input`, `textarea`, `button`, `select` or `label` focuses it instead of dragging
+inputsFocus | boolean | `true` | A press on a form control, `summary`, media controls or editable content, or inside them, does not drag
 wheel | boolean | `true` | Wheel and trackpad scroll content. The page scrolls instead when content cannot move that way
 keyboard | boolean | `true` | Keys scroll content while it has focus, see [Accessibility](#accessibility)
 reducedMotion | `'auto'`, `'always'`, `'never'` | `'auto'` | `'always'` turns off inertia, bounce and smooth `scrollTo`, `'never'` keeps them, `'auto'` follows the `prefers-reduced-motion` setting

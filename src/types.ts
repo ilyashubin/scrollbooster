@@ -79,7 +79,10 @@ export interface ScrollBoosterOptions {
      * press selects a word and a swipe drags. When off, pointers do not select text, keyboard selection still works.
      */
     textSelection?: boolean;
-    /** Enables focus on input elements */
+    /**
+     * Presses on form controls, `summary`, media with controls and editable content, including their descendants,
+     * focus or use them instead of dragging
+     */
     inputsFocus?: boolean;
     /**
      * Mouse wheel and trackpad scroll content. The page scrolls instead when content cannot move along the

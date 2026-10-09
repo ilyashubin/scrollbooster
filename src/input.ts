@@ -7,8 +7,10 @@ type Axis = 'x' | 'y';
 // A press is a click until the pointer moves further than this along scroll directions
 const CLICK_THRESHOLD_PX = 5;
 
-// Presses on these elements focus them instead of dragging, with `inputsFocus`
-const FORM_NODES = ['input', 'textarea', 'button', 'select', 'label'];
+// Presses on these elements and inside them focus or use them instead of dragging, with `inputsFocus`
+const CONTROLS =
+    'input, textarea, button, select, label, summary, audio[controls], video[controls], ' +
+    '[contenteditable]:not([contenteditable="false"])';
 
 /**
  * Pointer pressed on viewport that drags content. Offsets are from the press point, 0 when nothing is pressed.
@@ -110,6 +112,12 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         lastPointerEvent = null;
     };
 
+    // A control inside the viewport, an icon in a button counts too. A viewport inside a label still drags.
+    const isControl = (target: Element): boolean => {
+        const control = target.closest(CONTROLS);
+        return control !== null && control !== viewport && viewport.contains(control);
+    };
+
     // Presses that do not drag: scrollbars, other buttons, pointer types and elements excluded by options
     const isDragStart = (event: PointerEvent): boolean => {
         const props = host.props();
@@ -127,7 +135,7 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
             (props.pointerMode === 'mouse' && isTouch) ||
             (props.pointerMode === 'touch' && !isTouch) ||
             !(target instanceof Element) ||
-            (props.inputsFocus && FORM_NODES.includes(target.nodeName.toLowerCase()))
+            (props.inputsFocus && isControl(target))
         ) {
             return false;
         }

@@ -472,16 +472,67 @@ describe('drag guards', () => {
         );
     });
 
-    it.each(['input', 'textarea', 'button', 'select', 'label'])('inputsFocus: does not drag from %s', (tag) => {
+    it.each([
+        '<input>',
+        '<textarea></textarea>',
+        '<button></button>',
+        '<select></select>',
+        '<label></label>',
+        '<details><summary></summary></details>',
+        '<video controls></video>',
+        '<audio controls></audio>',
+        '<div contenteditable></div>',
+        '<div contenteditable="plaintext-only"></div>',
+    ])('inputsFocus: does not drag from %s', (html) => {
         const { sb, pointer, content } = mount();
-        const element = document.createElement(tag);
-        content.append(element);
+        content.innerHTML = html;
+        const element = content.querySelector('summary') ?? content.firstElementChild;
 
-        pointer.mouseDown(10, 10, {}, element);
+        pointer.mouseDown(10, 10, {}, element ?? undefined);
         pointer.mouseMove(0, 0);
         tick(10);
 
         expect(sb.getState().isDragging).toBe(false);
+    });
+
+    it.each([
+        '<button><svg><path></path></svg></button>',
+        '<label><span></span></label>',
+        '<div contenteditable><p><b></b></p></div>',
+        '<select><option></option></select>',
+    ])('inputsFocus: does not drag from inside %s', (html) => {
+        const { sb, pointer, content } = mount();
+        content.innerHTML = html;
+        const inner = content.querySelector('path, span, b, option');
+
+        pointer.mouseDown(10, 10, {}, inner ?? undefined);
+        pointer.mouseMove(0, 0);
+        tick(10);
+
+        expect(sb.getState().isDragging).toBe(false);
+    });
+
+    it.each(['<video></video>', '<div contenteditable="false"></div>'])('inputsFocus: drags from %s', (html) => {
+        const { sb, pointer, content } = mount();
+        content.innerHTML = html;
+
+        pointer.mouseDown(10, 10, {}, content.firstElementChild ?? undefined);
+        pointer.mouseMove(50, 10);
+
+        expect(sb.getState().isDragging).toBe(true);
+    });
+
+    it('inputsFocus: drags a viewport placed inside a label', () => {
+        const { sb, pointer, viewport, content } = mount();
+        const label = document.createElement('label');
+        viewport.before(label);
+        label.append(viewport);
+
+        pointer.mouseDown(10, 10, {}, content);
+        pointer.mouseMove(50, 10);
+
+        expect(sb.getState().isDragging).toBe(true);
+        label.replaceWith(viewport);
     });
 
     it('inputsFocus: false allows drag from input', () => {
