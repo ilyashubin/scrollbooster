@@ -19,6 +19,135 @@ export function mountNav(): void {
     }
     header.append(nav);
     document.body.prepend(header);
+    if (new URLSearchParams(location.search).has('events')) {
+        mountEventLog();
+    }
+}
+
+// Raw input events in the order the browser sends them, for devices without devtools
+const LOGGED_EVENTS = [
+    'pointerdown',
+    'pointermove',
+    'pointerup',
+    'pointercancel',
+    'gotpointercapture',
+    'lostpointercapture',
+    'touchstart',
+    'touchend',
+    'touchcancel',
+    'mousedown',
+    'mouseup',
+    'click',
+    'auxclick',
+    'contextmenu',
+    'dragstart',
+    'selectstart',
+    'wheel',
+    // Force click in Safari on macOS
+    'webkitmouseforcewillbegin',
+    'webkitmouseforcedown',
+    'webkitmouseforceup',
+];
+
+const describeTarget = (target: EventTarget | null) => {
+    if (!(target instanceof Element)) {
+        return target === window ? 'window' : String(target);
+    }
+    const classes = [...target.classList].slice(0, 2).map((name) => `.${name}`);
+    return `${target.tagName.toLowerCase()}${target.id ? `#${target.id}` : ''}${classes.join('')}`;
+};
+
+/**
+ * Overlay with raw input events, opened with `?events` in the page address. Moves are logged only when pressed
+ * buttons change, wheel only at the start of a gesture, so a press reads as a few lines. Whether an event was
+ * prevented is read after it has been dispatched.
+ */
+function mountEventLog(): void {
+    const panel = document.createElement('aside');
+    panel.className = 'event-log';
+    panel.setAttribute('aria-label', 'Event log');
+    const tools = document.createElement('div');
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.textContent = 'Copy';
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.textContent = 'Clear';
+    tools.append(copy, clear);
+    const output = document.createElement('pre');
+    panel.append(tools, output);
+    document.body.append(panel);
+
+    const lines: string[] = [];
+    const start = performance.now();
+    const render = () => {
+        output.textContent = lines.join('\n');
+        output.scrollTop = output.scrollHeight;
+    };
+    copy.addEventListener('click', () => {
+        navigator.clipboard?.writeText(lines.join('\n')).then(
+            () => toast('Copied'),
+            () => toast('Copy failed, select the text')
+        );
+    });
+    clear.addEventListener('click', () => {
+        lines.length = 0;
+        render();
+    });
+
+    const moveButtons = new Map<number, number>();
+    let lastWheel = Number.NEGATIVE_INFINITY;
+    const log = (event: Event) => {
+        if (event.target instanceof Node && panel.contains(event.target)) {
+            return;
+        }
+        if (event instanceof PointerEvent && event.type === 'pointermove') {
+            if (moveButtons.get(event.pointerId) === event.buttons) {
+                return;
+            }
+            moveButtons.set(event.pointerId, event.buttons);
+        }
+        if (event.type === 'wheel') {
+            const isNewGesture = event.timeStamp - lastWheel > 300;
+            lastWheel = event.timeStamp;
+            if (!isNewGesture) {
+                return;
+            }
+        }
+        const parts = [`${Math.round(performance.now() - start)}`.padStart(6), event.type];
+        // Click is a PointerEvent in Chromium, without pointer fields
+        if (event instanceof PointerEvent && event.type.startsWith('pointer')) {
+            parts.push(`${event.pointerType}#${event.pointerId}${event.isPrimary ? '' : ' secondary'}`);
+        }
+        if (event instanceof MouseEvent) {
+            parts.push(`button=${event.button} buttons=${event.buttons}`);
+            if (event.type.endsWith('click')) {
+                parts.push(`detail=${event.detail}`);
+            }
+        }
+        if (typeof TouchEvent !== 'undefined' && event instanceof TouchEvent) {
+            parts.push(`touches=${event.touches.length}`);
+        }
+        parts.push(describeTarget(event.target));
+        // Read after all listeners have run
+        setTimeout(() => {
+            lines.push(`${parts.join(' ')}${event.defaultPrevented ? ' prevented' : ''}`);
+            if (lines.length > 300) {
+                lines.splice(0, lines.length - 300);
+            }
+            render();
+        });
+    };
+    for (const type of LOGGED_EVENTS) {
+        window.addEventListener(type, log, { capture: true, passive: true });
+    }
+    for (const type of ['blur', 'focus']) {
+        window.addEventListener(type, (event) => event.target === window && log(event));
+    }
+    document.addEventListener('visibilitychange', () => {
+        lines.push(`${`${Math.round(performance.now() - start)}`.padStart(6)} visibility ${document.visibilityState}`);
+        render();
+    });
 }
 
 let toastTimer = 0;

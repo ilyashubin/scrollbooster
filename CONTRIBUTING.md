@@ -67,7 +67,10 @@ static host, `pnpm preview:demo` builds and serves them. Biome rule `noNonintera
 pages: a viewport in `transform` mode has `overflow: hidden`, it is reachable from the keyboard only with `tabindex`.
 
 Before a release try `index.html` and `gallery.html` on real devices: a high refresh rate display, iOS and Android.
-Tests do not catch how scrolling feels.
+Tests do not catch how scrolling feels. `pnpm dev` is reachable from a phone in the same network at the `Network`
+address it prints. Add `?events` to a page address to see raw input events on the page, for devices without
+devtools: pointer, touch, mouse and click events, capture, selection and native drag, the start of a wheel gesture,
+and which of them were prevented. The Copy button puts the log to the clipboard.
 
 ## Checks
 
