@@ -427,7 +427,15 @@ export class ScrollBooster {
             }
             return;
         }
-        this.motion.followNativeScroll(mirrorX({ x: scrollLeft, y: scrollTop }, this.isRtl));
+        const isAtRest = !this.isMoving();
+        // At rest the animation loop does not run: report the state right away. A frame would also render the
+        // position and stop a native fling.
+        if (
+            this.motion.followNativeScroll(mirrorX({ x: scrollLeft, y: scrollTop }, this.isRtl), isAtRest) &&
+            isAtRest
+        ) {
+            this.props.onUpdate(this.getState());
+        }
     }
 
     /**

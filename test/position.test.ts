@@ -81,6 +81,38 @@ describe('setPosition', () => {
     });
 });
 
+describe('native scroll by the browser in native mode', () => {
+    it('is followed at rest and reported with onUpdate', async () => {
+        const onUpdate = vi.fn();
+        const { sb, viewport } = mount({ scrollMode: 'native', onUpdate });
+        sb.setPosition({ y: 100 });
+        tick();
+        onUpdate.mockClear();
+
+        // The last step of a native fling may be smaller than the rounding tolerance during motion
+        viewport.scrollTop = 102;
+        await nextRender();
+
+        expect(sb.getState().position.y).toBe(102);
+        expect(onUpdate).toHaveBeenCalledTimes(1);
+        expect(onUpdate.mock.calls[0][0].position.y).toBe(102);
+        expect(pendingFrames()).toBe(0);
+    });
+
+    it('keeps a fractional position that the browser rounds', async () => {
+        const onUpdate = vi.fn();
+        const { sb } = mount({ scrollMode: 'native', onUpdate });
+        sb.setPosition({ x: 100.3, y: 50.2 });
+        tick();
+        onUpdate.mockClear();
+
+        await nextRender();
+
+        expect(sb.getState().position).toEqual({ x: 100.3, y: 50.2 });
+        expect(onUpdate).not.toHaveBeenCalled();
+    });
+});
+
 describe('scrollTo', () => {
     it('smoothly scrolls to target and stops', () => {
         const onUpdate = vi.fn();

@@ -14,8 +14,10 @@ type MotionOptions = Pick<Props, 'direction' | 'friction' | 'bounceForce'>;
 const toInternal = (value: number | undefined, current: number): number =>
     value === undefined ? current : -value || 0;
 
-// Native scroll rounds the position rendered in native mode, a larger difference is a scroll by the browser
+// Native scroll rounds the position rendered in native mode, a larger difference is a scroll by the browser.
+// At rest nothing is rendered, so a smaller difference is the last step of a native scroll.
 const NATIVE_SCROLL_TOLERANCE_PX = 3;
+const NATIVE_SCROLL_TOLERANCE_AT_REST_PX = 0.5;
 
 const isAxisAllowed = (axis: Axis, direction: Direction): boolean =>
     direction !== (axis === 'x' ? 'vertical' : 'horizontal');
@@ -178,15 +180,20 @@ export class ContentMotion {
     }
 
     /**
-     * Take the position of native scroll that differs from the rendered one, stopping inertia along that axis
+     * Take the position of native scroll that differs from the rendered one, stopping inertia along that axis.
+     * Returns true when the position changed.
      */
-    followNativeScroll(scroll: Point): void {
+    followNativeScroll(scroll: Point, isAtRest: boolean): boolean {
+        const tolerance = isAtRest ? NATIVE_SCROLL_TOLERANCE_AT_REST_PX : NATIVE_SCROLL_TOLERANCE_PX;
+        let isChanged = false;
         for (const axis of AXES) {
-            if (Math.abs(this.position[axis] + scroll[axis]) > NATIVE_SCROLL_TOLERANCE_PX) {
+            if (Math.abs(this.position[axis] + scroll[axis]) > tolerance) {
                 this.position[axis] = -scroll[axis];
                 this.velocity[axis] = 0;
+                isChanged = true;
             }
         }
+        return isChanged;
     }
 
     /**

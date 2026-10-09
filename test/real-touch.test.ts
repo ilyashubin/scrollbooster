@@ -129,6 +129,27 @@ describe.runIf(server.browser === 'chromium')('real touch', () => {
         expect(window.scrollY).toBe(0);
     });
 
+    it('pointerMode mouse with native mode leaves touch scroll of content to the browser', async () => {
+        const onPointerDown = vi.fn();
+        const { sb, viewport } = mount(
+            { pointerMode: 'mouse', scrollMode: 'native', onPointerDown },
+            { overflow: 'auto' }
+        );
+
+        await swipe(at(viewport, 150, 250), at(viewport, 150, 50));
+        // Native fling of the viewport ends
+        let scrollTop: number;
+        do {
+            scrollTop = viewport.scrollTop;
+            await settle();
+        } while (viewport.scrollTop !== scrollTop);
+        tick();
+
+        expect(onPointerDown).not.toHaveBeenCalled();
+        expect(viewport.scrollTop).toBeGreaterThan(100);
+        expect(sb.getState().position.y).toBe(viewport.scrollTop);
+    });
+
     it('tap reaches content element', async () => {
         const onClick = vi.fn();
         const { content, viewport } = mount({ onClick });
