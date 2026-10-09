@@ -12,10 +12,12 @@ old Edge are not supported anymore, the build is ES2020 without polyfills. If yo
 
 ## Package
 
-- The package ships ESM (`dist/index.js`), CommonJS (`dist/index.cjs`) and a minified `<script>` build
-  (`dist/scrollbooster.min.js`, global `ScrollBooster`) through the `exports` map. `import ScrollBooster from
-  'scrollbooster'`, `require('scrollbooster')` and the `<script>` tag work as before.
-- ESM also has a named export: `import { ScrollBooster } from 'scrollbooster'`.
+- The package is ESM (`dist/index.js`) with a minified `<script>` build (`dist/scrollbooster.min.js`, global
+  `ScrollBooster` as before). There is no CommonJS build: `require('scrollbooster')` loads the ESM build in Node
+  20.19+ and 22.12+ and in bundlers.
+- The class is a named export only, in every form of import:
+  `import { ScrollBooster } from 'scrollbooster'`, `const { ScrollBooster } = require('scrollbooster')`.
+  `import ScrollBooster from 'scrollbooster'` and `const ScrollBooster = require('scrollbooster')` do not work.
 - TypeScript types are included: `ScrollBoosterOptions`, `ScrollBoosterState` and others. Remove
   `@types/scrollbooster` or local declarations if you have them.
 - Source files are not published anymore. Deep imports like `scrollbooster/src/index.js` fail, import

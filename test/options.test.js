@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import ScrollBooster from '../src/index.ts';
+import { ScrollBooster } from '../src/index.ts';
 import {
     createFixture,
     createPointer,

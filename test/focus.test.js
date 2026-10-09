@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import ScrollBooster from '../src/index.ts';
+import { ScrollBooster } from '../src/index.ts';
 import { createFixture, mount, nextRender, tick } from './helpers.js';
 
 // Text inputs at given content coordinates, WebKit on macOS moves focus with Tab only between form fields

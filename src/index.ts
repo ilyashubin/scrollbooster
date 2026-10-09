@@ -1,7 +1,4 @@
-import { ScrollBooster } from './scroll-booster';
-
-export { ScrollBooster };
-export default ScrollBooster;
+export { ScrollBooster } from './scroll-booster';
 export type {
     Axis,
     BorderCollision,

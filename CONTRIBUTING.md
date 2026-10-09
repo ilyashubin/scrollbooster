@@ -15,8 +15,8 @@ Contributions are welcome!
    to `.changeset/` that goes to the changelog on release
 9. Commit your changes and make PR
 
-Source is TypeScript in `src/`: `index.ts` is the ESM entry, `default.ts` is the entry for CommonJS and the
-`<script>` build. Pure physics lives in `src/physics.ts` and is covered by unit tests in `test/unit/`.
+Source is TypeScript in `src/`: `index.ts` is the ESM entry, `global.ts` is the entry of the `<script>`
+build. Pure physics lives in `src/physics.ts` and is covered by unit tests in `test/unit/`.
 
 Browser tests live in `test/` and run in real browsers with Vitest browser mode. `requestAnimationFrame` is replaced with a manual
 clock (`tick()` in `test/helpers.js`), so physics advances frame by frame and trajectories are deterministic.

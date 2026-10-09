@@ -25,7 +25,7 @@ Or with `<script>` tag, the library is available as global `ScrollBooster`:
 The most simple setup with default settings:
 
 ``` js
-import ScrollBooster from 'scrollbooster';
+import { ScrollBooster } from 'scrollbooster';
 
 new ScrollBooster({
     viewport: document.querySelector('.viewport'),
@@ -33,17 +33,16 @@ new ScrollBooster({
 });
 ```
 
-Named import and CommonJS work too:
+The package is ESM only, `require()` loads it in Node 20.19+ and 22.12+:
 
 ``` js
-import { ScrollBooster } from 'scrollbooster';
-const ScrollBooster = require('scrollbooster');
+const { ScrollBooster } = require('scrollbooster');
 ```
 
 Types for options and state are exported for TypeScript:
 
 ``` ts
-import ScrollBooster, { type ScrollBoosterOptions, type ScrollBoosterState } from 'scrollbooster';
+import { ScrollBooster, type ScrollBoosterOptions, type ScrollBoosterState } from 'scrollbooster';
 ```
 
 ### Options
