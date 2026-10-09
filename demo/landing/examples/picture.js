@@ -9,7 +9,10 @@ const sb = new ScrollBooster({ viewport });
 // Start from the middle of the picture
 const center = () => {
     const { maxPosition } = sb.getState();
-    sb.setPosition({ x: maxPosition.x / 2, y: maxPosition.y / 2 });
+    sb.setPosition({
+        x: maxPosition.x / 2,
+        y: maxPosition.y / 2,
+    });
 };
 if (image.complete) {
     center();

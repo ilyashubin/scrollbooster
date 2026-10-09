@@ -14,7 +14,10 @@ const sb = new ScrollBooster({
     onUpdate: ({ position, viewport }) => {
         const current = Math.round(position.x / viewport.width);
         for (const [index, dot] of dots.entries()) {
-            dot.toggleAttribute('aria-current', index === current);
+            dot.toggleAttribute(
+                'aria-current',
+                index === current
+            );
         }
     },
 });
@@ -23,8 +26,14 @@ const sb = new ScrollBooster({
 const slide = (index) => index * sb.getState().viewport.width;
 const prev = document.querySelector('#carousel-prev');
 const next = document.querySelector('#carousel-next');
-prev.addEventListener('click', () => sb.scrollBy({ x: slide(-1) }));
-next.addEventListener('click', () => sb.scrollBy({ x: slide(1) }));
+prev.addEventListener('click', () =>
+    sb.scrollBy({ x: slide(-1) })
+);
+next.addEventListener('click', () =>
+    sb.scrollBy({ x: slide(1) })
+);
 for (const [index, dot] of dots.entries()) {
-    dot.addEventListener('click', () => sb.scrollTo({ x: slide(index) }));
+    dot.addEventListener('click', () =>
+        sb.scrollTo({ x: slide(index) })
+    );
 }

@@ -46,7 +46,7 @@
     {
       "includes": ["demo/landing/examples/**"],
       "formatter": {
-        "lineWidth": 80
+        "lineWidth": 66
       }
     }
   ],

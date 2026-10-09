@@ -13,7 +13,9 @@ const sb = new ScrollBooster({
         if (!tab || event.defaultPrevented) {
             return;
         }
-        const selected = viewport.querySelector('[aria-selected="true"]');
+        const selected = viewport.querySelector(
+            '[aria-selected="true"]'
+        );
         selected.setAttribute('aria-selected', 'false');
         tab.setAttribute('aria-selected', 'true');
         sb.scrollIntoView(tab, { align: 'center' });

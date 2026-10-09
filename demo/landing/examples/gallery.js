@@ -8,7 +8,9 @@ new ScrollBooster({
     // Vertical swipes and the wheel still scroll the page
     direction: 'horizontal',
     onUpdate: ({ position, maxPosition }) => {
-        const share = maxPosition.x ? position.x / maxPosition.x : 0;
+        const share = maxPosition.x
+            ? position.x / maxPosition.x
+            : 0;
         progress.style.scale = `${share} 1`;
     },
 });
