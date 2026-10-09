@@ -105,6 +105,20 @@ describe('scrollIntoView', () => {
         expect(sb.getState().position.x).toBe(600);
     });
 
+    it('aligns end with the left edge in a right-to-left viewport', () => {
+        const { sb, viewport, content } = mount(({ viewport }) => {
+            viewport.style.direction = 'rtl';
+            return {};
+        });
+        const item = addItem(content, 300, 0);
+
+        sb.scrollIntoView(item, { align: 'end' });
+        tick(300);
+
+        expect(offsetIn(viewport, item).left).toBe(0);
+        expect(sb.getState().position.x).toBe(400);
+    });
+
     it('does nothing while dragging', () => {
         const { sb, content, pointer } = mount();
         const item = addItem(content, 500, 600);
