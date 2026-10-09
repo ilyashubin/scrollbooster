@@ -16,7 +16,18 @@ Contributions are welcome!
 9. Commit your changes and make PR
 
 Source is TypeScript in `src/`: `index.ts` is the ESM entry, `global.ts` is the entry of the `<script>`
-build. Pure physics lives in `src/physics.ts` and is covered by unit tests in `test/unit/`.
+build. `scroll-booster.ts` holds the public class and connects the modules:
+
+- `options.ts`: defaults, validation and merging of options, `touch-action` for each direction;
+- `input.ts`: drag with Pointer Events, click threshold, pointer capture, the click after drag;
+- `wheel.ts`: wheel and trackpad, which gesture the content takes;
+- `motion.ts`: content position, drag, wheel, `scrollTo`, inertia and bounce, without DOM;
+- `physics.ts`: formulas of motion per 60 Hz frame, without DOM;
+- `loop.ts`: `requestAnimationFrame` loop that measures frame duration;
+- `dom.ts`: measuring, rendering of the built-in scroll modes and other DOM helpers.
+
+`input.ts` and `wheel.ts` do not know the class: they get current options and callbacks from it. `motion.ts` and
+`physics.ts` are covered by unit tests in `test/unit/`, they run in Node.
 
 Browser tests live in `test/` and run in real browsers with Vitest browser mode. `requestAnimationFrame` is replaced with a manual
 clock (`tick()` in `test/helpers.js`), so physics advances frame by frame and trajectories are deterministic.

@@ -38,6 +38,16 @@ describe('wheel', () => {
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 70 });
     });
 
+    it('applies each delta on one frame only', () => {
+        fakeTimers();
+        const { sb, viewport } = mount();
+
+        wheel(viewport, 0, 30);
+        tick(5);
+
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 30 });
+    });
+
     it.each([
         ['lines', WheelEvent.DOM_DELTA_LINE, { x: 16, y: 48 }],
         ['pages', WheelEvent.DOM_DELTA_PAGE, { x: 300, y: 600 }],

@@ -61,7 +61,8 @@ ScrollBooster sets CSS `touch-action` on the viewport instead of calling `preven
 | `'horizontal'`  | `pan-y pinch-zoom` | Vertical page scroll, pinch zoom    |
 | `'vertical'`    | `pan-x pinch-zoom` | Horizontal page scroll, pinch zoom  |
 
-With `pointerMode: 'mouse'` the style is not set. The previous inline value is restored by `destroy()`.
+With `pointerMode: 'mouse'` the style is not set. The previous inline value is restored by `destroy()` and by
+`updateOptions({ viewport })` on the previous viewport.
 
 - With `direction: 'all'` touching the viewport does not scroll the page anymore. In 3.x the page scrolled and
   the content barely moved. If you need the page to scroll, use `direction: 'horizontal'` or `'vertical'`.

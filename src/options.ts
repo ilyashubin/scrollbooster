@@ -1,3 +1,36 @@
+import type { Direction, ScrollBoosterOptions } from './types';
+
+export type Props = Required<ScrollBoosterOptions>;
+
+const DEFAULTS: Omit<Props, 'viewport' | 'content'> = {
+    direction: 'all',
+    pointerMode: 'all',
+    scrollMode: 'transform',
+    bounce: true,
+    bounceForce: 0.1,
+    friction: 0.05,
+    textSelection: false,
+    inputsFocus: true,
+    wheel: true,
+    reducedMotion: 'auto',
+    onPointerDown() {},
+    onPointerUp() {},
+    onPointerMove() {},
+    onClick() {},
+    onUpdate() {},
+    onWheel() {},
+    shouldScroll() {
+        return true;
+    },
+};
+
+// Native touch gestures left to the browser for each drag direction, the rest are handled as drag
+export const TOUCH_ACTION: Record<Direction, string> = {
+    horizontal: 'pan-y pinch-zoom',
+    vertical: 'pan-x pinch-zoom',
+    all: 'pinch-zoom',
+};
+
 // Option check: predicate and expected value for the error message
 type Check = [test: (value: unknown) => boolean, expected: string];
 
@@ -34,18 +67,19 @@ const CHECKS: Record<string, Check> = {
     shouldScroll: FUNCTION,
 };
 
-const fail = (message: string): never => {
+// Declared as a function: TypeScript narrows types after calls only to explicitly typed `never` functions
+function fail(message: string): never {
     throw new TypeError(`ScrollBooster: ${message}`);
-};
+}
 
 /**
- * Throw TypeError for unknown options and invalid values, before anything is applied
+ * Throw TypeError for unknown options and invalid values
  */
-export function validateOptions(options: unknown): void {
+function validateOptions(options: unknown): void {
     if (typeof options !== 'object' || options === null) {
         fail('options must be an object');
     }
-    for (const [key, value] of Object.entries(options as object)) {
+    for (const [key, value] of Object.entries(options)) {
         const check = CHECKS[key];
         if (!check) {
             fail(`unknown option "${key}"`);
@@ -58,14 +92,37 @@ export function validateOptions(options: unknown): void {
 /**
  * Throw TypeError unless content is an HTMLElement inside viewport
  */
-export function validateElements(viewport: unknown, content: unknown): asserts content is HTMLElement {
+function validateElements(viewport: unknown, content: unknown): asserts content is HTMLElement {
     if (!(viewport instanceof HTMLElement)) {
         fail('option "viewport" must be an HTMLElement');
     }
     if (!(content instanceof HTMLElement)) {
         fail('first child of viewport is not an HTMLElement, pass the "content" option');
     }
-    if (content === viewport || !(viewport as HTMLElement).contains(content as Node)) {
+    if (content === viewport || !viewport.contains(content)) {
         fail('option "content" must be an element inside "viewport"');
     }
+}
+
+/**
+ * Options with defaults. Throws TypeError for invalid options, content defaults to the first viewport child.
+ */
+export function resolveOptions(options: ScrollBoosterOptions): Props {
+    validateOptions(options);
+    const content = options.content ?? options.viewport?.firstElementChild;
+    validateElements(options.viewport, content);
+    return { ...DEFAULTS, ...options, content };
+}
+
+/**
+ * Current options with given ones. Throws TypeError before anything changes, a new viewport without
+ * explicit content gets its first child as content.
+ */
+export function mergeOptions(props: Props, options: Partial<ScrollBoosterOptions>): Props {
+    validateOptions(options);
+    const isNewViewport = options.viewport && options.viewport !== props.viewport;
+    const content = options.content ?? (isNewViewport ? options.viewport?.firstElementChild : props.content);
+    const next = { ...props, ...options };
+    validateElements(next.viewport, content);
+    return { ...next, content };
 }

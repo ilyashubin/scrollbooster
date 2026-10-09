@@ -183,6 +183,19 @@ describe('refresh rate', () => {
         const expected = 400 - (400 - before) * (1 - 0.08 * 0.95) ** 6;
         expect(sb.getState().position.x).toBeCloseTo(expected, 6);
     });
+
+    it('starts a new motion with one frame, not the idle time since the previous one', () => {
+        const { sb } = mount();
+        tick(5);
+        expect(pendingFrames()).toBe(0);
+        // Clock runs on while nothing is animated
+        tick(60);
+
+        sb.scrollTo({ x: 400 });
+        tick(1);
+
+        expect(sb.getState().position.x).toBeCloseTo(400 * 0.08 * 0.95, 6);
+    });
 });
 
 describe('settling', () => {

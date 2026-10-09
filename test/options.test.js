@@ -282,6 +282,23 @@ describe('touch-action', () => {
         expect(viewport.style.touchAction).toBe('pan-y');
         viewport.remove();
     });
+
+    it('moves to new viewport and restores initial value of the previous one', () => {
+        const { viewport } = createFixture();
+        viewport.style.touchAction = 'pan-y';
+        const next = createFixture();
+        next.viewport.style.touchAction = 'manipulation';
+        const sb = new ScrollBooster({ viewport });
+
+        sb.updateOptions({ viewport: next.viewport });
+        expect(viewport.style.touchAction).toBe('pan-y');
+        expect(next.viewport.style.touchAction).toBe('pinch-zoom');
+
+        sb.destroy();
+        expect(next.viewport.style.touchAction).toBe('manipulation');
+        viewport.remove();
+        next.viewport.remove();
+    });
 });
 
 describe('wheel listener', () => {
