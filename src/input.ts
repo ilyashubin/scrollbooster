@@ -1,4 +1,4 @@
-import { clearTextSelection, textNodeFromPoint } from './dom';
+import { clearTextSelection, isTextAtPoint } from './dom';
 import type { Props } from './options';
 import type { Direction, Point, ScrollBoosterState } from './types';
 
@@ -82,6 +82,8 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
     let activePointerId: number | null = null;
     let activePointerType = '';
     let isCaptured = false;
+    // Pointer event of the press that onPointerUp gets when the press ends without pointerup
+    let lastPointerEvent: PointerEvent | null = null;
     // The click that follows a drag past the click threshold is prevented
     let preventClick = false;
     // Pointer may leave viewport before capture, so drag events are listened on window until release
@@ -105,6 +107,7 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         press.clientOffset.y = 0;
         dragController?.abort();
         dragController = null;
+        lastPointerEvent = null;
     };
 
     // Presses that do not drag: scrollbars, other buttons, pointer types and elements excluded by options
@@ -126,8 +129,11 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         ) {
             return false;
         }
-        if (props.textSelection) {
-            if (textNodeFromPoint(target, clientX, clientY)) {
+        // A touch drag does not select text, a long touch press does. A mouse press on text selects it with
+        // textSelection, elsewhere it drops the selection like on the rest of the page: prevented selectstart
+        // keeps it in Chromium and WebKit.
+        if (!isTouch) {
+            if (props.textSelection && isTextAtPoint(target, clientX, clientY)) {
                 return false;
             }
             clearTextSelection();
@@ -163,6 +169,7 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         clientOrigin.x = event.clientX;
         clientOrigin.y = event.clientY;
         setOffsets(event);
+        lastPointerEvent = event;
         host.start();
         host.props().onPointerDown(host.getState(), event);
 
@@ -179,6 +186,7 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
             return;
         }
         setOffsets(event);
+        lastPointerEvent = event;
         if (!isOwned && isPastClickThreshold(press.offset, 'all')) {
             isOwned = true;
             if (chooseOwner(pressClaims, press.offset) !== claim) {
@@ -222,6 +230,23 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         }
     };
 
+    // A long touch press without movement selects text with textSelection: the finger then moves the selection,
+    // so the press ends. Selection that starts during a drag is prevented.
+    const onSelectStart = (event: Event) => {
+        if (!press.isActive || !lastPointerEvent) {
+            return;
+        }
+        if (!host.props().textSelection || activePointerType !== 'touch' || isPastThreshold()) {
+            event.preventDefault();
+            return;
+        }
+        host.release();
+        const state = host.getState();
+        const pointerEvent = lastPointerEvent;
+        stop();
+        host.props().onPointerUp(state, pointerEvent);
+    };
+
     // Click of the pointer that ended a drag, stopped in the capture phase: a touch drag within the tap distance of
     // the browser clicks the element under the finger, and its own handlers must not run. A touch drag past the tap
     // distance has no click, then the next click may come from keyboard or element.click() with detail 0.
@@ -239,7 +264,7 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
     const onClick = (event: MouseEvent) => host.props().onClick(host.getState(), event);
 
     viewport.addEventListener('pointerdown', onPointerDown, { signal });
-    viewport.addEventListener('selectstart', preventDuringDrag, { signal });
+    viewport.addEventListener('selectstart', onSelectStart, { signal });
     viewport.addEventListener('dragstart', preventDuringDrag, { signal });
     viewport.addEventListener('click', onClickCapture, { capture: true, signal });
     viewport.addEventListener('click', onClick, { signal });

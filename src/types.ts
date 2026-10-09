@@ -74,7 +74,10 @@ export interface ScrollBoosterOptions {
     bounceForce?: number;
     /** Scroll friction factor, per 60 Hz frame: the same motion on any refresh rate */
     friction?: number;
-    /** Enables text selection */
+    /**
+     * Text can be selected with a pointer: a mouse or pen press on text selects it instead of dragging, a long touch
+     * press selects a word and a swipe drags. When off, pointers do not select text, keyboard selection still works.
+     */
     textSelection?: boolean;
     /** Enables focus on input elements */
     inputsFocus?: boolean;

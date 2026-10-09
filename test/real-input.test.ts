@@ -126,6 +126,45 @@ describe('real mouse', () => {
         expect(onPointerUp.mock.calls[0][0].dragOffset).toEqual({ x: -200, y: 0 });
     });
 
+    it('textSelection: drag over text selects it and keeps content in place', async () => {
+        const { sb, content } = mount({ textSelection: true });
+        const row = addRow(content);
+
+        await drag(at(row, 50, 50), at(row, 250, 50));
+
+        expect(document.getSelection()?.toString()).not.toBe('');
+        expect(sb.getState().position).toEqual({ x: 0, y: 0 });
+    });
+
+    it.each([
+        [false, ''],
+        [true, 'Some'],
+    ])('textSelection %s: double click on a word selects %j', async (textSelection, word) => {
+        const { content } = mount({ textSelection });
+        const row = addRow(content);
+
+        const [x, y] = at(row, 20, 50);
+        await commands.mouse([['move', x, y], ['dblclick']], window.innerWidth);
+
+        expect(document.getSelection()?.toString().trim()).toBe(word);
+    });
+
+    it.each([false, true])(
+        'textSelection %s: press drops the selection like elsewhere on the page',
+        async (textSelection) => {
+            const { viewport } = mount({ textSelection });
+            const text = document.createElement('p');
+            text.textContent = 'Text outside of viewport';
+            document.body.prepend(text);
+            document.getSelection()?.selectAllChildren(text);
+
+            await click(at(viewport, 150, 250));
+
+            expect(document.getSelection()?.toString()).toBe('');
+            text.remove();
+        }
+    );
+
     it('press moves focus like a click outside of viewport', async () => {
         const { content } = mount();
         const row = addRow(content);

@@ -25,7 +25,10 @@ all behavior changes.
 - `scrollTo()` and `setPosition()` keep a coordinate that is not passed and stay within edges, `scrollTo()` does
   not interrupt a drag.
 - `getState().isDragging` means a drag past the click threshold, `dragOffset` resets on release, state objects are
-  copies. The click that ends a drag, mouse or touch, does not reach handlers of content elements. `updateOptions({ scrollMode })` removes the rendering of the previous mode.
+  copies. The click that ends a drag, mouse or touch, does not reach handlers of content elements.
+  `updateOptions({ scrollMode })` removes the rendering of the previous mode.
+- `textSelection` keeps presses on text for selection only for mouse and pen: touch drags from text and selects
+  it with a long press. Text with `user-select: none` drags. A mouse press that drags drops the selection.
 - `wheel` option, on by default, replaces `emulateScroll` and `preventDefaultOnEmulateScroll`: content takes a
   wheel gesture only when it can move along its main axis, otherwise the page scrolls. Content moves exactly by
   the delta, events within a frame add up, lines and pages are converted. Trackpad pinch and Ctrl+wheel zoom the

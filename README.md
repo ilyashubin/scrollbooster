@@ -53,7 +53,7 @@ content | HTMLElement | viewport child element | Scrollable content element insi
 scrollMode | String | 'transform' | Scroll technique: 'transform' moves content with CSS transform, 'native' scrolls viewport natively, 'none' leaves rendering to `onUpdate`
 direction | String | 'all' | Scroll direction. Could be 'horizontal', 'vertical' or 'all'
 bounce | Boolean | true | Enables elastic bounce effect when hitting viewport borders
-textSelection | Boolean | false | Enables text selection inside viewport
+textSelection | Boolean | false | Text inside viewport can be selected with a pointer: a mouse or pen press on text selects it instead of dragging, a long touch press selects a word and a swipe drags. When off, pointers do not select text, keyboard selection still works. Text with `user-select: none` always drags
 inputsFocus | Boolean | true | Enables focus for elements: 'input', 'textarea', 'button', 'select' and 'label'
 pointerMode | String | 'all' | Specify pointer type. Supported values - 'touch' (scroll only with touch), 'mouse' (scroll only with mouse and pen), 'all'
 friction | Number | 0.05 | Scroll friction factor - how fast scrolling stops after pointer release, per 60 Hz frame

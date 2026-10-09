@@ -134,6 +134,7 @@ export function cleanup(): void {
     });
     clock?.restore();
     clock = null;
+    document.getSelection()?.removeAllRanges();
 }
 
 const MOUSE_ID = 1;

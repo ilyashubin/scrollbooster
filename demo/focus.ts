@@ -30,8 +30,12 @@ for (const option of ['inputsFocus', 'textSelection', 'keyboard'] as const) {
 
 const article = $('#article');
 fillText($('.article', article), 10);
-new ScrollBooster({
+const articleSb = new ScrollBooster({
     viewport: article,
     direction: 'horizontal',
     onUpdate: createPanel($('#article-panel'), () => article),
 });
+const articleTextSelection = $<HTMLInputElement>('#article-text-selection');
+articleTextSelection.addEventListener('change', () =>
+    articleSb.updateOptions({ textSelection: articleTextSelection.checked })
+);

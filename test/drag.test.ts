@@ -361,36 +361,6 @@ describe('drag guards', () => {
         expect(sb.getState().isDragging).toBe(true);
     });
 
-    it('textSelection: does not drag from text node', () => {
-        const { sb, pointer, content } = mount({ textSelection: true });
-        const paragraph = document.createElement('p');
-        paragraph.style.cssText = 'margin: 0; font: 20px/20px monospace;';
-        paragraph.textContent = 'Selectable text';
-        content.prepend(paragraph);
-
-        pointer.mouseDown(5, 10, {}, paragraph);
-        pointer.mouseMove(50, 10);
-        expect(sb.getState().isDragging).toBe(false);
-        pointer.mouseUp(50, 10);
-
-        pointer.mouseDown(5, 100, {}, content);
-        pointer.mouseMove(50, 100);
-        expect(sb.getState().isDragging).toBe(true);
-    });
-
-    it('textSelection: drags from an element with text past the end of the text', () => {
-        const { sb, pointer, content } = mount({ textSelection: true });
-        const paragraph = document.createElement('p');
-        paragraph.style.cssText = 'margin: 0; font: 20px/20px monospace;';
-        paragraph.textContent = 'Short';
-        content.prepend(paragraph);
-
-        pointer.mouseDown(250, 10, {}, paragraph);
-        pointer.mouseMove(200, 10);
-
-        expect(sb.getState().isDragging).toBe(true);
-    });
-
     it('ignores pointerdown on native scrollbars', () => {
         const { sb, viewport, pointer } = mount({}, { overflow: 'scroll' });
         const scrollbarWidth = viewport.offsetWidth - viewport.clientWidth;
@@ -403,5 +373,139 @@ describe('drag guards', () => {
         pointer.mouseMove(viewport.clientWidth - 50, 10);
 
         expect(sb.getState().isDragging).toBe(false);
+    });
+});
+
+describe('text selection', () => {
+    // Paragraph with text from the top left corner of content
+    function addText(content: HTMLElement, text = 'Selectable text') {
+        const paragraph = document.createElement('p');
+        paragraph.style.cssText = 'margin: 0; font: 20px/20px monospace;';
+        paragraph.textContent = text;
+        content.prepend(paragraph);
+        return paragraph;
+    }
+
+    const selectStart = (target: Element) => {
+        const event = new Event('selectstart', { bubbles: true, cancelable: true });
+        target.dispatchEvent(event);
+        return event;
+    };
+
+    it('textSelection: mouse does not drag from text', () => {
+        const { sb, pointer, content } = mount({ textSelection: true });
+        const paragraph = addText(content);
+
+        pointer.mouseDown(5, 10, {}, paragraph);
+        pointer.mouseMove(50, 10);
+        expect(sb.getState().isDragging).toBe(false);
+        pointer.mouseUp(50, 10);
+
+        pointer.mouseDown(5, 100, {}, content);
+        pointer.mouseMove(50, 100);
+        expect(sb.getState().isDragging).toBe(true);
+    });
+
+    it('textSelection: mouse drags from an element with text past the end of the text', () => {
+        const { sb, pointer, content } = mount({ textSelection: true });
+        const paragraph = addText(content, 'Short');
+
+        pointer.mouseDown(250, 10, {}, paragraph);
+        pointer.mouseMove(200, 10);
+
+        expect(sb.getState().isDragging).toBe(true);
+    });
+
+    it.each([
+        ['the element', (paragraph: HTMLElement) => paragraph],
+        ['an ancestor', (paragraph: HTMLElement) => paragraph.parentElement as HTMLElement],
+    ])('textSelection: mouse drags from text with user-select: none on %s', (_, getElement) => {
+        const { sb, pointer, content } = mount({ textSelection: true });
+        const paragraph = addText(content);
+        getElement(paragraph).style.setProperty('user-select', 'none');
+        getElement(paragraph).style.setProperty('-webkit-user-select', 'none');
+
+        pointer.mouseDown(5, 10, {}, paragraph);
+        pointer.mouseMove(50, 10);
+
+        expect(sb.getState().isDragging).toBe(true);
+    });
+
+    it('textSelection: mouse does not drag from text with user-select: text inside user-select: none', () => {
+        const { sb, pointer, content } = mount({ textSelection: true });
+        const paragraph = addText(content);
+        content.style.setProperty('user-select', 'none');
+        content.style.setProperty('-webkit-user-select', 'none');
+        paragraph.style.setProperty('user-select', 'text');
+        paragraph.style.setProperty('-webkit-user-select', 'text');
+
+        pointer.mouseDown(5, 10, {}, paragraph);
+        pointer.mouseMove(50, 10);
+
+        expect(sb.getState().isDragging).toBe(false);
+    });
+
+    it('textSelection: touch drags from text', () => {
+        const { sb, pointer, content } = mount({ textSelection: true });
+        const paragraph = addText(content);
+
+        pointer.touchStart(5, 10, { target: paragraph });
+        pointer.touchMove(50, 10);
+
+        expect(sb.getState().isDragging).toBe(true);
+    });
+
+    it.each([false, true])('textSelection %s: mouse press that drags drops the selection', (textSelection) => {
+        const { pointer, content } = mount({ textSelection });
+        const paragraph = addText(content);
+        document.getSelection()?.selectAllChildren(paragraph);
+
+        pointer.mouseDown(5, 100);
+
+        expect(document.getSelection()?.toString()).toBe('');
+    });
+
+    it('touch press keeps the selection', () => {
+        const { pointer, content } = mount();
+        const paragraph = addText(content);
+        document.getSelection()?.selectAllChildren(paragraph);
+
+        pointer.touchStart(5, 100);
+
+        expect(document.getSelection()?.toString()).toBe('Selectable text');
+    });
+
+    it('prevents selection by a long touch press', () => {
+        const { pointer, content } = mount();
+
+        pointer.touchStart(5, 10);
+
+        expect(selectStart(content).defaultPrevented).toBe(true);
+    });
+
+    it('textSelection: selection by a long touch press ends the press', () => {
+        const onPointerUp = vi.fn();
+        const { sb, pointer, content } = mount({ textSelection: true, onPointerUp });
+
+        pointer.touchStart(100, 100);
+        pointer.touchMove(102, 100);
+        expect(selectStart(content).defaultPrevented).toBe(false);
+        pointer.touchMove(50, 100);
+        tick(10);
+
+        expect(sb.getState().isDragging).toBe(false);
+        expect(position(sb)).toEqual({ x: 0, y: 0 });
+        expect(onPointerUp).toHaveBeenCalledTimes(1);
+        expect(onPointerUp.mock.calls[0][1].type).toBe('pointermove');
+    });
+
+    it('textSelection: prevents selection during a touch drag', () => {
+        const { sb, pointer, content } = mount({ textSelection: true });
+
+        pointer.touchStart(100, 100);
+        pointer.touchMove(50, 100);
+
+        expect(selectStart(content).defaultPrevented).toBe(true);
+        expect(sb.getState().isDragging).toBe(true);
     });
 });

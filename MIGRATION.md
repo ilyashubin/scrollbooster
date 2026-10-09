@@ -49,14 +49,20 @@ Mouse and touch listeners are replaced with Pointer Events.
   next touch starts a new drag, `onPointerUp` is not called for the lost one.
 - The click that ends a drag is prevented and stopped on the viewport before it reaches elements inside the content,
   so their `click` handlers do not run after a drag. After a mouse drag the click goes to the viewport itself, after a
-  short touch drag the browser clicks the element under the finger, both are stopped. A click without movement reaches them as usual. Only the click of the pointer
-  that ended the drag is prevented: a touch drag longer than the browser tap distance has no click, and keyboard
+  short touch drag the browser clicks the element under the finger, both are stopped. A click without movement
+  reaches them as usual. Only the click of the pointer that ended the drag is prevented: a touch drag longer than the browser tap distance has no click, and keyboard
   activation or `element.click()` after it is not prevented. In `onClick` use `event.defaultPrevented` to tell a
   click after drag from a plain click.
 - `pointerDownPreventDefault` is removed, passing it throws. `mousedown` is not prevented anymore, so a press inside
   the viewport moves focus like a click anywhere else: an input outside loses focus, a focusable element inside gets
   it. Text selection and native drag of images and links are prevented with `selectstart` and `dragstart` while
   the pointer drags. Focus by the press that drags content does not scroll it in `'transform'` mode.
+- A mouse or pen press that drags drops the text selection, like a click anywhere else on the page. A touch press
+  keeps it.
+- `textSelection: true` keeps the press on text for selection only for mouse and pen. Touch drags from text like from
+  any other place, and a long touch press without movement selects a word and ends the press, so the finger then
+  moves the selection. In 3.x a swipe that started on text was left to the browser. Text with `user-select: none` on
+  the element or an ancestor drags. With `textSelection: false` a long touch press does not select text either.
 
 ### Native touch gestures
 

@@ -9,7 +9,27 @@ const getFullWidth = (elem: HTMLElement): number => Math.max(elem.offsetWidth, e
 
 const getFullHeight = (elem: HTMLElement): number => Math.max(elem.offsetHeight, elem.scrollHeight);
 
-export const textNodeFromPoint = (element: Element, x: number, y: number): Node | null => {
+// Selection is disabled by user-select: none of the element or an ancestor, other values than auto enable it.
+// Firefox and WebKit compute auto for descendants of user-select: none, so ancestors are checked too.
+const isSelectable = (element: Element): boolean => {
+    for (let node: Element | null = element; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        // WebKit supports only the prefixed property
+        const value = style.userSelect || style.webkitUserSelect;
+        if (value === 'none') {
+            return false;
+        }
+        if (value && value !== 'auto') {
+            return true;
+        }
+    }
+    return true;
+};
+
+/**
+ * Check if the point is over selectable text of the element itself, not of its descendants
+ */
+export const isTextAtPoint = (element: Element, x: number, y: number): boolean => {
     const range = document.createRange();
     for (const node of element.childNodes) {
         if (node.nodeType !== Node.TEXT_NODE) {
@@ -18,10 +38,10 @@ export const textNodeFromPoint = (element: Element, x: number, y: number): Node 
         range.selectNodeContents(node);
         const rect = range.getBoundingClientRect();
         if (x >= rect.left && y >= rect.top && x <= rect.right && y <= rect.bottom) {
-            return node;
+            return isSelectable(element);
         }
     }
-    return null;
+    return false;
 };
 
 export const clearTextSelection = (): void => {

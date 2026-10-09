@@ -30,6 +30,15 @@ async function swipe(from: Coords, to: Coords, steps = 10) {
 // Wait for asynchronous page scroll that follows the gesture
 const settle = () => new Promise((resolve) => setTimeout(resolve, 300));
 
+// Paragraph with text from the top left corner of content
+function addText(content: HTMLElement) {
+    const paragraph = document.createElement('p');
+    paragraph.style.cssText = 'margin: 0; font: 20px/20px monospace;';
+    paragraph.textContent = 'Some words to select';
+    content.prepend(paragraph);
+    return paragraph;
+}
+
 describe.runIf(server.browser === 'chromium')('real touch', () => {
     // Page taller than the window, so a swipe that the content does not take scrolls the page
     let spacer: HTMLElement;
@@ -187,6 +196,29 @@ describe.runIf(server.browser === 'chromium')('real touch', () => {
         expect(onContentClick).not.toHaveBeenCalled();
         expect(onClick).toHaveBeenCalledTimes(1);
         expect(onClick.mock.calls[0][1].target).toBe(content);
+    });
+
+    it('textSelection: swipe from text drags content', async () => {
+        const { sb, content } = mount({ textSelection: true });
+        const paragraph = addText(content);
+
+        // Text is 240px wide, the swipe starts on it
+        await swipe(at(paragraph, 200, 10), at(paragraph, 20, 10));
+
+        expect(roundedPosition(sb).x).toBeGreaterThan(0);
+        expect(document.getSelection()?.toString()).toBe('');
+    });
+
+    it.each([
+        [false, ''],
+        [true, 'Some'],
+    ])('textSelection %s: long press on a word selects %j', async (textSelection, word) => {
+        const { content } = mount({ textSelection });
+        const paragraph = addText(content);
+
+        await commands.touch([['longPress', ...at(paragraph, 20, 10)]], window.innerWidth);
+
+        expect(document.getSelection()?.toString().trim()).toBe(word);
     });
 
     it('keyboard activates a link after swipe', async () => {
