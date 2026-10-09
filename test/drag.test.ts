@@ -188,6 +188,17 @@ describe('mouse drag', () => {
         expect(pointer.click(150, 200).defaultPrevented).toBe(true);
     });
 
+    it('ignores pointerdown without the main button pressed', () => {
+        const onPointerDown = vi.fn();
+        const { sb, pointer } = mount({ onPointerDown });
+
+        pointer.mouseDown(200, 200, { buttons: 0 });
+        pointer.mouseMove(100, 200);
+
+        expect(onPointerDown).not.toHaveBeenCalled();
+        expect(sb.getState().isDragging).toBe(false);
+    });
+
     it('does not call onPointerUp for release without drag', () => {
         const onPointerUp = vi.fn();
         const { pointer } = mount({ onPointerUp });
@@ -283,6 +294,39 @@ describe('touch drag', () => {
 
         pointer.touchEnd(100, 200, next);
         expect(onPointerUp).toHaveBeenCalledTimes(1);
+    });
+
+    it('a touch replaces a mouse press whose release was lost', () => {
+        const { sb, pointer } = mount();
+
+        pointer.mouseDown(200, 200);
+        // pointerup of the mouse never arrives
+        pointer.touchDrag([200, 200], [100, 200], { release: false });
+        tick(100);
+
+        expect(position(sb)).toEqual({ x: 100, y: 0 });
+    });
+
+    // Sequence from Safari on iOS 18.7: the long press opens the link preview
+    it('keeps dragging after a long press on a link', () => {
+        const onPointerDown = vi.fn();
+        const { sb, pointer, content } = mount({ onPointerDown });
+        const link = document.createElement('a');
+        link.href = '#preview';
+        link.textContent = 'Link with preview';
+        content.prepend(link);
+
+        pointer.touchStart(10, 10, { target: link });
+        pointer.touchCancel(10, 10);
+        pointer.mouseDown(10, 10, { buttons: 0 }, link);
+        const dragstart = new Event('dragstart', { bubbles: true, cancelable: true });
+        link.dispatchEvent(dragstart);
+        expect(dragstart.defaultPrevented).toBe(false);
+        expect(onPointerDown).toHaveBeenCalledTimes(1);
+
+        pointer.touchDrag([200, 200], [100, 200], { release: false });
+        tick(100);
+        expect(position(sb)).toEqual({ x: 100, y: 0 });
     });
 
     it('drags with a finger that is not primary on the page', () => {

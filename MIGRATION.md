@@ -49,8 +49,10 @@ Mouse and touch listeners are replaced with Pointer Events.
 - Nested instances share a gesture: past the click threshold it goes to the innermost instance that can move along
   its main axis, the others get `onPointerUp` with that `pointermove` event. In 3.x one drag moved all of them.
 - One pointer drags at a time: a second finger on the same viewport is ignored and lifting it does not end the drag.
-  If the browser never delivers `pointerup` of the dragging finger (the element was removed, capture was lost), the
-  next touch starts a new drag, `onPointerUp` is not called for the lost one.
+  If the browser never delivers `pointerup` of the dragging pointer (the element was removed, capture was lost), the
+  next primary pointer of any type starts a new drag, `onPointerUp` is not called for the lost one.
+- A `pointerdown` without the main button pressed does not drag. Safari on iOS sends such a mouse `pointerdown`
+  after a long press on a link and never releases it.
 - The click that ends a drag is prevented and stopped on the viewport before it reaches elements inside the content,
   so their `click` handlers do not run after a drag. After a mouse drag the click goes to the viewport itself, after a
   short touch drag the browser clicks the element under the finger, both are stopped. A click without movement

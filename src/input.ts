@@ -120,8 +120,10 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
             clientX - rect.left >= viewport.clientLeft + viewport.clientWidth ||
             clientY - rect.top >= viewport.clientTop + viewport.clientHeight ||
             !props.shouldDrag(host.getState(), event) ||
-            // Touch and pen contact report the main button too
+            // Touch and pen contact report the main button too. Safari on iOS follows a long press on a link with
+            // a mouse pointerdown without pressed buttons and never releases it.
             event.button !== 0 ||
+            !(event.buttons & 1) ||
             (props.pointerMode === 'mouse' && isTouch) ||
             (props.pointerMode === 'touch' && !isTouch) ||
             !(target instanceof Element) ||
@@ -144,9 +146,10 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
     const onPointerDown = (event: PointerEvent) => {
         // One pointer drags at a time, other fingers on viewport are ignored until it is released
         if (activePointerId !== null && event.pointerId !== activePointerId) {
-            // Browser makes a pointer primary when no other pointer of its type is active:
-            // pointerup of the dragging one was lost (element removed, capture lost)
-            if (!event.isPrimary || event.pointerType !== activePointerType) {
+            // Browser makes a pointer primary when no other pointer of its type is active, and a pointer of another
+            // type means another input device: release of the dragging pointer was lost (element removed, capture
+            // lost, a press that the browser never releases)
+            if (!event.isPrimary) {
                 return;
             }
             stop();

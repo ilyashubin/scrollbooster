@@ -194,6 +194,9 @@ export function createPointer(viewport: HTMLElement) {
             pointerType: 'touch',
             pointerId: id,
             isPrimary,
+            // Contact reports the main button
+            button: type === 'pointermove' ? -1 : 0,
+            buttons: type === 'pointerdown' || type === 'pointermove' ? 1 : 0,
             width: 20,
             height: 20,
         });
