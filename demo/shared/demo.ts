@@ -268,6 +268,8 @@ const PANEL_FIELDS = [
     'touch-action',
     'refresh rate',
     'onUpdate/s',
+    'pointermove/s',
+    'frames without move',
 ] as const;
 
 type PanelField = (typeof PANEL_FIELDS)[number];
@@ -302,12 +304,39 @@ export function createPanel(host: HTMLElement, getViewport: () => HTMLElement): 
         }
     };
 
+    // Pressed pointer moves over the viewport, and animation frames during a drag that got none: input sampled
+    // slower than frames or out of phase with them makes content move unevenly
+    let moves = 0;
+    let movesSinceFrame = 0;
+    let lastMoveTime = 0;
+    let dragFrames = 0;
+    let emptyFrames = 0;
+    window.addEventListener(
+        'pointermove',
+        (event) => {
+            if (event.buttons & 1 && event.target instanceof Node && getViewport().contains(event.target)) {
+                moves++;
+                movesSinceFrame++;
+                lastMoveTime = performance.now();
+            }
+        },
+        { capture: true, passive: true }
+    );
+
     // Median frame interval of the last second: the display refresh rate, or less when frames are dropped
     const intervals: number[] = [];
     let lastFrame = 0;
     let lastReport = 0;
     let updates = 0;
     const measure = (time: number) => {
+        // A pause in moves longer than 100 ms is not a drag anymore
+        if (performance.now() - lastMoveTime < 100) {
+            dragFrames++;
+            if (movesSinceFrame === 0) {
+                emptyFrames++;
+            }
+        }
+        movesSinceFrame = 0;
         if (lastFrame) {
             intervals.push(time - lastFrame);
             if (intervals.length > 60) {
@@ -321,7 +350,14 @@ export function createPanel(host: HTMLElement, getViewport: () => HTMLElement): 
             set('refresh rate', median ? `${Math.round(1000 / median)} Hz` : '–');
             set('onUpdate/s', lastReport ? String(Math.round((updates * 1000) / (time - lastReport))) : '–');
             set('touch-action', getComputedStyle(getViewport()).touchAction);
+            if (dragFrames > 0) {
+                set('pointermove/s', String(Math.round((moves * 1000) / (time - lastReport))));
+                set('frames without move', `${Math.round((emptyFrames * 100) / dragFrames)}% of ${dragFrames}`);
+            }
             updates = 0;
+            moves = 0;
+            dragFrames = 0;
+            emptyFrames = 0;
             lastReport = time;
         }
         requestAnimationFrame(measure);
