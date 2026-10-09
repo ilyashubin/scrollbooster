@@ -47,7 +47,8 @@ const ELEMENT: Check = [(value) => value instanceof HTMLElement, 'an HTMLElement
 // Factors per 60 Hz frame: 0 makes motion endless or still, 1 stops it at once or freezes drag
 const FACTOR: Check = [(value) => typeof value === 'number' && value > 0 && value < 1, 'a number between 0 and 1'];
 
-const CHECKS: Record<string, Check> = {
+// Keyed by Props, so an option without a check does not compile
+const CHECKS: Record<keyof Props, Check> = {
     viewport: ELEMENT,
     content: ELEMENT,
     direction: oneOf('all', 'horizontal', 'vertical'),
@@ -70,6 +71,8 @@ const CHECKS: Record<string, Check> = {
     snap: FUNCTION,
     shouldDrag: FUNCTION,
 };
+// Lookup by the name of any passed option, unknown ones have no check
+const CHECK_BY_NAME: Partial<Record<string, Check>> = CHECKS;
 
 // Declared as a function: TypeScript narrows types after calls only to explicitly typed `never` functions
 function fail(message: string): never {
@@ -84,7 +87,7 @@ function validateOptions(options: unknown): void {
         fail('options must be an object');
     }
     for (const [key, value] of Object.entries(options)) {
-        const check = CHECKS[key];
+        const check = CHECK_BY_NAME[key];
         if (!check) {
             fail(`unknown option "${key}"`);
         } else if (!check[0](value)) {
