@@ -169,6 +169,11 @@ nothing was rendered without `scrollMode`. If you render the scroll yourself in 
 frame after `new ScrollBooster()`, so `onUpdate` can use the instance variable. The frame is always before the
 first paint, nothing flickers. Read `getState()` if you need the state right away.
 
+In `'native'` mode a scroll by the browser while content is at rest (touch with `pointerMode: 'mouse'`, scrollbar,
+keyboard, anchor link) is reported with `onUpdate` from the `scroll` event, which the browser also sends once per
+frame. 3.x did not call `onUpdate` for it. The last `onUpdate` of a motion has `isMoving: false`, use it to run code
+when scrolling ends.
+
 ## Options
 
 The constructor and `updateOptions()` throw `TypeError` for invalid options, before anything is applied:

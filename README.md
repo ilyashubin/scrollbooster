@@ -129,6 +129,97 @@ sb.updateOptions({ wheel: false });
 sb.destroy();
 ```
 
+### Choosing `scrollMode`
+
+- `'transform'` (default) moves content with CSS transform. Only it bounces beyond the edges. The viewport usually has
+  `overflow: hidden`, so the browser itself cannot scroll it: `position: sticky` inside content, smooth
+  `element.scrollIntoView()` and other libraries that listen to `scroll` of the viewport do not work, use
+  `sb.scrollIntoView()` instead.
+- `'native'` sets `scrollLeft` and `scrollTop` of the viewport. Content does not bounce, everything the browser does
+  with a scroller works, and with `overflow: auto` touch, wheel and keyboard keep native scrolling.
+- `'none'` renders nothing, draw the position yourself in `onUpdate`.
+
+### Recipes
+
+Gallery with links: clicks on links work, the click that ends a drag is prevented, nothing to set up.
+
+``` js
+new ScrollBooster({ viewport, direction: 'horizontal' });
+```
+
+Carousel that stops on a slide, with buttons:
+
+``` js
+const slide = 300;
+const sb = new ScrollBooster({
+  viewport,
+  direction: 'horizontal',
+  snap: (rest) => ({ x: Math.round(rest.x / slide) * slide }),
+});
+next.addEventListener('click', () => sb.scrollBy({ x: slide }));
+prev.addEventListener('click', () => sb.scrollBy({ x: -slide }));
+```
+
+Show the active tab: `sb.scrollIntoView(activeTab, { align: 'center' })`.
+
+Drag with the mouse on desktop, native scroll on touch screens. Touch needs a viewport the browser can scroll:
+
+``` js
+// .viewport { overflow: auto; }
+new ScrollBooster({ viewport, pointerMode: 'mouse', scrollMode: 'native' });
+```
+
+With `pointerMode: 'mouse'` in `'transform'` mode touch does not scroll content at all.
+
+Drag the whole page with the mouse:
+
+``` js
+new ScrollBooster({
+  viewport: document.documentElement,
+  content: document.body,
+  scrollMode: 'native',
+  direction: 'vertical',
+  pointerMode: 'mouse',
+});
+```
+
+Run code when the motion ends: the last `onUpdate` of a motion has `isMoving: false`.
+
+``` js
+let wasMoving = false;
+new ScrollBooster({
+  viewport,
+  onUpdate: (state) => {
+    if (wasMoving && !state.isMoving) {
+      loadMoreIfNeeded(state.position, state.maxPosition);
+    }
+    wasMoving = state.isMoving;
+  },
+});
+```
+
+React: create the instance in an effect and destroy it in the cleanup, pass changed props with `updateOptions()`.
+
+``` jsx
+function Gallery({ children, direction }) {
+  const viewport = useRef(null);
+  const sb = useRef(null);
+  useEffect(() => {
+    sb.current = new ScrollBooster({ viewport: viewport.current, direction });
+    return () => sb.current.destroy();
+  }, []);
+  useEffect(() => sb.current.updateOptions({ direction }), [direction]);
+  return (
+    <div ref={viewport} style={{ overflow: 'hidden' }}>
+      <div style={{ display: 'flex', width: 'max-content' }}>{children}</div>
+    </div>
+  );
+}
+```
+
+Component tests in jsdom work: without `ResizeObserver` sizes are read on `updateMetrics()`. Jest with CommonJS
+modules needs the ESM package transformed: `transformIgnorePatterns: ['/node_modules/(?!scrollbooster)']`.
+
 ### [Live ScrollBooster Examples On CodeSandbox](https://codesandbox.io/s/scrollbooster-examples-3g00p)
 
 ### Accessibility
