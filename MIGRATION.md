@@ -91,6 +91,7 @@ trackpad scroll the content like a native scroll container. Passing the old opti
   jump or navigate back when the content reaches its edge in the middle of a swipe.
 - A scroller nested in the content takes the event first, the outer one moves only when the inner one cannot.
 - Wheel is ignored while the pointer drags content.
+- Wheel with `ctrlKey` (trackpad pinch, Ctrl+wheel) is left to the browser to zoom the page.
 - `onWheel` is called only for events that scroll the content.
 - Content moves exactly by the wheel delta. 3.x moved it by 95% of the delta, took only the last event of a frame,
   and treated deltas in lines and pages as pixels (Firefox mouse wheels report lines, so content moved by 3 px per

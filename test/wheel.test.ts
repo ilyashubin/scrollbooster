@@ -143,6 +143,20 @@ describe('wheel goes to the page', () => {
         expect(wheel(viewport, 0, 100).defaultPrevented).toBe(false);
     });
 
+    // Trackpad pinch comes as wheel with ctrlKey, Ctrl+wheel zooms the page
+    it('with ctrlKey for zoom', () => {
+        const onWheel = vi.fn();
+        const { sb, viewport } = mount({ onWheel });
+
+        const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 10, ctrlKey: true });
+        viewport.dispatchEvent(event);
+        tick();
+
+        expect(event.defaultPrevented).toBe(false);
+        expect(onWheel).not.toHaveBeenCalled();
+        expect(sb.getState().position).toEqual({ x: 0, y: 0 });
+    });
+
     it('not until the gesture that reached the edge ends', () => {
         fakeTimers();
         const { sb, viewport } = mount();

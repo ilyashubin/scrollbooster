@@ -38,8 +38,9 @@ export function bindWheel(viewport: HTMLElement, signal: AbortSignal, host: Whee
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const onWheel = (event: WheelEvent) => {
-        // A scroller nested in the content has taken this event, or drag holds the content
-        if (event.defaultPrevented || host.isDragging()) {
+        // A scroller nested in the content has taken this event, drag holds the content,
+        // or it is a trackpad pinch or Ctrl+wheel that zooms the page
+        if (event.defaultPrevented || event.ctrlKey || host.isDragging()) {
             return;
         }
         const { deltaMode } = event;
