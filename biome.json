@@ -42,6 +42,12 @@
           }
         }
       }
+    },
+    {
+      "includes": ["demo/landing/examples/**"],
+      "formatter": {
+        "lineWidth": 66
+      }
     }
   ],
   "assist": {

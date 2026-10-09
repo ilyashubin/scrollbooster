@@ -70,6 +70,12 @@ header nav a {
     text-decoration: none;
 }
 
+header nav a.home {
+    margin-right: 8px;
+    color: var(--text);
+    font-weight: 700;
+}
+
 header nav a[aria-current="page"] {
     color: var(--text);
     font-weight: 600;

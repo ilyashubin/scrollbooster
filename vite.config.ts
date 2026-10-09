@@ -31,13 +31,26 @@ function eventLog(): Plugin {
     };
 }
 
+/**
+ * `sideEffects: false` of the package is meant for its users, the build would drop demo modules imported only for
+ * what they do when they run: the content and the example scripts of the landing
+ */
+function demoSideEffects(): Plugin {
+    return {
+        name: 'demo-side-effects',
+        transform(code, id) {
+            return id.includes('/demo/') ? { code, moduleSideEffects: true } : null;
+        },
+    };
+}
+
 // Demo pages import `src/` directly: no library build while developing
 export default defineConfig({
     root: 'demo',
     // Relative asset paths, so the built demo works from any directory of a static host
     base: './',
     server: { host: true, open: true },
-    plugins: [eventLog()],
+    plugins: [eventLog(), demoSideEffects()],
     // Dependency scan of the dev server would resolve build input from `root`, its own globs are relative to `root`
     optimizeDeps: { entries: ['*.html'] },
     build: {
@@ -45,7 +58,7 @@ export default defineConfig({
         emptyOutDir: true,
         rolldownOptions: {
             // Resolved from the working directory
-            input: PAGES.map((page) => `demo/${page.file}`),
+            input: ['demo/index.html', ...PAGES.map((page) => `demo/${page.file}`)],
         },
     },
 });

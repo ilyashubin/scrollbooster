@@ -5,6 +5,8 @@ dragging, trackpad or mouse wheel, with inertia and elastic bounce. Zero depende
 
 Easy to setup yet flexible enough to support any custom scrolling logic.
 
+**[Live examples](https://ilyashubin.github.io/scrollbooster/)** with their code.
+
 Upgrading from 3.x? See [MIGRATION.md](MIGRATION.md).
 
 ### Installation

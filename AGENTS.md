@@ -65,6 +65,13 @@ it first, this file adds only what is easy to get wrong.
 - Content in `'transform'` mode moves with the `translate` property and `will-change: translate`. Without its own
   layer Chromium repaints the content every frame.
 
+## Demo and landing
+
+`demo/index.html` is the public landing page. Its code samples are the sources of `demo/landing/examples/*.js`:
+a change of an option name or behavior must keep them working and correct, check the page with `pnpm dev`. The
+package has `sideEffects: false`, so `vite.config.ts` marks demo modules as having side effects, otherwise the build
+drops modules that are imported only to run.
+
 ## Trying changes on devices
 
 `pnpm dev` serves the demo on the local network. Add `?events` to a page address to log raw input events on a phone,
