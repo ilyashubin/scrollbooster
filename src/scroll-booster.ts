@@ -7,6 +7,7 @@ import {
     mirrorX,
     prefersReducedMotion,
     render,
+    setNativeScroll,
 } from './dom';
 import { bindDrag, isPastClickThreshold, type Press } from './input';
 import { getKeyScroll } from './keyboard';
@@ -54,8 +55,7 @@ export class ScrollBooster {
         const { viewport, scrollMode } = this.#props;
         this.#motion = new ContentMotion(getScrollPosition(viewport));
         if (scrollMode === 'transform') {
-            viewport.scrollLeft = 0;
-            viewport.scrollTop = 0;
+            setNativeScroll(viewport, 0, 0);
         }
         this.updateMetrics();
         this.#bindEvents();
@@ -271,8 +271,7 @@ export class ScrollBooster {
             content.style.transform = '';
         }
         if (scrollMode === 'transform') {
-            viewport.scrollLeft = 0;
-            viewport.scrollTop = 0;
+            setNativeScroll(viewport, 0, 0);
         }
         this.#applyWillChange();
         this.#renderPosition();
@@ -433,8 +432,7 @@ export class ScrollBooster {
         // Reset native scroll and shift transform by the same offset.
         if (scrollMode === 'transform') {
             if (scrollLeft || scrollTop) {
-                viewport.scrollLeft = 0;
-                viewport.scrollTop = 0;
+                setNativeScroll(viewport, 0, 0);
                 this.#jumpBy({ x: scrollLeft, y: scrollTop });
             }
             return;

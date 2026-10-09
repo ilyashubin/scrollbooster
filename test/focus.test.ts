@@ -148,4 +148,16 @@ describe('native scroll in transform mode', () => {
         sb.destroy();
         viewport.remove();
     });
+
+    it('is reset at once with scroll-behavior: smooth', async () => {
+        const { sb, viewport, content } = mount({ scrollMode: 'transform' });
+        viewport.style.scrollBehavior = 'smooth';
+
+        viewport.scrollTo({ left: 200, behavior: 'instant' });
+        await nextRender();
+
+        expect(viewport.scrollLeft).toBe(0);
+        expect(sb.getState().position.x).toBe(200);
+        expect(translation(content)).toEqual({ x: -200, y: 0 });
+    });
 });

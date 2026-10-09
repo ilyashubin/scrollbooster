@@ -182,6 +182,9 @@ In `'transform'` mode content gets inline `will-change: transform`, its own comp
 every frame otherwise repaints the content on each frame. `destroy()`, another `scrollMode` and new `content`
 restore the inline value the instance found.
 
+`'native'` mode scrolls the viewport instantly, also with CSS `scroll-behavior: smooth` on it or on the root
+element. In 3.x the browser animated every assignment of `scrollLeft` and the drag lagged behind the pointer.
+
 ## `onUpdate` timing
 
 `onUpdate` is called only on animation frames, right before the browser paints. The constructor,

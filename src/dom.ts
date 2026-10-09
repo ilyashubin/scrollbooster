@@ -112,6 +112,17 @@ export const isRightToLeft = (viewport: HTMLElement): boolean => getComputedStyl
 export const mirrorX = (point: Point, isRtl: boolean): Point => (isRtl ? { x: -point.x || 0, y: point.y } : point);
 
 /**
+ * Set native scroll of the viewport at once. Assigned `scrollLeft` and `scrollTop` follow CSS
+ * `scroll-behavior: smooth` and would animate every frame of a drag.
+ */
+export function setNativeScroll(viewport: HTMLElement, left: number, top: number): void {
+    // Also skips the call in jsdom, it has no scrollTo() on elements
+    if (viewport.scrollLeft !== left || viewport.scrollTop !== top) {
+        viewport.scrollTo({ left, top, behavior: 'instant' });
+    }
+}
+
+/**
  * Render scroll offset with the built-in scroll mode, `x` grows to the right
  */
 export function render(viewport: HTMLElement, content: HTMLElement, scrollMode: ScrollMode, scroll: Point): void {
@@ -119,7 +130,6 @@ export function render(viewport: HTMLElement, content: HTMLElement, scrollMode: 
         content.style.transform = `translate(${-scroll.x}px, ${-scroll.y}px)`;
     }
     if (scrollMode === 'native') {
-        viewport.scrollTop = scroll.y;
-        viewport.scrollLeft = scroll.x;
+        setNativeScroll(viewport, scroll.x, scroll.y);
     }
 }

@@ -23,6 +23,18 @@ describe('setPosition', () => {
         expect(viewport.scrollTop).toBe(50);
     });
 
+    // An assigned scrollLeft would start a smooth scroll and stay behind the position on every frame of a drag
+    it('sets native scroll at once with scroll-behavior: smooth', () => {
+        const { sb, viewport } = mount({ scrollMode: 'native' });
+        viewport.style.scrollBehavior = 'smooth';
+
+        sb.setPosition({ x: 100, y: 50 });
+        tick();
+
+        expect(viewport.scrollLeft).toBe(100);
+        expect(viewport.scrollTop).toBe(50);
+    });
+
     // Former test/scroll.test.js: scrolling via custom onUpdate handler
     it('passes position to onUpdate for custom rendering', () => {
         const { sb, viewport } = mount(({ viewport }) => ({
