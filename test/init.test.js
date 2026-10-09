@@ -6,25 +6,33 @@ describe('init', () => {
     it('reads viewport and content metrics', () => {
         const { sb } = mount({}, { width: 300, height: 200, contentWidth: 1000, contentHeight: 800 });
 
-        expect(sb.viewport).toEqual({ width: 300, height: 200 });
-        expect(sb.content).toEqual({ width: 1000, height: 800 });
-        expect(sb.edgeX).toEqual({ from: -700, to: 0 });
-        expect(sb.edgeY).toEqual({ from: -600, to: 0 });
+        expect(sb.getState()).toMatchObject({
+            viewport: { width: 300, height: 200 },
+            content: { width: 1000, height: 800 },
+            maxPosition: { x: 700, y: 600 },
+        });
     });
 
     it('uses first viewport child as content by default', () => {
         const { sb, content } = mount();
 
-        expect(sb.props.content).toBe(content);
+        sb.setPosition({ x: 10 });
+        tick();
+
+        expect(getComputedStyle(content).transform).toBe('matrix(1, 0, 0, 1, -10, 0)');
     });
 
     it('accepts explicit content element', () => {
         const { viewport } = createFixture();
         const inner = document.createElement('div');
         viewport.firstElementChild.append(inner);
+        inner.style.cssText = 'width: 2000px; height: 100px;';
         const sb = new ScrollBooster({ viewport, content: inner });
+        sb.setPosition({ x: 10 });
+        tick();
 
-        expect(sb.props.content).toBe(inner);
+        expect(getComputedStyle(inner).transform).toBe('matrix(1, 0, 0, 1, -10, 0)');
+        expect(sb.getState().content).toEqual({ width: 2000, height: 100 });
         sb.destroy();
         viewport.remove();
     });
@@ -32,24 +40,7 @@ describe('init', () => {
     it('has zero edges when content is smaller than viewport', () => {
         const { sb } = mount({}, { contentWidth: 100, contentHeight: 100 });
 
-        expect(sb.edgeX).toEqual({ from: 0, to: 0 });
-        expect(sb.edgeY).toEqual({ from: 0, to: 0 });
-    });
-
-    it('applies default options', () => {
-        const { sb } = mount();
-
-        expect(sb.props).toMatchObject({
-            direction: 'all',
-            pointerMode: 'all',
-            scrollMode: 'transform',
-            bounce: true,
-            bounceForce: 0.1,
-            friction: 0.05,
-            textSelection: false,
-            inputsFocus: true,
-            wheel: true,
-        });
+        expect(sb.getState().maxPosition).toEqual({ x: 0, y: 0 });
     });
 
     it.each([
@@ -60,11 +51,11 @@ describe('init', () => {
         expect(() => new ScrollBooster(options)).toThrow(new TypeError(`ScrollBooster: ${message}`));
     });
 
-    it('throws TypeError when viewport has no child element', () => {
+    it('throws TypeError when viewport has no child HTMLElement', () => {
         const viewport = document.createElement('div');
         document.body.append(viewport);
 
-        expect(() => new ScrollBooster({ viewport })).toThrow('viewport has no child element');
+        expect(() => new ScrollBooster({ viewport })).toThrow('first child of viewport is not an HTMLElement');
         viewport.remove();
     });
 
@@ -104,6 +95,9 @@ describe('init', () => {
             dragOffset: { x: 0, y: 0 },
             dragAngle: 0,
             borderCollision: { left: true, right: false, top: true, bottom: false },
+            viewport: { width: 300, height: 300 },
+            content: { width: 1000, height: 1000 },
+            maxPosition: { x: 700, y: 700 },
         });
     });
 

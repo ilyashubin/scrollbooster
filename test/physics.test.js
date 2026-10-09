@@ -247,7 +247,6 @@ describe('settling', () => {
         interrupt(mounted);
         tick(300);
 
-        expect(mounted.sb.isTargetScroll).toBe(false);
         expect(mounted.sb.getState().position.x).toBeLessThan(300);
     });
 });

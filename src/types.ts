@@ -37,6 +37,12 @@ export interface ScrollBoosterState {
     dragOffset: Point;
     dragAngle: number;
     borderCollision: BorderCollision;
+    /** Client size of viewport, without borders and scrollbars */
+    viewport: Size;
+    /** Size of content, including its overflow */
+    content: Size;
+    /** Largest `position` on each axis, 0 when content fits viewport */
+    maxPosition: Point;
 }
 
 export interface ScrollBoosterOptions {

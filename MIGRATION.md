@@ -98,6 +98,23 @@ only options that used it.
 
 ## Methods and state
 
+- The public API is the constructor, `updateOptions()`, `updateMetrics()`, `scrollTo()`, `setPosition()`,
+  `getState()` and `destroy()`. Everything else is private in TypeScript types and may change in any release:
+  fields like `props`, `position`, `isDragging`, `viewport`, `content`, `edgeX`, `edgeY`, and methods like
+  `isMoving()`, `getDragAngle()`, `getDragDirection()`, `startAnimationLoop()`, `animate()`,
+  `updateScrollPosition()`, `setContentPosition()`, `handleEvents()`. The `apply*Force` methods are gone. Read
+  `getState()` instead:
+
+  | 3.x                                     | 4.0                                  |
+  | --------------------------------------- | ------------------------------------ |
+  | `sb.isMoving()`                         | `sb.getState().isMoving`             |
+  | `sb.viewport`, `sb.content` (sizes)     | `sb.getState().viewport`, `.content` |
+  | `sb.edgeX.from`, `sb.edgeY.from`        | `-sb.getState().maxPosition.x`, `.y` |
+  | `sb.position` (negative offsets)        | `sb.getState().position`             |
+  | `sb.props.viewport`, `sb.props.content` | keep your own references             |
+
+- `getState()` and `onUpdate` have new fields: `viewport` and `content` sizes and `maxPosition`, the largest
+  `position` on each axis.
 - `scrollTo()` and `setPosition()` keep a coordinate that is not passed: `scrollTo({ x: 100 })` scrolls
   horizontally and leaves the vertical position as is. In 3.x a missing coordinate meant 0, pass it explicitly to
   keep that: `scrollTo({ x: 100, y: 0 })`. During a running `scrollTo()` the missing coordinate keeps its target.
@@ -153,8 +170,6 @@ options come from user input, catch the error.
   until `scrollTo()` finished.
 - `scrollTo()` along a direction disabled by `direction` does not keep the animation running forever.
 - `getState().position` never reports `-0`.
-- Internal methods `applyForce`, `applyEdgeForce`, `applyDragForce`, `applyScrollForce` and `applyTargetForce`
-  are removed. `updateScrollPosition()` and `animate()` take frame count and rAF timestamp.
 
 ## Reduced motion
 

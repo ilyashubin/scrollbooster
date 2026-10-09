@@ -80,7 +80,7 @@ setPosition | Jumps to position within edges and stops motion. Receives an objec
 scrollTo | Smooth scroll to position within edges. Receives an object with properties `x` and `y`, a missing one keeps its value. Does nothing while the user drags content
 updateMetrics | Forces to recalculate elements metrics. Viewport and content resizes are tracked automatically, use it for changes that do not resize them
 updateOptions | Sets option value. All properties from `Options` config object are supported, including `viewport` and `content`
-getState | Returns current scroll state in a same format as `onUpdate`
+getState | Returns current scroll state in a same format as `onUpdate`: `position`, `maxPosition`, `viewport` and `content` sizes, `isMoving`, `isDragging`, `dragOffset`, `dragAngle`, `borderCollision`
 destroy | Stops animation and removes all instance's event listeners and observers
 
 ### Full Example
@@ -96,7 +96,7 @@ const sb = new ScrollBooster({
   bounce: true,
   textSelection: false,
   onUpdate: (state) => {
-    // state contains useful metrics: position, dragOffset, dragAngle, isDragging, isMoving, borderCollision
+    // state: position, maxPosition, viewport, content, isMoving, isDragging, dragOffset, dragAngle, borderCollision
     // with scrollMode: 'none' you render the scroll yourself:
     content.style.transform = `translate(
       ${-state.position.x}px,

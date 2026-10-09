@@ -72,47 +72,48 @@ const WHEEL_LINE_HEIGHT = 16;
 const WHEEL_GESTURE_TIMEOUT = 80;
 
 export class ScrollBooster {
-    // Fields are declared without initializers to keep runtime shape of the JavaScript version
-    declare props: Props;
-    declare isDragging: boolean;
-    declare isTargetScroll: boolean;
-    declare isScrolling: boolean;
-    declare isRunning: boolean;
-    declare position: Point;
-    declare velocity: Point;
-    declare dragStartPosition: Point;
-    declare dragOffset: Point;
-    declare clientOffset: Point;
-    declare dragPosition: Point;
-    declare targetPosition: Point;
-    declare scrollOffset: Point;
-    declare rafID: number | null;
-    declare events: EventHandlers;
-    declare viewport: Size;
-    declare content: Size;
-    declare edgeX: Edge;
-    declare edgeY: Edge;
-    declare private isDestroyed: boolean;
-    declare private abortController: AbortController;
-    declare private resizeObserver: ResizeObserver;
-    declare private wheelTimer: ReturnType<typeof setTimeout> | undefined;
-    declare private dragController: AbortController | null;
-    declare private initialTouchAction: string;
-    declare private lastFrameTime: number | null;
-    declare private frameDuration: number;
+    private props: Props;
+    private isDestroyed = false;
+    // Pointer is pressed, the press counts as a drag in getState() only past the click threshold
+    private isDragging = false;
+    private isTargetScroll = false;
+    private isScrolling = false;
+    private isRunning = false;
+    // Content offset: coordinates of getState() with the opposite sign
+    private position: Point;
+    private velocity: Point = { x: 0, y: 0 };
+    private dragStartPosition: Point = { x: 0, y: 0 };
+    private dragOffset: Point = { x: 0, y: 0 };
+    private clientOffset: Point = { x: 0, y: 0 };
+    private dragPosition: Point = { x: 0, y: 0 };
+    private targetPosition: Point = { x: 0, y: 0 };
+    private scrollOffset: Point = { x: 0, y: 0 };
+    private metrics: Metrics = { viewport: { width: 0, height: 0 }, content: { width: 0, height: 0 } };
+    private edgeX: Edge = { from: 0, to: 0 };
+    private edgeY: Edge = { from: 0, to: 0 };
+    private rafID: number | null = null;
+    private lastFrameTime: number | null = null;
+    private frameDuration = FRAME_DURATION;
+    private wheelTimer: ReturnType<typeof setTimeout> | undefined;
+    private events = {} as EventHandlers;
+    private dragController: AbortController | null = null;
+    // Set by bindEvents() from the constructor
+    private abortController!: AbortController;
+    private resizeObserver!: ResizeObserver;
+    private initialTouchAction = '';
 
     /**
      * Create ScrollBooster instance. Throws TypeError for invalid options.
      */
     constructor(options: ScrollBoosterOptions) {
         validateOptions(options);
-        validateElements(options.viewport, options.content ?? options.viewport?.firstElementChild);
+        const content = options.content ?? options.viewport?.firstElementChild;
+        validateElements(options.viewport, content);
 
-        const defaults: Omit<Props, 'viewport'> = {
-            content: options.viewport.firstElementChild as HTMLElement,
-            direction: 'all', // 'vertical', 'horizontal'
-            pointerMode: 'all', // 'touch', 'mouse'
-            scrollMode: 'transform', // 'native', 'none'
+        const defaults: Omit<Props, 'viewport' | 'content'> = {
+            direction: 'all',
+            pointerMode: 'all',
+            scrollMode: 'transform',
             bounce: true,
             bounceForce: 0.1,
             friction: 0.05,
@@ -130,39 +131,16 @@ export class ScrollBooster {
                 return true;
             },
         };
-
-        this.props = { ...defaults, ...options } as Props;
-
-        this.isDestroyed = false;
-        this.isDragging = false;
-        this.isTargetScroll = false;
-        this.isScrolling = false;
-        this.isRunning = false;
-
-        const START_COORDINATES = { x: 0, y: 0 };
+        this.props = { ...defaults, ...options, content } as Props;
 
         this.position = getScrollPosition(this.props.viewport);
         if (this.props.scrollMode === 'transform') {
             this.props.viewport.scrollLeft = 0;
             this.props.viewport.scrollTop = 0;
         }
-        this.velocity = { ...START_COORDINATES };
-        this.dragStartPosition = { ...START_COORDINATES };
-        this.dragOffset = { ...START_COORDINATES };
-        this.clientOffset = { ...START_COORDINATES };
-        this.dragPosition = { ...START_COORDINATES };
-        this.targetPosition = { ...START_COORDINATES };
-        this.scrollOffset = { ...START_COORDINATES };
-
-        this.rafID = null;
-        this.lastFrameTime = null;
-        this.frameDuration = FRAME_DURATION;
-        this.wheelTimer = undefined;
-        this.dragController = null;
-        this.events = {} as EventHandlers;
 
         this.updateMetrics();
-        this.handleEvents();
+        this.bindEvents();
     }
 
     /**
@@ -175,12 +153,12 @@ export class ScrollBooster {
 
         validateOptions(options);
         const { viewport, content, scrollMode } = this.props;
-        const nextProps = { ...this.props, ...options };
         // New viewport without explicit content gets its first child as content
-        if (options.viewport && options.viewport !== viewport && !options.content) {
-            nextProps.content = options.viewport.firstElementChild as HTMLElement;
-        }
-        validateElements(nextProps.viewport, nextProps.content);
+        const isNewViewport = options.viewport && options.viewport !== viewport;
+        const nextContent = options.content ?? (isNewViewport ? options.viewport?.firstElementChild : content);
+        const nextProps = { ...this.props, ...options };
+        validateElements(nextProps.viewport, nextContent);
+        nextProps.content = nextContent;
 
         if (nextProps.viewport === viewport && nextProps.content === content) {
             this.props = nextProps;
@@ -204,7 +182,7 @@ export class ScrollBooster {
             this.position = getScrollPosition(this.props.viewport);
             this.velocity = { x: 0, y: 0 };
         }
-        this.handleEvents();
+        this.bindEvents();
         this.updateMetrics();
     }
 
@@ -216,17 +194,10 @@ export class ScrollBooster {
             return;
         }
 
-        const { viewport, content } = this.measure();
-        this.viewport = viewport;
-        this.content = content;
-        this.edgeX = {
-            from: Math.min(-this.content.width + this.viewport.width, 0),
-            to: 0,
-        };
-        this.edgeY = {
-            from: Math.min(-this.content.height + this.viewport.height, 0),
-            to: 0,
-        };
+        this.metrics = this.measure();
+        const { viewport, content } = this.metrics;
+        this.edgeX = { from: Math.min(viewport.width - content.width, 0), to: 0 };
+        this.edgeY = { from: Math.min(viewport.height - content.height, 0), to: 0 };
 
         // Next frame renders new state and returns content within new edges
         this.startAnimationLoop();
@@ -235,7 +206,7 @@ export class ScrollBooster {
     /**
      * Run animation loop
      */
-    startAnimationLoop(): void {
+    private startAnimationLoop(): void {
         if (this.isDestroyed) {
             return;
         }
@@ -250,7 +221,7 @@ export class ScrollBooster {
     /**
      * Main animation loop
      */
-    animate(time?: number): void {
+    private animate(time: number): void {
         if (!this.isRunning || this.isDestroyed) {
             return;
         }
@@ -279,10 +250,7 @@ export class ScrollBooster {
      * Time since the previous animation frame, in 60 Hz frames. The first frame of a loop has no previous one
      * and reuses the last measured frame duration.
      */
-    private getElapsedFrames(time: number | undefined): number {
-        if (time === undefined) {
-            return 1;
-        }
+    private getElapsedFrames(time: number): number {
         const previousTime = this.lastFrameTime;
         this.lastFrameTime = time;
         if (previousTime === null) {
@@ -317,7 +285,7 @@ export class ScrollBooster {
     /**
      * Calculate and set new scroll position after given number of 60 Hz frames
      */
-    updateScrollPosition(frames = 1): void {
+    private updateScrollPosition(frames: number): void {
         const bounce = this.props.bounce && !this.isReducedMotion();
         // Disabled axis keeps no velocity, otherwise scrollTo along it would keep the animation loop running forever
         if (this.props.direction !== 'vertical') {
@@ -382,7 +350,7 @@ export class ScrollBooster {
     /**
      * Check if scrolling happening
      */
-    isMoving(): boolean {
+    private isMoving(): boolean {
         return this.isDragging || this.isScrolling || hasVelocity(this.velocity);
     }
 
@@ -436,6 +404,7 @@ export class ScrollBooster {
      * Get latest metrics and coordinates
      */
     getState(): ScrollBoosterState {
+        const { viewport, content } = this.metrics;
         return {
             isMoving: this.isMoving(),
             // A press becomes a drag past the click threshold, before it the gesture may still be a click
@@ -443,27 +412,23 @@ export class ScrollBooster {
             // 0 - value avoids -0 at the start edge
             position: { x: 0 - this.position.x, y: 0 - this.position.y },
             dragOffset: { ...this.dragOffset },
-            dragAngle: this.getDragAngle(this.clientOffset.x, this.clientOffset.y),
+            dragAngle: getDragAngle(this.clientOffset.x, this.clientOffset.y),
             borderCollision: {
                 left: this.position.x >= this.edgeX.to,
                 right: this.position.x <= this.edgeX.from,
                 top: this.position.y >= this.edgeY.to,
                 bottom: this.position.y <= this.edgeY.from,
             },
+            viewport: { ...viewport },
+            content: { ...content },
+            maxPosition: { x: 0 - this.edgeX.from, y: 0 - this.edgeY.from },
         };
     }
 
     /**
-     * Get drag angle (up: 180, left: -90, right: 90, down: 0)
+     * Render position with the built-in scroll mode
      */
-    getDragAngle(x: number, y: number): number {
-        return getDragAngle(x, y);
-    }
-
-    /**
-     * Update DOM container elements metrics (width and height)
-     */
-    setContentPosition(state: ScrollBoosterState): void {
+    private setContentPosition(state: ScrollBoosterState): void {
         if (this.props.scrollMode === 'transform') {
             this.props.content.style.transform = `translate(${-state.position.x}px, ${-state.position.y}px)`;
         }
@@ -492,7 +457,7 @@ export class ScrollBooster {
     /**
      * Register all DOM events
      */
-    handleEvents(): void {
+    private bindEvents(): void {
         const dragOrigin = { x: 0, y: 0 };
         const clientOrigin = { x: 0, y: 0 };
         let activePointerId: number | null = null;
@@ -758,7 +723,10 @@ export class ScrollBooster {
         this.resizeObserver = new ResizeObserver(() => {
             // Initial notification after observe() usually has nothing new
             const metrics = this.measure();
-            if (!isSameSize(metrics.viewport, this.viewport) || !isSameSize(metrics.content, this.content)) {
+            if (
+                !isSameSize(metrics.viewport, this.metrics.viewport) ||
+                !isSameSize(metrics.content, this.metrics.content)
+            ) {
                 this.updateMetrics();
             }
         });

@@ -56,7 +56,7 @@ describe('mouse drag', () => {
         pointer.mouseMove(100, 100, { buttons });
         tick(10);
 
-        expect(sb.isDragging).toBe(false);
+        expect(sb.getState().isDragging).toBe(false);
         expect(position(sb)).toEqual({ x: 0, y: 0 });
     });
 
@@ -242,7 +242,7 @@ describe('touch drag', () => {
 
         // Late release of the lost finger does not end the new drag
         pointer.touchEnd(150, 200, { id: 10 });
-        expect(sb.isDragging).toBe(true);
+        expect(sb.getState().isDragging).toBe(true);
         expect(onPointerUp).not.toHaveBeenCalled();
 
         pointer.touchEnd(100, 200, next);
@@ -273,7 +273,7 @@ describe('touch drag', () => {
         pointer.touchMove(50, 200);
         tick(100);
 
-        expect(sb.isDragging).toBe(false);
+        expect(sb.getState().isDragging).toBe(false);
         expect(onPointerUp).toHaveBeenCalledTimes(1);
         expect(onPointerUp.mock.calls[0][1].type).toBe('pointercancel');
         expect(onPointerMove).not.toHaveBeenCalled();
@@ -347,7 +347,7 @@ describe('drag guards', () => {
         pointer.mouseMove(0, 0);
         tick(10);
 
-        expect(sb.isDragging).toBe(false);
+        expect(sb.getState().isDragging).toBe(false);
     });
 
     it('inputsFocus: false allows drag from input', () => {
@@ -356,8 +356,9 @@ describe('drag guards', () => {
         content.append(input);
 
         pointer.mouseDown(10, 10, {}, input);
+        pointer.mouseMove(50, 10);
 
-        expect(sb.isDragging).toBe(true);
+        expect(sb.getState().isDragging).toBe(true);
     });
 
     it('textSelection: does not drag from text node', () => {
@@ -368,10 +369,13 @@ describe('drag guards', () => {
         content.prepend(paragraph);
 
         pointer.mouseDown(5, 10, {}, paragraph);
-        expect(sb.isDragging).toBe(false);
+        pointer.mouseMove(50, 10);
+        expect(sb.getState().isDragging).toBe(false);
+        pointer.mouseUp(50, 10);
 
         pointer.mouseDown(5, 100, {}, content);
-        expect(sb.isDragging).toBe(true);
+        pointer.mouseMove(50, 100);
+        expect(sb.getState().isDragging).toBe(true);
     });
 
     it('ignores pointerdown on native scrollbars', () => {
@@ -383,7 +387,8 @@ describe('drag guards', () => {
         }
 
         pointer.mouseDown(viewport.clientWidth + 1, 10);
+        pointer.mouseMove(viewport.clientWidth - 50, 10);
 
-        expect(sb.isDragging).toBe(false);
+        expect(sb.getState().isDragging).toBe(false);
     });
 });

@@ -3,7 +3,6 @@ export type {
     Axis,
     BorderCollision,
     Direction,
-    Edge,
     Point,
     PointerMode,
     ReducedMotion,

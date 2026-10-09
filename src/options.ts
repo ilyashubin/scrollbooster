@@ -56,14 +56,14 @@ export function validateOptions(options: unknown): void {
 }
 
 /**
- * Throw TypeError unless content is an element inside viewport
+ * Throw TypeError unless content is an HTMLElement inside viewport
  */
-export function validateElements(viewport: unknown, content: unknown): void {
+export function validateElements(viewport: unknown, content: unknown): asserts content is HTMLElement {
     if (!(viewport instanceof HTMLElement)) {
         fail('option "viewport" must be an HTMLElement');
     }
-    if (!content) {
-        fail('viewport has no child element, pass the "content" option');
+    if (!(content instanceof HTMLElement)) {
+        fail('first child of viewport is not an HTMLElement, pass the "content" option');
     }
     if (content === viewport || !(viewport as HTMLElement).contains(content as Node)) {
         fail('option "content" must be an element inside "viewport"');

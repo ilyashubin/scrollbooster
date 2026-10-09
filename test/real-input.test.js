@@ -154,7 +154,7 @@ describe('real mouse', () => {
 
         await drag(at(viewport, 150, 250), at(viewport, 150, 450));
 
-        expect(sb.isDragging).toBe(false);
+        expect(sb.getState().isDragging).toBe(false);
         expect(onPointerUp).toHaveBeenCalledTimes(1);
         expect(onPointerUp.mock.calls[0][0].dragOffset).toEqual({ x: 0, y: 200 });
     });

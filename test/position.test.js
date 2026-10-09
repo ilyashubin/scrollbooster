@@ -34,7 +34,7 @@ describe('setPosition', () => {
         sb.setPosition({ x: 100, y: 100 });
         tick();
 
-        expect(sb.position).toEqual({ x: -100, y: -100 });
+        expect(sb.getState().position).toEqual({ x: 100, y: 100 });
         expect(viewport.scrollTop).toBe(100);
         expect(viewport.scrollLeft).toBe(100);
     });
@@ -154,8 +154,8 @@ describe('updateMetrics', () => {
         content.style.height = '2000px';
         sb.updateMetrics();
 
-        expect(sb.content.height).toBe(2000);
-        expect(sb.edgeY).toEqual({ from: -1700, to: 0 });
+        expect(sb.getState().content.height).toBe(2000);
+        expect(sb.getState().maxPosition.y).toBe(1700);
     });
 
     it('picks up content resize without window resize', async () => {
@@ -164,8 +164,8 @@ describe('updateMetrics', () => {
         content.style.height = '2000px';
         await nextRender();
 
-        expect(sb.content.height).toBe(2000);
-        expect(sb.edgeY).toEqual({ from: -1700, to: 0 });
+        expect(sb.getState().content.height).toBe(2000);
+        expect(sb.getState().maxPosition.y).toBe(1700);
     });
 
     it('picks up viewport resize', async () => {
@@ -174,8 +174,8 @@ describe('updateMetrics', () => {
         viewport.style.width = '500px';
         await nextRender();
 
-        expect(sb.viewport.width).toBe(500);
-        expect(sb.edgeX).toEqual({ from: -500, to: 0 });
+        expect(sb.getState().viewport.width).toBe(500);
+        expect(sb.getState().maxPosition.x).toBe(500);
     });
 
     it('skips onUpdate when observed sizes did not change', async () => {
@@ -239,9 +239,23 @@ describe('getState', () => {
         const state = sb.getState();
         state.dragOffset.x = 0;
         state.position.x = 500;
+        state.viewport.width = 0;
+        state.content.width = 0;
 
         expect(sb.getState().dragOffset).toEqual({ x: -20, y: 0 });
         expect(sb.getState().position.x).toBeLessThan(30);
+        expect(sb.getState().viewport.width).toBe(300);
+        expect(sb.getState().content.width).toBe(1000);
+    });
+
+    it('reports sizes and scroll range', () => {
+        const { sb } = mount({}, { width: 300, height: 200, contentWidth: 250, contentHeight: 800 });
+
+        expect(sb.getState()).toMatchObject({
+            viewport: { width: 300, height: 200 },
+            content: { width: 250, height: 800 },
+            maxPosition: { x: 0, y: 600 },
+        });
     });
 
     it('reports border collisions', () => {

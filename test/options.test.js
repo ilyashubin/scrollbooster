@@ -19,12 +19,21 @@ describe('updateOptions', () => {
         onUpdate.mockClear();
 
         sb.updateOptions({ bounce: false, friction: 0.2 });
-        expect(sb.props).toMatchObject({ bounce: false, friction: 0.2, direction: 'all' });
         expect(onUpdate).not.toHaveBeenCalled();
 
         tick();
         expect(onUpdate).toHaveBeenCalledTimes(1);
         expect(pendingFrames()).toBe(0);
+    });
+
+    it('keeps options that are not passed', () => {
+        const { sb, pointer } = mount({ direction: 'vertical' });
+
+        sb.updateOptions({ friction: 0.2 });
+        pointer.mouseDrag([200, 200], [100, 100], { release: false });
+        tick(100);
+
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 100 });
     });
 
     it('applies new direction to next drag', () => {
@@ -44,11 +53,11 @@ describe('updateOptions', () => {
         viewport.append(bigger);
 
         sb.updateOptions({ content: bigger });
-        expect(sb.content).toEqual({ width: 2000, height: 2000 });
+        expect(sb.getState().content).toEqual({ width: 2000, height: 2000 });
 
         bigger.style.height = '3000px';
         await nextRender();
-        expect(sb.content).toEqual({ width: 2000, height: 3000 });
+        expect(sb.getState().content).toEqual({ width: 2000, height: 3000 });
     });
 
     it('moves listeners to new viewport and reads its scroll position', () => {
@@ -58,8 +67,7 @@ describe('updateOptions', () => {
 
         sb.updateOptions({ viewport: next.viewport });
 
-        expect(sb.props.content).toBe(next.content);
-        expect(sb.content.width).toBe(2000);
+        expect(sb.getState().content.width).toBe(2000);
         expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
 
         pointer.mouseDrag([200, 200], [100, 200]);
@@ -69,16 +77,19 @@ describe('updateOptions', () => {
         createPointer(next.viewport).mouseDrag([200, 200], [100, 200], { release: false });
         tick(100);
         expect(roundedPosition(sb)).toEqual({ x: 200, y: 0 });
+        expect(getComputedStyle(next.content).transform).toBe('matrix(1, 0, 0, 1, -200, 0)');
         next.viewport.remove();
     });
 
     it('throws TypeError and keeps current elements for viewport without content', () => {
-        const { sb, viewport } = mount();
+        const { sb, pointer } = mount();
 
         expect(() => sb.updateOptions({ viewport: document.createElement('div') })).toThrow(
-            'viewport has no child element'
+            'first child of viewport is not an HTMLElement'
         );
-        expect(sb.props.viewport).toBe(viewport);
+        pointer.mouseDrag([200, 200], [100, 200], { release: false });
+        tick(100);
+        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
     });
 });
 
@@ -222,7 +233,6 @@ describe('destroy', () => {
         sb.updateMetrics();
         sb.setPosition({ x: 100 });
         sb.scrollTo({ x: 100 });
-        sb.startAnimationLoop();
         tick(10);
 
         expect(onUpdate).not.toHaveBeenCalled();
@@ -371,10 +381,17 @@ describe('options validation', () => {
     });
 
     it('updateOptions throws and applies nothing when any option is invalid', () => {
-        const { sb } = mount();
+        const { sb, pointer } = mount({ direction: 'horizontal' });
 
         expect(() => sb.updateOptions({ friction: 0.2, direction: 'diagonal' })).toThrow(TypeError);
-        expect(() => sb.updateOptions({ friction: 0.2, bounse: false })).toThrow('unknown option "bounse"');
-        expect(sb.props).toMatchObject({ friction: 0.05, direction: 'all' });
+        expect(() => sb.updateOptions({ friction: 0.5, direction: 'all', bounse: false })).toThrow(
+            'unknown option "bounse"'
+        );
+
+        // Default friction 0.05 moves content by 95% of the pointer offset on the first frame
+        pointer.mouseDown(200, 200);
+        pointer.mouseMove(100, 100);
+        tick();
+        expect(roundedPosition(sb)).toEqual({ x: 95, y: 0 });
     });
 });

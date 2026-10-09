@@ -28,3 +28,5 @@ all behavior changes.
 - `wheel` option, on by default, replaces `emulateScroll` and `preventDefaultOnEmulateScroll`: content takes a
   wheel gesture only when it can move along its main axis, otherwise the page scrolls. Content moves exactly by
   the delta, events within a frame add up, lines and pages are converted. `dragDirectionTolerance` is removed.
+- Public API is the constructor and six methods, internal fields and methods are private. `getState()` reports
+  `viewport` and `content` sizes and `maxPosition`.
