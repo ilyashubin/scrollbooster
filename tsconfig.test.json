@@ -7,5 +7,12 @@
     "declaration": false,
     "allowImportingTsExtensions": true
   },
-  "include": ["test/**/*.ts", "demo/**/*.ts", "vitest.config.ts", "tsdown.config.ts", "vite.config.ts"]
+  "include": [
+    "test/**/*.ts",
+    "demo/**/*.ts",
+    "scripts/**/*.ts",
+    "vitest.config.ts",
+    "tsdown.config.ts",
+    "vite.config.ts"
+  ]
 }

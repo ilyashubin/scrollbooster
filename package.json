@@ -27,6 +27,7 @@
     "build:watch": "tsdown --watch",
     "build:demo": "vite build",
     "preview:demo": "pnpm build:demo && vite preview",
+    "deploy:pages": "pnpm build:demo && node scripts/deploy-pages.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --project unit --project chromium",
