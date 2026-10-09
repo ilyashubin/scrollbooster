@@ -35,7 +35,7 @@ for (let index = 1; index <= 20; index++) {
     tab.setAttribute('aria-selected', String(index === 1));
     tabList.append(tab);
 }
-const tabsSb = new ScrollBooster({ viewport: tabs, direction: 'horizontal' });
+const tabsSb = new ScrollBooster({ viewport: tabs, direction: 'horizontal', wheel: 'horizontal' });
 tabList.addEventListener('click', (event) => {
     const tab = event.target instanceof Element ? event.target.closest('[role="tab"]') : null;
     if (!tab || event.defaultPrevented) {

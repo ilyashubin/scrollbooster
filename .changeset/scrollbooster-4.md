@@ -35,7 +35,8 @@ all behavior changes.
   the delta, events within a frame add up, lines and pages are converted. Trackpad pinch and Ctrl+wheel zoom the
   page. `dragDirectionTolerance` is removed. `wheel: 'horizontal'` scrolls a horizontal strip with a mouse wheel.
 - New `keyboard` option, on by default: arrows, page keys, Space, Home and End scroll content with focus inside.
-- New `snap` option for carousels and paging, new `scrollBy()` and `scrollIntoView()` methods.
+- New `axisLock` option keeps a gesture on the axis it starts along. New `snap` option for carousels and paging,
+  new `scrollBy()` and `scrollIntoView()` methods.
 - Nested instances share a gesture: it goes to the innermost one that can move along its main axis.
 - The root element can be the viewport to drag the whole page. In `'native'` mode scroll by the browser at rest is
   reported with `onUpdate`.

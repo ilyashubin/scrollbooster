@@ -210,7 +210,7 @@ export class ScrollBooster {
         const wheel = this.#wheel;
         if (frames > 0) {
             const bounce = props.bounce && !this.#isReducedMotion();
-            const drag = press.isActive ? mirrorX(press.isHeld ? { x: 0, y: 0 } : press.offset, this.#isRtl) : null;
+            const drag = press.isActive ? mirrorX(this.#getDragOffset(), this.#isRtl) : null;
             motion.step(frames, props, bounce, drag, wheel.isActive ? mirrorX(wheel.offset, this.#isRtl) : null);
             wheel.offset.x = 0;
             wheel.offset.y = 0;
@@ -223,6 +223,21 @@ export class ScrollBooster {
         this.#renderPosition();
         // onUpdate may restart the loop or destroy the instance
         props.onUpdate(state);
+    }
+
+    /**
+     * Pointer offset that content follows. Content held by nested instances stays in place, with `axisLock`
+     * it waits for the main axis of the gesture and then moves only along it.
+     */
+    #getDragOffset(): Point {
+        const { offset, isHeld, axis } = this.#press;
+        if (isHeld || (this.#props.axisLock && !axis)) {
+            return { x: 0, y: 0 };
+        }
+        if (this.#props.axisLock) {
+            return axis === 'x' ? { x: offset.x, y: 0 } : { x: 0, y: offset.y };
+        }
+        return offset;
     }
 
     #isMoving(): boolean {

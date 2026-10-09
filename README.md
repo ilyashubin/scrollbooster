@@ -57,6 +57,7 @@ bounce | boolean | `true` | Content can be pulled beyond the edges with resistan
 friction | number | `0.05` | How fast motion slows down after release, between 0 and 1
 bounceForce | number | `0.1` | How fast content returns from beyond an edge, between 0 and 1
 textSelection | boolean | `false` | Text can be selected: a mouse press on text selects it instead of dragging, a long touch press selects a word
+axisLock | boolean | `false` | A drag or a wheel gesture moves content only along the axis it starts along, for `direction: 'all'`
 inputsFocus | boolean | `true` | A press on a form control, `summary`, media controls or editable content, or inside them, does not drag
 wheel | `true`, `false`, `'horizontal'` | `true` | Wheel and trackpad scroll content. The page scrolls instead when content cannot move that way. `'horizontal'` scrolls only along x, a vertical mouse wheel too
 keyboard | boolean | `true` | Keys scroll content while it has focus, see [Accessibility](#accessibility)

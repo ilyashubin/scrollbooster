@@ -67,7 +67,10 @@
 
     <section class="tabs">
         <h2>Tabs</h2>
-        <p class="hint">The selected tab is centered with <code>scrollIntoView(tab, { align: 'center' })</code>.</p>
+        <p class="hint">
+            The selected tab is centered with <code>scrollIntoView(tab, { align: 'center' })</code>. With
+            <code>wheel: 'horizontal'</code> the mouse wheel scrolls the tabs, past their end it scrolls the page.
+        </p>
         <div class="viewport" id="tabs">
             <div class="strip" role="tablist" aria-label="Tabs"></div>
         </div>

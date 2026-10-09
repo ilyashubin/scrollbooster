@@ -15,6 +15,7 @@ const DEFAULTS = {
     bounceForce: 0.1,
     friction: 0.05,
     textSelection: false,
+    axisLock: false,
     inputsFocus: true,
     wheel: true,
     keyboard: true,

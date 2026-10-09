@@ -40,6 +40,8 @@ export interface WheelHost {
  */
 export function bindWheel(viewport: HTMLElement, signal: AbortSignal, host: WheelHost): WheelGesture {
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // Main axis of the first event of the active gesture
+    let gestureAxis: 'x' | 'y' = 'y';
 
     const onWheel = (event: WheelEvent) => {
         // A scroller nested in the content has taken this event, drag holds the content,
@@ -70,11 +72,22 @@ export function bindWheel(viewport: HTMLElement, signal: AbortSignal, host: Whee
 
         // Like native scroll, a wheel gesture stays with the scroller that took its first event
         // and goes to the page when content cannot move along the main axis of the gesture
-        const axis = Math.abs(x) > Math.abs(y) ? 'x' : 'y';
-        if (!gesture.isActive && !host.canScroll(axis, axis === 'x' ? x : y)) {
-            return;
+        if (!gesture.isActive) {
+            const axis = Math.abs(x) > Math.abs(y) ? 'x' : 'y';
+            if (!host.canScroll(axis, axis === 'x' ? x : y)) {
+                return;
+            }
+            gestureAxis = axis;
         }
         event.preventDefault();
+        // With axisLock the gesture moves content only along the axis of its first event
+        if (host.props().axisLock) {
+            if (gestureAxis === 'x') {
+                y = 0;
+            } else {
+                x = 0;
+            }
+        }
 
         gesture.isActive = true;
         // Deltas of all events until the next frame add up

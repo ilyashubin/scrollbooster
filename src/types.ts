@@ -64,6 +64,11 @@ export interface ScrollBoosterOptions {
     content?: HTMLElement;
     /** Scroll direction */
     direction?: Direction;
+    /**
+     * A drag or a wheel gesture moves content only along the axis it starts along, like native scroll on iOS.
+     * Matters with `direction: 'all'`: a table scrolls along a row or a column without drifting across.
+     */
+    axisLock?: boolean;
     /** Mouse or touch support, pen counts as mouse. Touch drag sets CSS `touch-action` on viewport */
     pointerMode?: PointerMode;
     /** How content is scrolled: CSS transform, native scroll of viewport, or `'none'` to render in `onUpdate` */

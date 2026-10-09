@@ -23,6 +23,8 @@ export interface Press {
     offset: Point;
     /** Client coordinates: the angle of the gesture on screen */
     clientOffset: Point;
+    /** Main axis of the gesture, chosen when it passes the click threshold along any axis */
+    axis: Axis | null;
 }
 
 export interface DragHost {
@@ -48,8 +50,10 @@ const claims = new WeakMap<Event, Claim[]>();
 /**
  * The innermost instance that can move along the main axis of the gesture, or that allows that axis
  */
+const getMainAxis = (offset: Point): Axis => (Math.abs(offset.x) > Math.abs(offset.y) ? 'x' : 'y');
+
 function chooseOwner(list: Claim[], offset: Point): Claim | undefined {
-    const axis: Axis = Math.abs(offset.x) > Math.abs(offset.y) ? 'x' : 'y';
+    const axis = getMainAxis(offset);
     const allows = (claim: Claim) => claim.direction() !== (axis === 'x' ? 'vertical' : 'horizontal');
     return list.find((claim) => allows(claim) && claim.canDrag(axis, offset[axis])) ?? list.find(allows) ?? list[0];
 }
@@ -78,6 +82,7 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         },
         offset: { x: 0, y: 0 },
         clientOffset: { x: 0, y: 0 },
+        axis: null,
     };
     const pageOrigin = { x: 0, y: 0 };
     const clientOrigin = { x: 0, y: 0 };
@@ -107,6 +112,7 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         press.offset.y = 0;
         press.clientOffset.x = 0;
         press.clientOffset.y = 0;
+        press.axis = null;
         dragController?.abort();
         dragController = null;
         lastPointerEvent = null;
@@ -222,6 +228,7 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         lastPointerEvent = event;
         if (!isOwned && isPastClickThreshold(press.offset, 'all')) {
             isOwned = true;
+            press.axis = getMainAxis(press.offset);
             if (chooseOwner(pressClaims, press.offset) !== claim) {
                 // A nested instance takes the gesture, content has stayed in place
                 const state = host.getState();

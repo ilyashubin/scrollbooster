@@ -437,6 +437,82 @@ describe('direction', () => {
     });
 });
 
+describe('axisLock', () => {
+    it('drags only along the axis the gesture starts along', () => {
+        const { sb, pointer } = mount({ axisLock: true });
+
+        pointer.mouseDrag([200, 200], [100, 170], { release: false });
+        tick(100);
+
+        expect(position(sb)).toEqual({ x: 100, y: 0 });
+        expect(sb.getState().dragOffset).toEqual({ x: -100, y: -30 });
+    });
+
+    it('keeps the axis when the gesture turns', () => {
+        const { sb, pointer } = mount({ axisLock: true });
+
+        pointer.mouseDown(200, 200);
+        pointer.mouseMove(198, 190);
+        pointer.mouseMove(100, 150);
+        tick(100);
+
+        expect(position(sb)).toEqual({ x: 0, y: 50 });
+    });
+
+    it('holds content until the gesture passes the click threshold', () => {
+        const { sb, pointer } = mount({ axisLock: true });
+
+        pointer.mouseDown(200, 200);
+        pointer.mouseMove(196, 197);
+        tick(20);
+
+        expect(position(sb)).toEqual({ x: 0, y: 0 });
+    });
+
+    it('throws content only along the axis', () => {
+        const { sb, pointer } = mount({ axisLock: true });
+
+        pointer.mouseDrag([250, 250], [150, 220], { steps: 4 });
+        tick(200);
+
+        expect(position(sb).x).toBeGreaterThan(100);
+        expect(position(sb).y).toBe(0);
+    });
+
+    it('locks a touch drag', () => {
+        const { sb, pointer } = mount({ axisLock: true });
+
+        pointer.touchDrag([200, 200], [180, 100], { release: false });
+        tick(100);
+
+        expect(position(sb)).toEqual({ x: 0, y: 100 });
+    });
+
+    it('drags along both axes without it', () => {
+        const { sb, pointer } = mount();
+
+        pointer.mouseDrag([200, 200], [100, 170], { release: false });
+        tick(100);
+
+        expect(position(sb)).toEqual({ x: 100, y: 30 });
+    });
+
+    it('locks a wheel gesture to the axis of its first event', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const { sb, viewport } = mount({ axisLock: true });
+
+        wheel(viewport, 40, 10);
+        wheel(viewport, 10, 40);
+        tick();
+        expect(position(sb)).toEqual({ x: 50, y: 0 });
+
+        vi.advanceTimersByTime(100);
+        wheel(viewport, 10, 40);
+        tick();
+        expect(position(sb)).toEqual({ x: 50, y: 40 });
+    });
+});
+
 describe('pointerMode', () => {
     it('mouse: ignores touch', () => {
         const { sb, pointer } = mount({ pointerMode: 'mouse' });
