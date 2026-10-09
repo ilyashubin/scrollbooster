@@ -71,10 +71,6 @@ export class ScrollBooster {
             return;
         }
 
-        // Previous elements keep nothing from this instance
-        if (previous.scrollMode === 'transform') {
-            previous.content.style.transform = '';
-        }
         this.unbindEvents();
         this.props = next;
         if (next.viewport !== previous.viewport) {
@@ -147,7 +143,8 @@ export class ScrollBooster {
     }
 
     /**
-     * Stop animation, remove DOM listeners and observers. Methods of destroyed instance do nothing.
+     * Stop animation, remove DOM listeners and observers, remove the transform from content.
+     * Methods of destroyed instance do nothing.
      */
     destroy(): void {
         if (this.isDestroyed) {
@@ -302,12 +299,17 @@ export class ScrollBooster {
     }
 
     /**
-     * Remove DOM listeners and observers, restore touch-action of the viewport
+     * Remove DOM listeners and observers, restore touch-action of the viewport and remove the transform:
+     * elements keep nothing from this instance. Native scroll stays, it is a usual state of the viewport.
      */
     private unbindEvents(): void {
+        const { viewport, content, scrollMode } = this.props;
         this.abortController.abort();
         this.resizeObserver.disconnect();
-        this.props.viewport.style.touchAction = this.initialTouchAction;
+        viewport.style.touchAction = this.initialTouchAction;
+        if (scrollMode === 'transform') {
+            content.style.transform = '';
+        }
     }
 
     /**

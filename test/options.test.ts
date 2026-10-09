@@ -185,6 +185,21 @@ describe('destroy', () => {
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
     });
 
+    it('removes transform from content and keeps native scroll', () => {
+        const transform = mount();
+        const native = mount({ scrollMode: 'native' });
+        for (const { sb } of [transform, native]) {
+            sb.setPosition({ x: 200 });
+        }
+        tick();
+
+        transform.sb.destroy();
+        native.sb.destroy();
+
+        expect(transform.content.style.transform).toBe('');
+        expect(native.viewport.scrollLeft).toBe(200);
+    });
+
     it('stops running animation', () => {
         const onUpdate = vi.fn();
         const { sb, pointer } = mount({ onUpdate });

@@ -81,7 +81,7 @@ scrollTo | Smooth scroll to position within edges. Receives an object with prope
 updateMetrics | Forces to recalculate elements metrics. Viewport and content resizes are tracked automatically, use it for changes that do not resize them
 updateOptions | Sets option value. All properties from `Options` config object are supported, including `viewport` and `content`
 getState | Returns current scroll state in a same format as `onUpdate`: `position`, `maxPosition`, `viewport` and `content` sizes, `isMoving`, `isDragging`, `dragOffset`, `dragAngle`, `borderCollision`
-destroy | Stops animation and removes all instance's event listeners and observers
+destroy | Stops animation, removes all instance's event listeners and observers and the transform from content
 
 ### Full Example
 

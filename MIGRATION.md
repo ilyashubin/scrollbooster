@@ -196,6 +196,9 @@ force reduced motion.
   them. A new viewport without `content` uses its first child.
 - `destroy()` stops the running animation and timers, removes all listeners including the `load` listener on
   content that 3.x left behind, and turns further method calls into no-ops. Calling it twice is safe.
+- `destroy()` removes the transform from content, so content returns to the start in `'transform'` mode. 3.x left
+  it shifted with nothing to move it back. To keep the position for a new instance, pass
+  `getState().position` to its `setPosition()`. Native scroll in `'native'` mode stays.
 
 ## Transform mode and focus
 
