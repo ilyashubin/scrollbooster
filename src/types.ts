@@ -86,9 +86,10 @@ export interface ScrollBoosterOptions {
     inputsFocus?: boolean;
     /**
      * Mouse wheel and trackpad scroll content. The page scrolls instead when content cannot move along the
-     * main axis of the gesture
+     * main axis of the gesture. `'horizontal'` scrolls only along x and turns vertical deltas into it, so a mouse
+     * wheel scrolls a horizontal strip: down goes to the end of the line.
      */
-    wheel?: boolean;
+    wheel?: boolean | 'horizontal';
     /**
      * Reduced motion: no inertia and bounce, `scrollTo` jumps to the target.
      * `'auto'` follows `prefers-reduced-motion` media query

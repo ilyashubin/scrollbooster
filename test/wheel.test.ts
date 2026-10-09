@@ -188,6 +188,65 @@ describe('wheel goes to the page', () => {
     });
 });
 
+describe("wheel: 'horizontal'", () => {
+    it('scrolls along x with a vertical mouse wheel', () => {
+        fakeTimers();
+        const { sb, viewport } = mount({ direction: 'horizontal', wheel: 'horizontal' });
+
+        expect(wheel(viewport, 0, 100).defaultPrevented).toBe(true);
+        tick();
+
+        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
+    });
+
+    it('scrolls along x with a horizontal trackpad swipe', () => {
+        fakeTimers();
+        const { sb, viewport } = mount({ wheel: 'horizontal' });
+
+        wheel(viewport, 80, 10);
+        tick();
+
+        expect(roundedPosition(sb)).toEqual({ x: 80, y: 0 });
+    });
+
+    it('never scrolls along y, also with direction: all', () => {
+        fakeTimers();
+        const { sb, viewport } = mount({ wheel: 'horizontal' });
+
+        wheel(viewport, 10, 60);
+        tick();
+
+        expect(roundedPosition(sb)).toEqual({ x: 60, y: 0 });
+    });
+
+    it('converts lines and pages along x', () => {
+        fakeTimers();
+        const { sb, viewport } = mount({ direction: 'horizontal', wheel: 'horizontal' }, { height: 100 });
+
+        wheel(viewport, 0, 3, WheelEvent.DOM_DELTA_LINE);
+        wheel(viewport, 0, 1, WheelEvent.DOM_DELTA_PAGE);
+        tick();
+
+        // Lines are 16 px, a page is the viewport width
+        expect(roundedPosition(sb)).toEqual({ x: 348, y: 0 });
+    });
+
+    it('leaves the wheel to the page at the edge of the line', () => {
+        const { sb, viewport } = mount({ direction: 'horizontal', wheel: 'horizontal' });
+
+        expect(wheel(viewport, 0, -100).defaultPrevented).toBe(false);
+        sb.setPosition({ x: 700 });
+        tick();
+        expect(wheel(viewport, 0, 100).defaultPrevented).toBe(false);
+    });
+
+    it('keeps the default for wheel: true', () => {
+        const { viewport } = mount({ direction: 'horizontal' });
+
+        expect(wheel(viewport, 0, 100).defaultPrevented).toBe(false);
+    });
+});
+
 describe('wheel with nested scrollers', () => {
     it('moves only the inner scroller', () => {
         fakeTimers();

@@ -58,7 +58,7 @@ friction | number | `0.05` | How fast motion slows down after release, between 0
 bounceForce | number | `0.1` | How fast content returns from beyond an edge, between 0 and 1
 textSelection | boolean | `false` | Text can be selected: a mouse press on text selects it instead of dragging, a long touch press selects a word
 inputsFocus | boolean | `true` | A press on a form control, `summary`, media controls or editable content, or inside them, does not drag
-wheel | boolean | `true` | Wheel and trackpad scroll content. The page scrolls instead when content cannot move that way
+wheel | `true`, `false`, `'horizontal'` | `true` | Wheel and trackpad scroll content. The page scrolls instead when content cannot move that way. `'horizontal'` scrolls only along x, a vertical mouse wheel too
 keyboard | boolean | `true` | Keys scroll content while it has focus, see [Accessibility](#accessibility)
 reducedMotion | `'auto'`, `'always'`, `'never'` | `'auto'` | `'always'` turns off inertia, bounce and smooth `scrollTo`, `'never'` keeps them, `'auto'` follows the `prefers-reduced-motion` setting
 snap | function | | Where content stops after a drag or a wheel gesture, for carousels and paging. Receives the position where it would stop and the state, returns the position to scroll to, for example `(rest) => ({ x: Math.round(rest.x / 300) * 300 })`

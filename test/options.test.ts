@@ -458,7 +458,7 @@ describe('options validation', () => {
         ['friction', 0, 'a number between 0 and 1'],
         ['friction', 1, 'a number between 0 and 1'],
         ['bounceForce', '0.1', 'a number between 0 and 1'],
-        ['wheel', 'auto', 'a boolean'],
+        ['wheel', 'auto', 'one of true, false, horizontal'],
         ['bounce', 'yes', 'a boolean'],
         ['onUpdate', null, 'a function'],
         ['content', '.content', 'an HTMLElement'],

@@ -60,6 +60,17 @@ describe.each(['transform', 'native'] as ScrollMode[])('right-to-left viewport, 
         expect(sb.getState().borderCollision).toMatchObject({ left: true, right: false });
     });
 
+    it("wheel: 'horizontal' scrolls down towards the end of the line", () => {
+        const { sb, viewport, offset } = mountRtl({ scrollMode, wheel: 'horizontal' });
+
+        expect(wheel(viewport, 0, -100).defaultPrevented).toBe(false);
+        expect(wheel(viewport, 0, 100).defaultPrevented).toBe(true);
+        tick();
+
+        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
+        expect(offset()).toBe(100);
+    });
+
     it('wheel to the left moves towards the end of content', () => {
         const { sb, viewport, offset } = mountRtl({ scrollMode });
 

@@ -59,7 +59,7 @@ const CHECKS: Record<keyof Props, Check> = {
     friction: FACTOR,
     textSelection: BOOLEAN,
     inputsFocus: BOOLEAN,
-    wheel: BOOLEAN,
+    wheel: oneOf(true, false, 'horizontal'),
     keyboard: BOOLEAN,
     reducedMotion: oneOf('auto', 'always', 'never'),
     onPointerDown: FUNCTION,

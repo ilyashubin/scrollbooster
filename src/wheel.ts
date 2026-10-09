@@ -24,6 +24,8 @@ export interface WheelHost {
     getState(): ScrollBoosterState;
     /** Pointer drags content */
     isDragging(): boolean;
+    /** Viewport is right-to-left, the end of a line is on the left */
+    isRtl(): boolean;
     /** The delta along the axis moves content */
     canScroll(axis: 'x' | 'y', delta: number): boolean;
     /** Wheel event is taken, before onWheel gets the state */
@@ -45,11 +47,26 @@ export function bindWheel(viewport: HTMLElement, signal: AbortSignal, host: Whee
         if (event.defaultPrevented || event.ctrlKey || host.isDragging()) {
             return;
         }
-        const { deltaMode } = event;
+        const { deltaMode, deltaX, deltaY } = event;
         const { clientWidth, clientHeight } = viewport;
-        const pixels = deltaMode === WheelEvent.DOM_DELTA_LINE ? LINE_HEIGHT_PX : 1;
-        const x = event.deltaX * (deltaMode === WheelEvent.DOM_DELTA_PAGE ? clientWidth : pixels);
-        const y = event.deltaY * (deltaMode === WheelEvent.DOM_DELTA_PAGE ? clientHeight : pixels);
+        const toPixels = (delta: number, pageSize: number) =>
+            delta *
+            (deltaMode === WheelEvent.DOM_DELTA_PAGE
+                ? pageSize
+                : deltaMode === WheelEvent.DOM_DELTA_LINE
+                  ? LINE_HEIGHT_PX
+                  : 1);
+        let x = toPixels(deltaX, clientWidth);
+        let y = toPixels(deltaY, clientHeight);
+        // A mouse wheel has only the vertical delta: it scrolls along the line by lines and viewport widths,
+        // down goes to the end of the line
+        if (host.props().wheel === 'horizontal') {
+            if (Math.abs(deltaY) > Math.abs(deltaX)) {
+                const forward = toPixels(deltaY, clientWidth);
+                x = host.isRtl() ? -forward : forward;
+            }
+            y = 0;
+        }
 
         // Like native scroll, a wheel gesture stays with the scroller that took its first event
         // and goes to the page when content cannot move along the main axis of the gesture

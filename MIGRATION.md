@@ -115,6 +115,9 @@ trackpad scroll the content like a native scroll container. Passing the old opti
 - A scroller nested in the content takes the event first, the outer one moves only when the inner one cannot.
 - Wheel is ignored while the pointer drags content.
 - Wheel with `ctrlKey` (trackpad pinch, Ctrl+wheel) is left to the browser to zoom the page.
+- New `wheel: 'horizontal'` for horizontal strips: the wheel scrolls content only along x, and the vertical mouse
+  wheel scrolls it too, down towards the end of the line. At the end of the line the gesture goes to the page. In
+  3.x a horizontal strip could be scrolled only with a trackpad or Shift+wheel.
 - `onWheel` is called only for events that scroll the content.
 - Content moves exactly by the wheel delta. 3.x moved it by 95% of the delta, took only the last event of a frame,
   and treated deltas in lines and pages as pixels (Firefox mouse wheels report lines, so content moved by 3 px per

@@ -317,6 +317,7 @@ export class ScrollBooster {
             props,
             getState,
             isDragging: () => this.#press.isActive,
+            isRtl: () => this.#isRtl,
             canScroll: (axis, delta) => this.#canScrollBy(axis, delta),
             scroll: () => {
                 this.#motion.interrupt();
