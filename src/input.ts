@@ -181,8 +181,25 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         window.addEventListener('pointercancel', onPointerUp, options);
     };
 
+    const endPress = (event: PointerEvent, canClick: boolean) => {
+        preventClick = canClick && isPastThreshold();
+        press.isActive = false;
+        host.release();
+        // onPointerUp gets offset and angle of the drag that ended
+        const state = host.getState();
+        stop();
+        host.props().onPointerUp(state, event);
+    };
+
     const onPointerMove = (event: PointerEvent) => {
         if (event.pointerId !== activePointerId) {
+            return;
+        }
+        // Main button is released while another one is held, pointerup comes only when all are released. Without
+        // any button the release went past the page, like into the link preview of a force click in Safari, and no
+        // click follows.
+        if (event.pointerType !== 'touch' && !(event.buttons & 1)) {
+            endPress(event, event.buttons !== 0);
             return;
         }
         setOffsets(event);
@@ -210,16 +227,9 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
     };
 
     const onPointerUp = (event: PointerEvent) => {
-        if (event.pointerId !== activePointerId) {
-            return;
+        if (event.pointerId === activePointerId) {
+            endPress(event, true);
         }
-        preventClick = isPastThreshold();
-        press.isActive = false;
-        host.release();
-        // onPointerUp gets offset and angle of the drag that ended
-        const state = host.getState();
-        stop();
-        host.props().onPointerUp(state, event);
     };
 
     // Text selection and native drag of images and links would take the pointer from the drag.

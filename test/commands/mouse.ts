@@ -1,6 +1,13 @@
 import type { BrowserCommand } from 'vitest/node';
 
-export type MouseStep = ['move', number, number] | ['down'] | ['up'] | ['dblclick'] | ['wheel', number, number];
+export type MouseStep =
+    | ['move', number, number]
+    | ['down']
+    | ['up']
+    | ['downRight']
+    | ['upRight']
+    | ['dblclick']
+    | ['wheel', number, number];
 
 /**
  * Real mouse input through Playwright. Coordinates are client coordinates inside the test iframe, wheel takes
@@ -25,6 +32,10 @@ export const mouse: BrowserCommand<[steps: MouseStep[], innerWidth: number]> = a
             await mouse.wheel(x as number, y as number);
         } else if (action === 'down') {
             await mouse.down();
+        } else if (action === 'downRight') {
+            await mouse.down({ button: 'right' });
+        } else if (action === 'upRight') {
+            await mouse.up({ button: 'right' });
         } else if (action === 'dblclick') {
             await mouse.down();
             await mouse.up();

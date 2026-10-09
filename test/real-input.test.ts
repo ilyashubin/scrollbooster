@@ -193,6 +193,30 @@ describe('real mouse', () => {
         expect(sb.getState().position).toEqual({ x: 0, y: 0 });
     });
 
+    it('release of the main button while the right one is held ends the drag and stops its click', async () => {
+        const onPointerUp = vi.fn();
+        const onClick = vi.fn();
+        const { sb, content } = mount({ onPointerUp, onClick });
+        const row = addRow(content);
+        const onRowClick = vi.fn();
+        row.addEventListener('click', onRowClick);
+        const preventMenu = (event: Event) => event.preventDefault();
+        window.addEventListener('contextmenu', preventMenu);
+
+        const [x, y] = at(row, 250, 50);
+        await commands.mouse([['move', x, y], ['down'], ['move', x - 50, y], ['downRight'], ['up']], window.innerWidth);
+        const isDragging = sb.getState().isDragging;
+        await commands.mouse([['move', x - 100, y], ['upRight']], window.innerWidth);
+        window.removeEventListener('contextmenu', preventMenu);
+
+        expect(isDragging).toBe(false);
+        expect(onPointerUp).toHaveBeenCalledTimes(1);
+        expect(onPointerUp.mock.calls[0][0].dragOffset).toEqual({ x: -50, y: 0 });
+        expect(onRowClick).not.toHaveBeenCalled();
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(onClick.mock.calls[0][1].defaultPrevented).toBe(true);
+    });
+
     it('keeps dragging outside of viewport until release', async () => {
         const onPointerUp = vi.fn();
         const { sb, viewport } = mount({ onPointerUp });

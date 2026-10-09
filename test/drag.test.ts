@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mount, roundedPosition as position, round, tick } from './helpers.ts';
+import { mount, roundedPosition as position, round, tick, wheel } from './helpers.ts';
 
 describe('mouse drag', () => {
     it('moves content opposite to pointer while held', () => {
@@ -150,6 +150,42 @@ describe('mouse drag', () => {
         pointer.mouseMove(100, 100, { buttons: 0 });
 
         expect(onPointerMove).not.toHaveBeenCalled();
+    });
+
+    it('ends the drag on a move without pressed buttons: the release went past the page', () => {
+        const onPointerUp = vi.fn();
+        const onClick = vi.fn();
+        const { sb, pointer, viewport } = mount({ onPointerUp, onClick });
+
+        pointer.mouseDrag([200, 200], [150, 200], { release: false });
+        pointer.mouseMove(140, 200, { buttons: 0 });
+
+        expect(sb.getState().isDragging).toBe(false);
+        expect(onPointerUp).toHaveBeenCalledTimes(1);
+        expect(onPointerUp.mock.calls[0][1].type).toBe('pointermove');
+        expect(onPointerUp.mock.calls[0][0].dragOffset).toEqual({ x: -50, y: 0 });
+        // No click follows such a release, the next one is not prevented
+        expect(pointer.click(100, 100).defaultPrevented).toBe(false);
+        tick(100);
+        const { x } = sb.getState().position;
+        wheel(viewport, 0, 30);
+        tick(100);
+        expect(sb.getState().position).toEqual({ x, y: 30 });
+    });
+
+    it('ends the drag when the main button is released while another one is held', () => {
+        const onPointerUp = vi.fn();
+        const { sb, pointer } = mount({ onPointerUp });
+
+        pointer.mouseDrag([200, 200], [150, 200], { release: false });
+        pointer.mouseMove(150, 200, { buttons: 2 });
+        pointer.mouseMove(100, 200, { buttons: 2 });
+
+        expect(sb.getState().isDragging).toBe(false);
+        expect(onPointerUp).toHaveBeenCalledTimes(1);
+        expect(onPointerUp.mock.calls[0][0].dragOffset).toEqual({ x: -50, y: 0 });
+        // Release of the main button clicks
+        expect(pointer.click(150, 200).defaultPrevented).toBe(true);
     });
 
     it('does not call onPointerUp for release without drag', () => {
