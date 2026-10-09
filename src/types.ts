@@ -64,11 +64,6 @@ export interface ScrollBoosterOptions {
     emulateScroll?: boolean;
     /** Prevents default wheel event in given direction when `emulateScroll` is enabled */
     preventDefaultOnEmulateScroll?: Axis | false;
-    /**
-     * Touch drag in given direction moves content, drag in the other direction scrolls the page natively.
-     * `'all'` disables native touch gestures on viewport
-     */
-    lockScrollOnDragDirection?: Direction | false;
     /** Prevents default mousedown on drag start: text selection, native drag of images and links */
     pointerDownPreventDefault?: boolean;
     /** Tolerance in degrees for horizontal or vertical drag detection */

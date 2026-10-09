@@ -60,7 +60,6 @@ friction | Number | 0.05 | Scroll friction factor - how fast scrolling stops aft
 bounceForce | Number | 0.1 | Elastic bounce effect factor, per 60 Hz frame
 emulateScroll | Boolean | false | Enables mouse wheel/trackpad emulation inside viewport
 preventDefaultOnEmulateScroll | String | false | Prevents horizontal or vertical default when `emulateScroll` is enabled (eg. useful to prevent horizontal trackpad gestures while enabling vertical scrolling). Could be 'horizontal' or 'vertical'
-lockScrollOnDragDirection | String | false | Touch drag in given direction moves content, drag in the other direction scrolls the page natively. Could be 'horizontal', 'vertical' or 'all' (no native touch gestures on viewport)
 dragDirectionTolerance | Number | 40 | Tolerance in degrees for horizontal or vertical drag detection
 pointerDownPreventDefault | Boolean | true | Prevents default `mousedown` on drag start: text selection, native drag of images and links
 reducedMotion | String | 'auto' | 'always' disables inertia and bounce and makes `scrollTo` jump to the target, 'never' keeps them, 'auto' follows `prefers-reduced-motion` user setting
@@ -74,7 +73,7 @@ shouldScroll | Function | noop | Function to permit or disable scrolling. Receiv
 
 Touch dragging relies on CSS `touch-action`: ScrollBooster sets it on the viewport, so the browser keeps the
 native gestures that do not drag content. With `direction: 'horizontal'` vertical swipes scroll the page, with
-`'vertical'` horizontal swipes do, pinch zoom always works except for `lockScrollOnDragDirection: 'all'`.
+`'vertical'` horizontal swipes do, pinch zoom always works.
 
 ### List of methods
 

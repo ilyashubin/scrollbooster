@@ -11,12 +11,11 @@ const FUNCTION: Check = [(value) => typeof value === 'function', 'a function'];
 const ELEMENT: Check = [(value) => value instanceof HTMLElement, 'an HTMLElement'];
 // Factors per 60 Hz frame: 0 makes motion endless or still, 1 stops it at once or freezes drag
 const FACTOR: Check = [(value) => typeof value === 'number' && value > 0 && value < 1, 'a number between 0 and 1'];
-const DIRECTIONS = ['all', 'horizontal', 'vertical'];
 
 const CHECKS: Record<string, Check> = {
     viewport: ELEMENT,
     content: ELEMENT,
-    direction: oneOf(...DIRECTIONS),
+    direction: oneOf('all', 'horizontal', 'vertical'),
     pointerMode: oneOf('all', 'touch', 'mouse'),
     scrollMode: oneOf('transform', 'native', 'none'),
     bounce: BOOLEAN,
@@ -26,7 +25,6 @@ const CHECKS: Record<string, Check> = {
     inputsFocus: BOOLEAN,
     emulateScroll: BOOLEAN,
     preventDefaultOnEmulateScroll: oneOf(false, 'horizontal', 'vertical'),
-    lockScrollOnDragDirection: oneOf(false, ...DIRECTIONS),
     pointerDownPreventDefault: BOOLEAN,
     dragDirectionTolerance: [
         (value) => typeof value === 'number' && value >= 0 && value <= 90,

@@ -53,19 +53,20 @@ Mouse and touch listeners are replaced with Pointer Events.
 
 ScrollBooster sets CSS `touch-action` on the viewport instead of calling `preventDefault()` on `touchmove`:
 
-| `direction` or `lockScrollOnDragDirection` | `touch-action`     | Native gestures left to the browser |
-| ------------------------------------------ | ------------------ | ----------------------------------- |
-| `'all'` (default)                          | `pinch-zoom`       | Pinch zoom                          |
-| `'horizontal'`                             | `pan-y pinch-zoom` | Vertical page scroll, pinch zoom    |
-| `'vertical'`                               | `pan-x pinch-zoom` | Horizontal page scroll, pinch zoom  |
-| `lockScrollOnDragDirection: 'all'`         | `none`             | None                                |
+| `direction`     | `touch-action`     | Native gestures left to the browser |
+| --------------- | ------------------ | ----------------------------------- |
+| `'all'`         | `pinch-zoom`       | Pinch zoom                          |
+| `'horizontal'`  | `pan-y pinch-zoom` | Vertical page scroll, pinch zoom    |
+| `'vertical'`    | `pan-x pinch-zoom` | Horizontal page scroll, pinch zoom  |
 
-`lockScrollOnDragDirection` takes precedence over `direction`. With `pointerMode: 'mouse'` the style is not set.
-The previous inline value is restored by `destroy()`.
+With `pointerMode: 'mouse'` the style is not set. The previous inline value is restored by `destroy()`.
 
 - With `direction: 'all'` touching the viewport does not scroll the page anymore. In 3.x the page scrolled and
   the content barely moved. If you need the page to scroll, use `direction: 'horizontal'` or `'vertical'`.
-- `lockScrollOnDragDirection: 'all'` blocks native gestures only on the viewport, not on the whole page.
+- `lockScrollOnDragDirection` is removed, passing it throws. Its main use, a horizontal gallery that lets vertical
+  swipes scroll the page, is now `direction: 'horizontal'` alone. Touch drag in a direction disabled by `direction`
+  goes to the browser. For `'all'` (no native gestures at all) set `touch-action: none !important` on the viewport
+  in CSS.
 - To use your own `touch-action`, set it in CSS with `!important` or use `pointerMode: 'mouse'`.
 - `preventPointerMoveDefault` is removed, passing it throws. Native touch scrolling is controlled with
   `touch-action`.

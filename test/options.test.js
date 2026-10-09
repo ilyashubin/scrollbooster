@@ -231,48 +231,7 @@ describe('destroy', () => {
     });
 });
 
-describe('lockScrollOnDragDirection', () => {
-    it('horizontal: touch drag along locked direction moves content, vertical pan stays native', () => {
-        const { sb, pointer, viewport } = mount({ lockScrollOnDragDirection: 'horizontal' });
-
-        pointer.touchStart(200, 100);
-        pointer.touchMove(190, 100);
-        pointer.touchMove(100, 100);
-        tick(100);
-
-        expect(viewport.style.touchAction).toBe('pan-y pinch-zoom');
-        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
-    });
-
-    it('horizontal: touch drag across locked direction keeps content', () => {
-        const { sb, pointer } = mount({ lockScrollOnDragDirection: 'horizontal' });
-
-        pointer.touchStart(100, 200);
-        pointer.touchMove(100, 190);
-        pointer.touchMove(100, 100);
-        tick(100);
-
-        expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
-    });
-
-    it('horizontal: mouse drag is not locked', () => {
-        const { sb, pointer } = mount({ lockScrollOnDragDirection: 'horizontal' });
-
-        pointer.mouseDrag([100, 200], [100, 100], { release: false });
-        tick(100);
-
-        expect(roundedPosition(sb)).toEqual({ x: 0, y: 100 });
-    });
-
-    it('all: disables native touch gestures on viewport only', () => {
-        const addListener = vi.spyOn(window, 'addEventListener');
-        const { viewport } = mount({ lockScrollOnDragDirection: 'all' });
-
-        expect(viewport.style.touchAction).toBe('none');
-        expect(getComputedStyle(document.body).touchAction).toBe('auto');
-        expect(addListener.mock.calls.map(([type]) => type)).not.toContain('touchmove');
-    });
-
+describe('drag direction', () => {
     it('detects drag direction with dragDirectionTolerance', () => {
         const { sb } = mount();
 
@@ -293,12 +252,6 @@ describe('touch-action', () => {
         const { viewport } = mount({ direction });
 
         expect(viewport.style.touchAction).toBe(touchAction);
-    });
-
-    it('lockScrollOnDragDirection takes precedence over direction', () => {
-        const { viewport } = mount({ direction: 'horizontal', lockScrollOnDragDirection: 'vertical' });
-
-        expect(viewport.style.touchAction).toBe('pan-x pinch-zoom');
     });
 
     it('keeps viewport touch-action with pointerMode: mouse', () => {
@@ -404,7 +357,6 @@ describe('options validation', () => {
                 pointerMode: 'touch',
                 scrollMode: 'native',
                 reducedMotion: 'never',
-                lockScrollOnDragDirection: 'all',
                 preventDefaultOnEmulateScroll: 'vertical',
                 friction: 0.2,
                 bounceForce: 0.3,
@@ -415,9 +367,12 @@ describe('options validation', () => {
         ).not.toThrow();
     });
 
-    it.each(['scrollMethod', 'preventPointerMoveDefault'])('throws for unknown option %s', (key) => {
-        expect(() => mount({ [key]: true })).toThrow(new TypeError(`ScrollBooster: unknown option "${key}"`));
-    });
+    it.each(['scrollMethod', 'preventPointerMoveDefault', 'lockScrollOnDragDirection'])(
+        'throws for unknown option %s',
+        (key) => {
+            expect(() => mount({ [key]: true })).toThrow(new TypeError(`ScrollBooster: unknown option "${key}"`));
+        }
+    );
 
     it.each([
         ['direction', 'diagonal', 'one of all, horizontal, vertical'],
@@ -426,7 +381,6 @@ describe('options validation', () => {
         ['scrollMode', 'smooth', 'one of transform, native, none'],
         ['scrollMode', undefined, 'one of transform, native, none'],
         ['reducedMotion', true, 'one of auto, always, never'],
-        ['lockScrollOnDragDirection', 'both', 'one of false, all, horizontal, vertical'],
         ['preventDefaultOnEmulateScroll', 'all', 'one of false, horizontal, vertical'],
         ['friction', 0, 'a number between 0 and 1'],
         ['friction', 1, 'a number between 0 and 1'],

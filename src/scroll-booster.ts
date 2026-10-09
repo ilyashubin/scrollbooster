@@ -118,7 +118,6 @@ export class ScrollBooster {
             inputsFocus: true,
             emulateScroll: false,
             preventDefaultOnEmulateScroll: false, // 'vertical', 'horizontal'
-            lockScrollOnDragDirection: false, // 'vertical', 'horizontal', 'all'
             pointerDownPreventDefault: true,
             dragDirectionTolerance: 40,
             reducedMotion: 'auto',
@@ -504,8 +503,6 @@ export class ScrollBooster {
     handleEvents(): void {
         const dragOrigin = { x: 0, y: 0 };
         const clientOrigin = { x: 0, y: 0 };
-        let dragDirection: Axis | null = null;
-        let isTouch = false;
         let activePointerId: number | null = null;
         let activePointerType = '';
         let isCaptured = false;
@@ -526,38 +523,12 @@ export class ScrollBooster {
             this.clientOffset.x = clientX - clientOrigin.x;
             this.clientOffset.y = clientY - clientOrigin.y;
 
-            // get dragDirection if offset threshold is reached
-            if (
-                (Math.abs(this.clientOffset.x) > 5 && !dragDirection) ||
-                (Math.abs(this.clientOffset.y) > 5 && !dragDirection)
-            ) {
-                dragDirection = this.getDragDirection(
-                    this.getDragAngle(this.clientOffset.x, this.clientOffset.y),
-                    this.props.dragDirectionTolerance
-                );
-            }
-
-            // prevent scroll if not expected scroll direction
-            if (this.props.lockScrollOnDragDirection && this.props.lockScrollOnDragDirection !== 'all') {
-                if (dragDirection === this.props.lockScrollOnDragDirection && isTouch) {
-                    this.dragPosition.x = this.dragStartPosition.x + this.dragOffset.x;
-                    this.dragPosition.y = this.dragStartPosition.y + this.dragOffset.y;
-                } else if (!isTouch) {
-                    this.dragPosition.x = this.dragStartPosition.x + this.dragOffset.x;
-                    this.dragPosition.y = this.dragStartPosition.y + this.dragOffset.y;
-                } else {
-                    this.dragPosition.x = this.dragStartPosition.x;
-                    this.dragPosition.y = this.dragStartPosition.y;
-                }
-            } else {
-                this.dragPosition.x = this.dragStartPosition.x + this.dragOffset.x;
-                this.dragPosition.y = this.dragStartPosition.y + this.dragOffset.y;
-            }
+            this.dragPosition.x = this.dragStartPosition.x + this.dragOffset.x;
+            this.dragPosition.y = this.dragStartPosition.y + this.dragOffset.y;
         };
 
         const stopDragging = () => {
             this.isDragging = false;
-            dragDirection = null;
             activePointerId = null;
             this.dragOffset.x = 0;
             this.dragOffset.y = 0;
@@ -594,7 +565,7 @@ export class ScrollBooster {
                 stopDragging();
             }
 
-            isTouch = event.pointerType === 'touch';
+            const isTouch = event.pointerType === 'touch';
             preventMouseDown = false;
             preventClick = false;
 
@@ -893,14 +864,8 @@ export class ScrollBooster {
      * Leave native touch scroll to the browser only in directions that do not drag content
      */
     private applyTouchAction(): void {
-        const { viewport, pointerMode, direction, lockScrollOnDragDirection } = this.props;
-        if (pointerMode === 'mouse') {
-            viewport.style.touchAction = this.initialTouchAction;
-        } else if (lockScrollOnDragDirection === 'all') {
-            viewport.style.touchAction = 'none';
-        } else {
-            viewport.style.touchAction = TOUCH_ACTION[lockScrollOnDragDirection || direction];
-        }
+        const { viewport, pointerMode, direction } = this.props;
+        viewport.style.touchAction = pointerMode === 'mouse' ? this.initialTouchAction : TOUCH_ACTION[direction];
     }
 
     /**

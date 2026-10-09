@@ -50,7 +50,6 @@ describe('init', () => {
             inputsFocus: true,
             emulateScroll: false,
             preventDefaultOnEmulateScroll: false,
-            lockScrollOnDragDirection: false,
             pointerDownPreventDefault: true,
             dragDirectionTolerance: 40,
         });
