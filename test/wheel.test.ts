@@ -124,6 +124,16 @@ describe('wheel goes to the page', () => {
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
     });
 
+    it('when content is at the edge along the main axis and a smaller cross delta could move it', () => {
+        const { sb, viewport } = mount();
+
+        const event = wheel(viewport, 5, -100);
+        tick();
+
+        expect(event.defaultPrevented).toBe(false);
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
+    });
+
     it('when the main axis of the wheel is disabled by direction', () => {
         fakeTimers();
         const { sb, viewport } = mount({ direction: 'horizontal' });

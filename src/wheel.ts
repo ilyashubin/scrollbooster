@@ -70,7 +70,8 @@ export function bindWheel(viewport: HTMLElement, signal: AbortSignal, host: Whee
 
         // Like native scroll, a wheel gesture stays with the scroller that took its first event
         // and goes to the page when content cannot move along the main axis of the gesture
-        if (!gesture.isActive && !host.canScroll(Math.abs(x) > Math.abs(y) ? 'x' : 'y', x || y)) {
+        const axis = Math.abs(x) > Math.abs(y) ? 'x' : 'y';
+        if (!gesture.isActive && !host.canScroll(axis, axis === 'x' ? x : y)) {
             return;
         }
         event.preventDefault();
