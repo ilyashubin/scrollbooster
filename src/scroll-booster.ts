@@ -13,12 +13,21 @@ import { createLoop } from './loop';
 import { ContentMotion } from './motion';
 import { mergeOptions, type Props, resolveOptions, TOUCH_ACTION } from './options';
 import { getDragAngle } from './physics';
-import type { BorderCollision, Point, ScrollBoosterOptions, ScrollBoosterState, ScrollMode } from './types';
+import type {
+    BorderCollision,
+    Point,
+    ScrollAlign,
+    ScrollBoosterOptions,
+    ScrollBoosterState,
+    ScrollMode,
+} from './types';
 import { bindWheel, type WheelGesture } from './wheel';
 
 // Content position follows native scroll position of the viewport, so a scrolled viewport keeps its scroll
 const getScrollPosition = (viewport: HTMLElement): Point =>
     mirrorX({ x: -viewport.scrollLeft, y: -viewport.scrollTop }, isRightToLeft(viewport));
+
+const SCROLL_ALIGN: ScrollAlign[] = ['nearest', 'start', 'center', 'end'];
 
 export class ScrollBooster {
     private props: Props;
@@ -121,6 +130,28 @@ export class ScrollBooster {
         }
         const { x, y } = this.motion.getTarget();
         this.scrollTo({ x: x + (offset.x ?? 0), y: y + (offset.y ?? 0) });
+    }
+
+    /**
+     * Smoothly scroll to show an element of the content, aligned by `align`. Unlike the native
+     * `element.scrollIntoView()` it works in every scroll mode and follows `reducedMotion`. Does nothing while the
+     * user drags content. Throws TypeError for an element outside the content.
+     */
+    scrollIntoView(element: Element, { align = 'nearest' }: { align?: ScrollAlign } = {}): void {
+        if (this.isDestroyed || this.press.isActive) {
+            return;
+        }
+        const { viewport, content } = this.props;
+        if (!(element instanceof Element) || !content.contains(element)) {
+            throw new TypeError('ScrollBooster: scrollIntoView() needs an element inside the content');
+        }
+        if (!SCROLL_ALIGN.includes(align)) {
+            throw new TypeError(`ScrollBooster: align must be one of ${SCROLL_ALIGN.join(', ')}`);
+        }
+        // Offset is measured from the rendered layout, that is from the current position
+        const offset = mirrorX(getRevealOffset(viewport, element, align, this.isRtl), this.isRtl);
+        const { x, y } = this.motion.getPosition();
+        this.scrollTo({ x: x + offset.x, y: y + offset.y });
     }
 
     /**
@@ -285,7 +316,7 @@ export class ScrollBooster {
             'focusin',
             ({ target }) => {
                 if (this.props.scrollMode === 'transform' && !this.press.isActive && target instanceof Element) {
-                    const offset = getRevealOffset(viewport, target);
+                    const offset = getRevealOffset(viewport, target, 'nearest', this.isRtl);
                     if (offset.x || offset.y) {
                         this.jumpBy(offset);
                     }

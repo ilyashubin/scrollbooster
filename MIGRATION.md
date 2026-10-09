@@ -105,7 +105,7 @@ only options that used it.
 ## Methods and state
 
 - The public API is the constructor, `updateOptions()`, `updateMetrics()`, `scrollTo()`, `scrollBy()`,
-  `setPosition()`, `getState()` and `destroy()`. Everything else is private in TypeScript types and may change in any release:
+  `scrollIntoView()`, `setPosition()`, `getState()` and `destroy()`. Everything else is private in TypeScript types and may change in any release:
   fields like `props`, `position`, `isDragging`, `viewport`, `content`, `edgeX`, `edgeY`, and methods like
   `isMoving()`, `getDragAngle()`, `getDragDirection()`, `startAnimationLoop()`, `animate()`,
   `updateScrollPosition()`, `setContentPosition()`, `handleEvents()`. The `apply*Force` methods are gone. Read
@@ -129,6 +129,9 @@ only options that used it.
 - New `scrollBy()` scrolls by an offset from the target of a running scroll, so repeated calls from "next" buttons
   add up. `scrollTo({ x: getState().position.x + 300 })` counted from the current position and lost the rest of
   the running scroll.
+- New `scrollIntoView(element, { align })` smoothly shows an element of the content in any scroll mode. The native
+  `element.scrollIntoView({ behavior: 'smooth' })` stops after the first step in `'transform'` mode, the instant
+  one works.
 - `scrollTo()` does nothing while the user drags content. In 3.x it took the content from under the pointer and
   ignored the pointer until release.
 - `getState().isDragging` is `true` only while the pointer is pressed and has moved more than 5 px along allowed

@@ -23,6 +23,12 @@ export type ScrollMode = 'transform' | 'native' | 'none';
 
 export type ReducedMotion = 'auto' | 'always' | 'never';
 
+/**
+ * Where `scrollIntoView()` puts the element: `'nearest'` scrolls the least to show it, `'start'`, `'center'` and
+ * `'end'` align it with the start, center or end of viewport. Start is the right side in a right-to-left viewport.
+ */
+export type ScrollAlign = 'nearest' | 'start' | 'center' | 'end';
+
 export interface BorderCollision {
     left: boolean;
     right: boolean;

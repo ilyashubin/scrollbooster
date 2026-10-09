@@ -6,6 +6,7 @@ export type {
     Point,
     PointerMode,
     ReducedMotion,
+    ScrollAlign,
     ScrollBoosterOptions,
     ScrollBoosterState,
     ScrollMode,

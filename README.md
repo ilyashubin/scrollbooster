@@ -79,6 +79,7 @@ Method | Description
 setPosition | Jumps to position within edges and stops motion. Receives an object with properties `x` and `y`, a missing one keeps its value
 scrollTo | Smooth scroll to position within edges. Receives an object with properties `x` and `y`, a missing one keeps its value. Does nothing while the user drags content
 scrollBy | Smooth scroll by an offset `{ x, y }` from the target of a running scroll or from the current position, so repeated calls from "next" and "previous" buttons add up. A missing coordinate does not move
+scrollIntoView | Smooth scroll to show an element of the content: `sb.scrollIntoView(element, { align })`, where `align` is `'nearest'` (default, the least scroll), `'start'`, `'center'` or `'end'`. Use it instead of the native `element.scrollIntoView({ behavior: 'smooth' })`: in `transform` mode the native smooth scroll stops after the first step
 updateMetrics | Forces to recalculate elements metrics. Viewport and content resizes are tracked automatically, use it for changes that do not resize them
 updateOptions | Sets option value. All properties from `Options` config object are supported, including `viewport` and `content`
 getState | Returns current scroll state in a same format as `onUpdate`: `position`, `maxPosition`, `viewport` and `content` sizes, `isMoving`, `isDragging`, `dragOffset`, `dragAngle`, `borderCollision`

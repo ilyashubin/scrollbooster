@@ -1,4 +1,4 @@
-import type { Point, ScrollMode, Size } from './types';
+import type { Point, ScrollAlign, ScrollMode, Size } from './types';
 
 export interface Metrics {
     viewport: Size;
@@ -39,23 +39,35 @@ export const prefersReducedMotion = (): boolean => {
 };
 
 /**
- * Scroll offset of the smallest distance that shows the element inside viewport, start edge wins for large elements
+ * Scroll offset in the DOM that aligns the element in viewport. `'nearest'` scrolls the smallest distance that
+ * shows it, start edge wins for large elements. Start and end of the x axis swap in a right-to-left viewport.
  */
-export function getRevealOffset(viewport: HTMLElement, element: Element): Point {
+export function getRevealOffset(viewport: HTMLElement, element: Element, align: ScrollAlign, isRtl: boolean): Point {
     const box = viewport.getBoundingClientRect();
     const rect = element.getBoundingClientRect();
-    const offset = (start: number, end: number, visibleStart: number, visibleSize: number) => {
+    const offset = (start: number, end: number, visibleStart: number, visibleSize: number, side: ScrollAlign) => {
+        const visibleEnd = visibleStart + visibleSize;
+        if (side === 'start') {
+            return start - visibleStart;
+        }
+        if (side === 'end') {
+            return end - visibleEnd;
+        }
+        if (side === 'center') {
+            return (start + end - visibleStart - visibleEnd) / 2;
+        }
         if (start < visibleStart) {
             return start - visibleStart;
         }
-        if (end > visibleStart + visibleSize) {
-            return Math.min(end - visibleStart - visibleSize, start - visibleStart);
+        if (end > visibleEnd) {
+            return Math.min(end - visibleEnd, start - visibleStart);
         }
         return 0;
     };
+    const sideX = isRtl && align === 'start' ? 'end' : isRtl && align === 'end' ? 'start' : align;
     return {
-        x: offset(rect.left, rect.right, box.left + viewport.clientLeft, viewport.clientWidth),
-        y: offset(rect.top, rect.bottom, box.top + viewport.clientTop, viewport.clientHeight),
+        x: offset(rect.left, rect.right, box.left + viewport.clientLeft, viewport.clientWidth, sideX),
+        y: offset(rect.top, rect.bottom, box.top + viewport.clientTop, viewport.clientHeight, align),
     };
 }
 
