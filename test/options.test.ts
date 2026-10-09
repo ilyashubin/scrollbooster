@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, type Mock, vi } from 'vitest';
 import { ScrollBooster, type ScrollMode } from '../src/index.ts';
 import {
     createFixture,
@@ -90,6 +90,20 @@ describe('updateOptions', () => {
         pointer.mouseDrag([200, 200], [100, 200], { release: false });
         tick(100);
         expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
+    });
+});
+
+describe('updateOptions elements', () => {
+    // Only the transform that the instance rendered is removed from the previous content
+    it('leaves style of previous content in native mode', () => {
+        const { sb, content } = mount({ scrollMode: 'native' });
+        content.style.transform = 'scale(1)';
+        const next = document.createElement('div');
+        content.append(next);
+
+        sb.updateOptions({ content: next });
+
+        expect(content.style.transform).toBe('scale(1)');
     });
 });
 
@@ -412,5 +426,41 @@ describe('options validation', () => {
         pointer.mouseMove(100, 100);
         tick();
         expect(roundedPosition(sb)).toEqual({ x: 95, y: 0 });
+    });
+});
+
+describe('updateOptions callbacks', () => {
+    const CALLBACKS = ['onPointerDown', 'onPointerMove', 'onPointerUp', 'onClick', 'onUpdate', 'onWheel'] as const;
+    const callbacks = () =>
+        Object.fromEntries(CALLBACKS.map((name) => [name, vi.fn()])) as Record<(typeof CALLBACKS)[number], Mock>;
+
+    it('calls new callbacks and not the replaced ones', () => {
+        const previous = callbacks();
+        const { sb, pointer, viewport } = mount(previous);
+        const next = { ...callbacks(), shouldScroll: vi.fn(() => true) };
+
+        sb.updateOptions(next);
+        pointer.mouseDrag([200, 200], [100, 200]);
+        pointer.click(100, 200);
+        wheel(viewport, 0, 10);
+        tick();
+
+        for (const name of CALLBACKS) {
+            expect(next[name], name).toHaveBeenCalled();
+            expect(previous[name], name).not.toHaveBeenCalled();
+        }
+        expect(next.shouldScroll).toHaveBeenCalled();
+    });
+
+    it('shouldScroll from updateOptions decides the next press', () => {
+        const onPointerDown = vi.fn();
+        const { sb, pointer } = mount({ onPointerDown });
+
+        sb.updateOptions({ shouldScroll: () => false });
+        pointer.mouseDrag([200, 200], [100, 200]);
+        tick(10);
+
+        expect(onPointerDown).not.toHaveBeenCalled();
+        expect(sb.getState().position).toEqual({ x: 0, y: 0 });
     });
 });

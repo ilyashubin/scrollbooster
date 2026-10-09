@@ -62,6 +62,18 @@ describe('focus in transform mode', () => {
         expect(sb.getState().position).toEqual({ x: 100, y: 100 });
     });
 
+    it('reveals the start of element larger than viewport', async () => {
+        const { sb, content, viewport } = mount({ scrollMode: 'transform' });
+        const [input] = addInputs(content, [[200, 100]]);
+        input.style.width = '500px';
+
+        input.focus();
+        await nextRender();
+
+        expect(offsetIn(viewport, input).left).toBe(0);
+        expect(sb.getState().position.x).toBe(200);
+    });
+
     it('moves only along allowed direction', async () => {
         const { sb, content } = mount({ scrollMode: 'transform', direction: 'vertical' });
         const [input] = addInputs(content, [[600, 500]]);

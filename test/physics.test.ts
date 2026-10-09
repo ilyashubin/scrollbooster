@@ -99,6 +99,60 @@ describe('bounce', () => {
     });
 });
 
+describe('native scroll mode', () => {
+    // Browser rounds scrollLeft and scrollTop, the scroll event that follows must not stop inertia
+    it('keeps inertia when native scroll reports a rounded position', async () => {
+        const fling = async (scrollMode: 'transform' | 'native') => {
+            const { sb, pointer } = mount({ scrollMode });
+            pointer.mouseDrag([250, 250], [130, 170], { steps: 7 });
+            const points = [];
+            for (let frame = 0; frame < 10; frame++) {
+                tick();
+                await nextRender();
+                points.push(roundedPosition(sb, 6));
+            }
+            return points;
+        };
+
+        expect(await fling('native')).toEqual(await fling('transform'));
+    });
+});
+
+describe('content smaller than viewport', () => {
+    const small = { contentWidth: 100, contentHeight: 100 };
+
+    it('goes beyond edges with bounce and returns to the start', () => {
+        const { sb, pointer } = mount({}, small);
+
+        pointer.mouseDrag([200, 200], [100, 150], { release: false });
+        tick();
+        expect(sb.getState().position.x).toBeGreaterThan(0);
+        expect(sb.getState().position.y).toBeGreaterThan(0);
+
+        pointer.mouseUp(100, 150);
+        tick(200);
+        expect(sb.getState()).toMatchObject({ isMoving: false, position: { x: 0, y: 0 } });
+    });
+
+    it('stays in place without bounce', () => {
+        const onUpdate = vi.fn();
+        const { pointer } = mount({ bounce: false, onUpdate }, small);
+
+        pointer.mouseDrag([200, 200], [100, 150]);
+        tick(50);
+
+        for (const [state] of onUpdate.mock.calls) {
+            expect(state.position).toEqual({ x: 0, y: 0 });
+        }
+    });
+
+    it('leaves wheel to the page', () => {
+        const { viewport } = mount({}, small);
+
+        expect(wheel(viewport, 0, 100).defaultPrevented).toBe(false);
+    });
+});
+
 describe('refresh rate', () => {
     const RATES = [30, 120, 144];
 
@@ -192,6 +246,37 @@ describe('refresh rate', () => {
         // scrollTo keeps 1 - 0.08 * 0.95 of the remaining distance per 60 Hz frame, 100 ms is 6 frames
         const expected = 400 - (400 - before) * (1 - 0.08 * 0.95) ** 6;
         expect(sb.getState().position.x).toBeCloseTo(expected, 6);
+    });
+
+    // Two animation frames may share a timestamp
+    it('does not move content in a frame of zero duration', () => {
+        const onUpdate = vi.fn();
+        const { sb } = mount({ onUpdate });
+        sb.scrollTo({ x: 400 });
+        tick(3);
+        const before = sb.getState().position;
+        onUpdate.mockClear();
+
+        tick(1, 0);
+
+        expect(sb.getState().position).toEqual(before);
+        expect(onUpdate).toHaveBeenCalledTimes(1);
+        tick(1);
+        expect(sb.getState().position.x).toBeGreaterThan(before.x);
+    });
+
+    it('starts a new motion with one frame after the loop stopped on a frame of zero duration', () => {
+        const { sb, pointer } = mount();
+        pointer.mouseDown(100, 100);
+        tick(2);
+        pointer.mouseUp(100, 100);
+        tick(1, 0);
+        expect(pendingFrames()).toBe(0);
+
+        sb.scrollTo({ x: 400 });
+        tick(1);
+
+        expect(sb.getState().position.x).toBeCloseTo(400 * 0.08 * 0.95, 6);
     });
 
     it('starts a new motion with one frame, not the idle time since the previous one', () => {

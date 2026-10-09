@@ -378,6 +378,19 @@ describe('drag guards', () => {
         expect(sb.getState().isDragging).toBe(true);
     });
 
+    it('textSelection: drags from an element with text past the end of the text', () => {
+        const { sb, pointer, content } = mount({ textSelection: true });
+        const paragraph = document.createElement('p');
+        paragraph.style.cssText = 'margin: 0; font: 20px/20px monospace;';
+        paragraph.textContent = 'Short';
+        content.prepend(paragraph);
+
+        pointer.mouseDown(250, 10, {}, paragraph);
+        pointer.mouseMove(200, 10);
+
+        expect(sb.getState().isDragging).toBe(true);
+    });
+
     it('ignores pointerdown on native scrollbars', () => {
         const { sb, viewport, pointer } = mount({}, { overflow: 'scroll' });
         const scrollbarWidth = viewport.offsetWidth - viewport.clientWidth;

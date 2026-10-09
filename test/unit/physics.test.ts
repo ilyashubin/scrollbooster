@@ -95,7 +95,10 @@ describe('spring', () => {
     });
 
     it.each([
-        ['overdamped', 0.6],
+        // Oscillates around the edge
+        ['underdamped', 0.6],
+        // Overdamped with friction 0.05 only below force 0.00067, where the discriminant is positive
+        ['overdamped', 0.0003],
         ['critically damped', (1 - Math.sqrt(retention)) ** 2 / retention],
     ])('works with %s spring', (_, force) => {
         const legacy = repeat(3, (m) => legacyFrame(m.position, m.velocity, () => -m.position * force), {

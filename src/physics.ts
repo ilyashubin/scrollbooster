@@ -51,10 +51,8 @@ export function spring(
     friction: number,
     frames: number
 ): Motion {
+    // Options keep friction between 0 and 1, so retention is positive
     const retention = 1 - friction;
-    if (retention <= 0) {
-        return { position, velocity: 0 };
-    }
     // Frame map on (distance to edge, velocity) is [[1 - retention * bounceForce, -retention], [retention * bounceForce, retention]]
     const m11 = 1 - retention * bounceForce;
     const m12 = -retention;
