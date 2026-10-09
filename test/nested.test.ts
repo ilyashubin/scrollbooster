@@ -86,8 +86,8 @@ describe('nested instances', () => {
         pointer.mouseDrag([50, 50], [150, 50], { release: false });
         tick(20);
 
-        // Bounce beyond the start edge of the row
-        expect(roundedPosition(inner).x).toBeLessThan(-50);
+        // Bounce beyond the start edge of the row, with the rubber band resistance
+        expect(roundedPosition(inner).x).toBeLessThan(-20);
         expect(roundedPosition(outer.sb)).toEqual({ x: 0, y: 0 });
     });
 

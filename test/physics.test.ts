@@ -54,7 +54,8 @@ describe('bounce', () => {
 
         pointer.mouseDrag([100, 100], [200, 150], { release: false });
         tick(50);
-        expect(roundedPosition(sb)).toEqual({ x: -100, y: -50 });
+        // Rubber band on a 300 px viewport: 100 px beyond the edge show 46.5 px, 50 px show 25.2 px
+        expect(roundedPosition(sb)).toEqual({ x: -46.5, y: -25.2 });
         expect(sb.getState().borderCollision).toMatchObject({ left: true, top: true });
 
         pointer.mouseUp(200, 150);
@@ -62,6 +63,33 @@ describe('bounce', () => {
 
         expect(trajectory).toMatchSnapshot();
         expect(sb.getState().position).toEqual({ x: 0, y: 0 });
+    });
+
+    it('keeps content within a viewport size beyond the edge however far it is dragged', () => {
+        const { sb, pointer } = mount();
+
+        pointer.mouseDrag([0, 100], [3000, 100], { release: false });
+        tick(50);
+
+        expect(sb.getState().position.x).toBeLessThan(-250);
+        expect(sb.getState().position.x).toBeGreaterThan(-300);
+    });
+
+    it('holds content beyond the edge where it is when pressed again', () => {
+        const { sb, pointer } = mount();
+        pointer.mouseDrag([100, 100], [250, 100], { release: false });
+        tick(50);
+        pointer.mouseUp(250, 100);
+        tick(5);
+        const { x } = sb.getState().position;
+
+        pointer.mouseDown(250, 100);
+        tick(20);
+        expect(sb.getState().position.x).toBeCloseTo(x, 1);
+
+        pointer.mouseMove(270, 100);
+        tick(50);
+        expect(sb.getState().position.x).toBeLessThan(x);
     });
 
     it('returns from the far edge after a fling', () => {

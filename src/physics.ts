@@ -120,6 +120,43 @@ export function clamp(value: number, edge: Edge): number {
     return Math.max(Math.min(value, edge.to), edge.from);
 }
 
+// Resistance of a drag beyond an edge, as in UIScrollView: a drag by the viewport size moves content by 35% of it
+const RUBBER_BAND = 0.55;
+// Content shown further beyond an edge is taken at this share of the viewport size by unrubberBand()
+const MAX_RUBBER_BAND = 0.99;
+
+/**
+ * Content position for a drag to `position`: within edges it follows the pointer, beyond an edge it lags behind
+ * and never gets a viewport `size` away from the edge
+ */
+export function rubberBand(position: number, edge: Edge, size: number): number {
+    const edgePosition = clamp(position, edge);
+    const beyond = Math.abs(position - edgePosition);
+    if (!beyond) {
+        return position;
+    }
+    if (size <= 0) {
+        return edgePosition;
+    }
+    return (
+        edgePosition +
+        (Math.sign(position - edgePosition) * beyond * RUBBER_BAND * size) / (beyond * RUBBER_BAND + size)
+    );
+}
+
+/**
+ * Drag position that shows content at `position`, the inverse of rubberBand(): a press on content flying beyond an
+ * edge holds it where it is
+ */
+export function unrubberBand(position: number, edge: Edge, size: number): number {
+    const edgePosition = clamp(position, edge);
+    const shown = Math.min(Math.abs(position - edgePosition), size * MAX_RUBBER_BAND);
+    if (!shown) {
+        return position;
+    }
+    return edgePosition + (Math.sign(position - edgePosition) * shown * size) / (RUBBER_BAND * (size - shown));
+}
+
 /**
  * Get drag angle (up: 180, left: -90, right: 90, down: 0)
  */

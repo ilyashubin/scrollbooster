@@ -53,7 +53,7 @@ content | HTMLElement | first child of viewport | Element that moves inside view
 direction | `'all'`, `'horizontal'`, `'vertical'` | `'all'` | Directions the content scrolls in
 scrollMode | `'transform'`, `'native'`, `'none'` | `'transform'` | How the position is rendered, see [Choosing `scrollMode`](#choosing-scrollmode)
 pointerMode | `'all'`, `'touch'`, `'mouse'` | `'all'` | Pointers that drag content, `'mouse'` includes pen
-bounce | boolean | `true` | Content bounces back when dragged or thrown beyond the edges
+bounce | boolean | `true` | Content can be pulled beyond the edges with resistance and bounces back when thrown beyond them
 friction | number | `0.05` | How fast motion slows down after release, between 0 and 1
 bounceForce | number | `0.1` | How fast content returns from beyond an edge, between 0 and 1
 textSelection | boolean | `false` | Text can be selected: a mouse press on text selects it instead of dragging, a long touch press selects a word

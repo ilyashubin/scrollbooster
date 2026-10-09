@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { approach, clamp, coast, getDragAngle, getEdgeMode, hasVelocity, type Motion, spring } from '../../src/physics';
+import {
+    approach,
+    clamp,
+    coast,
+    getDragAngle,
+    getEdgeMode,
+    hasVelocity,
+    type Motion,
+    rubberBand,
+    spring,
+    unrubberBand,
+} from '../../src/physics';
 
 const edgeX = { from: -700, to: 0 };
 const friction = 0.05;
@@ -129,6 +140,40 @@ describe('getEdgeMode', () => {
         // rest position 50 + (-10 - 5) / 0.05 = -250 is inside edges
         expect(getEdgeMode(50, -10, edgeX, bounceForce, friction)).toBe('return');
         expect(getEdgeMode(-750, 0, edgeX, bounceForce, friction)).toBe('return');
+    });
+});
+
+describe('rubberBand', () => {
+    it('keeps positions within edges', () => {
+        expect(rubberBand(-300, edgeX, 300)).toBe(-300);
+        expect(rubberBand(0, edgeX, 300)).toBe(0);
+        expect(rubberBand(-700, edgeX, 300)).toBe(-700);
+    });
+
+    it('shows 35% of a drag by the viewport size beyond either edge', () => {
+        expect(rubberBand(300, edgeX, 300)).toBeCloseTo(106.45, 2);
+        expect(rubberBand(-1000, edgeX, 300)).toBeCloseTo(-806.45, 2);
+    });
+
+    it('grows slower further from the edge and stays within the viewport size', () => {
+        const first = rubberBand(100, edgeX, 300);
+        const second = rubberBand(200, edgeX, 300) - first;
+        expect(second).toBeLessThan(first);
+        expect(rubberBand(1e6, edgeX, 300)).toBeLessThan(300);
+    });
+
+    it('stops at the edge without viewport size', () => {
+        expect(rubberBand(50, edgeX, 0)).toBe(0);
+    });
+
+    it('is inverted by unrubberBand', () => {
+        for (const position of [-950, -750, -700, -300, 0, 20, 150, 290]) {
+            expect(rubberBand(unrubberBand(position, edgeX, 300), edgeX, 300)).toBeCloseTo(position, 6);
+        }
+    });
+
+    it('unrubberBand takes content beyond the viewport size near it', () => {
+        expect(rubberBand(unrubberBand(400, edgeX, 300), edgeX, 300)).toBeCloseTo(297, 6);
     });
 });
 

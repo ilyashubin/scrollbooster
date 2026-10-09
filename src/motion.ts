@@ -1,5 +1,16 @@
 import type { Props } from './options';
-import { approach, clamp, coast, getEdgeMode, hasVelocity, type Motion, spring, TARGET_SCROLL_FACTOR } from './physics';
+import {
+    approach,
+    clamp,
+    coast,
+    getEdgeMode,
+    hasVelocity,
+    type Motion,
+    rubberBand,
+    spring,
+    TARGET_SCROLL_FACTOR,
+    unrubberBand,
+} from './physics';
 import type { BorderCollision, Direction, Edge, Point, Size } from './types';
 
 const AXES = ['x', 'y'] as const;
@@ -35,6 +46,7 @@ export class ContentMotion {
     #dragStart: Point = { x: 0, y: 0 };
     #edgeX: Edge = { from: 0, to: 0 };
     #edgeY: Edge = { from: 0, to: 0 };
+    #viewport: Size = { width: 0, height: 0 };
 
     constructor(position: Point) {
         this.#position = position;
@@ -49,6 +61,7 @@ export class ContentMotion {
     }
 
     setSizes(viewport: Size, content: Size): void {
+        this.#viewport = { ...viewport };
         this.#edgeX = { from: Math.min(viewport.width - content.width, 0), to: 0 };
         this.#edgeY = { from: Math.min(viewport.height - content.height, 0), to: 0 };
     }
@@ -106,7 +119,9 @@ export class ContentMotion {
             return { position: position + wheel[axis], velocity: 0 };
         }
         if (drag) {
-            return approach(position, this.#dragStart[axis] + drag[axis], friction, frames);
+            const pointer = this.#dragStart[axis] + drag[axis];
+            const goal = bounce ? rubberBand(pointer, this.#getEdge(axis), this.#getViewportSize(axis)) : pointer;
+            return approach(position, goal, friction, frames);
         }
         if (bounce) {
             const edge = this.#getEdge(axis);
@@ -140,7 +155,13 @@ export class ContentMotion {
 
     startDrag(): void {
         this.#isTargetScroll = false;
-        this.#dragStart = { ...this.#position };
+        for (const axis of AXES) {
+            this.#dragStart[axis] = unrubberBand(
+                this.#position[axis],
+                this.#getEdge(axis),
+                this.#getViewportSize(axis)
+            );
+        }
     }
 
     /**
@@ -259,6 +280,10 @@ export class ContentMotion {
 
     #getEdge(axis: Axis): Edge {
         return axis === 'x' ? this.#edgeX : this.#edgeY;
+    }
+
+    #getViewportSize(axis: Axis): number {
+        return axis === 'x' ? this.#viewport.width : this.#viewport.height;
     }
 
     #clampPosition(): void {

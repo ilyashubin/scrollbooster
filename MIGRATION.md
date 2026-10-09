@@ -220,6 +220,9 @@ options come from user input, catch the error.
 - Motion is the same on any refresh rate. In 3.x physics ran per frame, so on 120 Hz screens inertia and bounce
   were twice as fast and short. `friction` and `bounceForce` keep their meaning at 60 Hz, where motion matches 3.x.
   On 120 Hz screens inertia now travels twice as far as in 3.x.
+- A drag beyond an edge meets resistance, like native scroll on iOS: content moves slower the further it is pulled
+  and stays within a viewport size from the edge. 3.x moved it with the pointer, so content could be dragged out of
+  the viewport.
 - Motion ends exactly at the `scrollTo()` target and at the edges. 3.x stopped a fraction of a pixel short.
 - Starting a drag, wheel scrolling and `setPosition()` cancel a running `scrollTo()`. In 3.x dragging did not work
   until `scrollTo()` finished.
