@@ -22,21 +22,23 @@
   ],
   "sideEffects": false,
   "scripts": {
+    "dev": "vite",
     "build": "tsdown",
-    "dev": "tsdown --watch",
+    "build:watch": "tsdown --watch",
+    "build:demo": "vite build",
+    "preview:demo": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --project unit --project chromium",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "typecheck": "tsc && tsc -p tsconfig.test.json",
-    "check:package": "publint --strict && attw --pack . --profile esm-only --exclude-entrypoints ./dist/scrollbooster.min.js && size-limit",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:package",
+    "check:package": "publint --strict && attw --pack . --profile esm-only --exclude-entrypoints ./dist/scrollbooster.min.js && size-limit",
     "changeset": "changeset",
-    "start": "vite",
-    "build:demo": "vite build",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "pnpm build"
   },
+
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ilyashubin/scrollbooster.git"

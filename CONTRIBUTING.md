@@ -9,7 +9,7 @@ Contributions are welcome!
 5. Run `pnpm exec playwright install chromium firefox webkit` once, then `pnpm test` to run unit tests in Node
    (project `unit`) and browser tests in all three browsers (projects `chromium`, `firefox`, `webkit`).
    Use `pnpm test --project unit --project chromium` to run a subset and `pnpm test:watch` while developing
-6. Try changes by hand in the demo: `pnpm start` serves `demo/` and opens it in the browser, the pages import `src/`
+6. Try changes by hand in the demo: `pnpm dev` serves `demo/` and opens it in the browser, the pages import `src/`
    directly and reload on change. The server listens on the local network, open the printed Network address on a
    phone to try touch
 7. Run `pnpm check` before committing: lint, typecheck, all tests, build and package checks in one command
@@ -63,8 +63,8 @@ Page | Scenario
 
 Shared code lives in `demo/shared/`: page list for the navigation and the build, state panel, styles. A new page is
 added to `demo/shared/pages.ts`. `pnpm build:demo` builds the pages to `dist-demo/` with relative paths, for any
-static host. Biome rule `noNoninteractiveTabindex` is off for demo pages: a viewport in `transform` mode has
-`overflow: hidden`, it is reachable from the keyboard only with `tabindex`.
+static host, `pnpm preview:demo` serves the build. Biome rule `noNoninteractiveTabindex` is off for demo pages: a
+viewport in `transform` mode has `overflow: hidden`, it is reachable from the keyboard only with `tabindex`.
 
 Before a release try `index.html` and `gallery.html` on real devices: a high refresh rate display, iOS and Android.
 Tests do not catch how scrolling feels.
@@ -77,7 +77,7 @@ Command | What it does
 `pnpm typecheck` | TypeScript for `src` (`tsconfig.json`) and for tests and configs (`tsconfig.test.json`)
 `pnpm test` | Unit tests in Node and browser tests in Chromium, Firefox and WebKit
 `pnpm test:coverage` | Unit and Chromium tests with V8 coverage of `src`, HTML report in `coverage/`. V8 coverage works in Chromium only
-`pnpm build` | ESM and `<script>` builds with types in `dist`
+`pnpm build` | ESM and `<script>` builds with types in `dist`, `pnpm build:watch` rebuilds on change, for a package linked into another project
 `pnpm check:package` | Checks the built package: `publint` for `package.json`, `@arethetypeswrong/cli` for types of every entry point, `size-limit` for the gzip size budget in `.size-limit.json`. Run `pnpm build` first
 `pnpm check` | All of the above except coverage, in this order
 
