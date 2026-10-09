@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScrollBooster sandbox</title>
+    <style>.options{border:1px solid var(--line);background:var(--surface);border-radius:10px;margin:0 0 16px;padding:8px 12px}.options summary{cursor:pointer}.settings{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 16px;padding:8px 0 4px;display:grid}.settings label{justify-content:space-between;align-items:center;gap:8px;display:flex}.settings input[type=range]{width:100px}.settings output{margin-left:auto}</style>
+  <script type="module" crossorigin src="./assets/sandbox-8S_f-cUd.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/scroll-booster-C3eI9fs7.js">
+  <link rel="modulepreload" crossorigin href="./assets/demo-BuffhXw6.js">
+  <link rel="stylesheet" crossorigin href="./assets/demo-DzoleO6o.css">
+</head>
+<body>
+<main>
+    <h1>Sandbox</h1>
+    <p class="hint">
+        Every option is a control, changes go through <code>updateOptions()</code> and are kept in this browser.
+        Drag, fling, use the wheel, click links and buttons, Tab into the board and press arrow keys.
+    </p>
+    <details class="options" id="options">
+        <summary>Options</summary>
+        <form class="settings" id="settings"></form>
+    </details>
+    <div class="toolbar" id="methods"></div>
+    <div class="stage">
+        <div>
+            <section class="viewport tall" id="viewport" tabindex="0" aria-label="Sandbox board">
+                <div class="board" id="board"></div>
+            </section>
+        </div>
+        <div id="panel"></div>
+    </div>
+</main>
+</body>
+</html>

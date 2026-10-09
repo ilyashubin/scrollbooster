@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScrollBooster motion</title>
+    <style>.settings{flex-wrap:wrap;align-items:center;gap:8px 24px;margin:0 0 12px;display:flex}canvas{border:1px solid var(--line);background:var(--surface);border-radius:10px;width:100%;height:260px;margin:12px 0 0;display:block}.legend{flex-wrap:wrap;gap:4px 16px;margin:8px 0 0;padding:0;font-size:13px;list-style:none;display:flex}</style>
+  <script type="module" crossorigin src="./assets/motion-DUjtwNpB.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/scroll-booster-C3eI9fs7.js">
+  <link rel="modulepreload" crossorigin href="./assets/demo-BuffhXw6.js">
+  <link rel="stylesheet" crossorigin href="./assets/demo-DzoleO6o.css">
+</head>
+<body>
+<main>
+    <h1>Motion</h1>
+    <p class="hint">
+        Physics is defined per 60 Hz frame and scaled by the measured frame duration, so a motion takes the same time
+        and distance at any refresh rate. Every motion of the strip is drawn below: position over time since the
+        motion started. Run <code>scrollTo</code> at different simulated rates and compare the lines, a drag and
+        fling gives a new line too. The first motion after a rate change starts one frame late: a motion starts with
+        the last measured frame duration.
+    </p>
+    <div class="settings">
+        <label>
+            reducedMotion
+            <select id="reduced-motion">
+                <option>auto</option>
+                <option>always</option>
+                <option>never</option>
+            </select>
+        </label>
+        <span id="media"></span>
+        <label>
+            Frames
+            <select id="divisor">
+                <option value="1">every frame</option>
+                <option value="2">every 2nd frame</option>
+                <option value="3">every 3rd frame</option>
+                <option value="4">every 4th frame</option>
+            </select>
+        </label>
+    </div>
+    <div class="toolbar">
+        <button type="button" id="to-end">scrollTo end</button>
+        <button type="button" id="to-start">scrollTo start</button>
+        <button type="button" id="clear">Clear lines</button>
+    </div>
+    <div class="stage">
+        <div>
+            <section class="viewport" id="strip" tabindex="0" aria-label="Strip">
+                <div class="strip"></div>
+            </section>
+            <canvas id="chart" aria-label="Position over time"></canvas>
+            <ul class="legend" id="legend"></ul>
+        </div>
+        <div id="panel"></div>
+    </div>
+</main>
+</body>
+</html>
