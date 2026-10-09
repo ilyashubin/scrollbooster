@@ -128,6 +128,9 @@ only options that used it.
   keep that: `scrollTo({ x: 100, y: 0 })`. During a running `scrollTo()` the missing coordinate keeps its target.
 - `scrollTo()` and `setPosition()` keep the position within edges: `scrollTo({ y: 99999 })` stops at the end. In
   3.x the target was not limited and content could stay beyond the edge, or bounce back after `setPosition()`.
+- New `keyboard` option, on by default: arrow keys, Page Up, Page Down, Space, Home and End scroll content while
+  the viewport or an element in it has focus. In 3.x `transform` mode could not be scrolled from the keyboard. Set
+  `keyboard: false` to keep keys for your own handlers.
 - New `snap` option chooses where content stops after a drag or a wheel gesture: it receives the position where
   inertia would stop and returns the position to scroll to. Carousels do not need to restart the motion from
   `onPointerUp` anymore.

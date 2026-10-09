@@ -9,6 +9,7 @@ import {
     render,
 } from './dom';
 import { bindDrag, isPastClickThreshold, type Press } from './input';
+import { getKeyScroll } from './keyboard';
 import { createLoop } from './loop';
 import { ContentMotion } from './motion';
 import { mergeOptions, type Props, resolveOptions, TOUCH_ACTION } from './options';
@@ -340,6 +341,7 @@ export class ScrollBooster {
             },
             { signal }
         );
+        viewport.addEventListener('keydown', (event) => this.onKeyDown(event), { signal });
         // ResizeObserver misses scrollWidth growth of fixed-size content, so loaded images still update metrics
         content.addEventListener('load', () => this.updateMetrics(), { capture: true, signal });
 
@@ -376,6 +378,36 @@ export class ScrollBooster {
         viewport.style.touchAction = this.initialTouchAction;
         if (scrollMode === 'transform') {
             content.style.transform = '';
+        }
+    }
+
+    /**
+     * Keyboard scroll of the focused viewport or of content with focus. A key goes to the page when content cannot
+     * move along its axis, like wheel.
+     */
+    private onKeyDown(event: KeyboardEvent): void {
+        const { keyboard, direction } = this.props;
+        if (!keyboard || event.defaultPrevented || this.press.isActive) {
+            return;
+        }
+        const key = getKeyScroll(event, this.metrics.viewport, direction);
+        if (!key) {
+            return;
+        }
+        const { axis } = key;
+        if ('edge' in key) {
+            const edge = key.edge === 'start' ? 0 : this.motion.getMaxPosition()[axis];
+            if (this.motion.canScroll(axis, edge - this.motion.getPosition()[axis], direction)) {
+                event.preventDefault();
+                this.scrollTo({ [axis]: edge });
+            }
+            return;
+        }
+        const delta = 'page' in key ? key.page : axis === 'x' && this.isRtl ? -key.arrow : key.arrow;
+        if (this.motion.canScroll(axis, delta, direction)) {
+            event.preventDefault();
+            // Key repeat adds up like repeated wheel events
+            this.scrollBy({ [axis]: delta });
         }
     }
 

@@ -59,6 +59,7 @@ pointerMode | String | 'all' | Specify pointer type. Supported values - 'touch' 
 friction | Number | 0.05 | Scroll friction factor - how fast scrolling stops after pointer release, per 60 Hz frame
 bounceForce | Number | 0.1 | Elastic bounce effect factor, per 60 Hz frame
 wheel | Boolean | true | Mouse wheel and trackpad scroll content. A gesture goes to the page when content cannot move along its main axis, for example at the edge or across `direction`
+keyboard | Boolean | true | Arrow keys, Page Up, Page Down, Space, Home and End scroll content when the viewport or an element in it has focus, see Accessibility
 reducedMotion | String | 'auto' | 'always' disables inertia and bounce and makes `scrollTo` jump to the target, 'never' keeps them, 'auto' follows `prefers-reduced-motion` user setting
 onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates. Called on animation frames, the first time on the frame after the constructor
 onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives state and the event. Calls after each `click` in scrollable area, `event.defaultPrevented` is `true` for the click that ends a drag
@@ -136,6 +137,11 @@ sb.destroy();
   to the target. Control it with the `reducedMotion` option.
 - In `transform` mode focusing an element outside the visible area (for example with Tab) scrolls the content to
   show it.
+- With the `keyboard` option (on by default) arrow keys scroll by 40 px, Page Up, Page Down and Space by a page,
+  Home and End to the edges, while the viewport or an element in it has focus. With `direction: 'horizontal'` page
+  keys, Home and End scroll horizontally. A key that content cannot take goes to the page, keys in inputs, with
+  Ctrl, Alt or Meta and Space on buttons are left alone. Make the viewport focusable when its content has no
+  focusable elements: `<div class="viewport" tabindex="0" role="region" aria-label="Gallery">`.
 
 ### Nested instances
 

@@ -88,6 +88,11 @@ export interface ScrollBoosterOptions {
      * `'auto'` follows `prefers-reduced-motion` media query
      */
     reducedMotion?: ReducedMotion;
+    /**
+     * Arrow keys, Page Up, Page Down, Space, Home and End scroll content when the viewport or an element in it has
+     * focus. A key goes to the page when content cannot move along its axis
+     */
+    keyboard?: boolean;
     /** Press that starts dragging, after `shouldDrag` allowed it */
     onPointerDown?: (state: ScrollBoosterState, event: PointerEvent) => void;
     /** Drag pointer released or cancelled */
