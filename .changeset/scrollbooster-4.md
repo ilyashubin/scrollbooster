@@ -24,4 +24,6 @@ all behavior changes.
   not interrupt a drag.
 - `getState().isDragging` means a drag past the click threshold, `dragOffset` resets on release, state objects are
   copies. `updateOptions({ scrollMode })` removes the rendering of the previous mode.
-- Wheel emulation moves content exactly by the delta, adds up events within a frame, converts lines and pages.
+- `wheel` option, on by default, replaces `emulateScroll` and `preventDefaultOnEmulateScroll`: content takes a
+  wheel gesture only when it can move along its main axis, otherwise the page scrolls. Content moves exactly by
+  the delta, events within a frame add up, lines and pages are converted. `dragDirectionTolerance` is removed.

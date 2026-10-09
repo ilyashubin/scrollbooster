@@ -73,12 +73,26 @@ With `pointerMode: 'mouse'` the style is not set. The previous inline value is r
 
 ### Wheel
 
-Without `emulateScroll` there is no `wheel` listener on the viewport. With it the listener is passive unless
-`preventDefaultOnEmulateScroll` is set too, so the page can scroll without waiting for JavaScript.
+`emulateScroll` and `preventDefaultOnEmulateScroll` are replaced with `wheel`, enabled by default: mouse wheel and
+trackpad scroll the content like a native scroll container. Passing the old options throws.
 
-With `emulateScroll` content moves exactly by the wheel delta. 3.x moved it by 95% of the delta, took only the last
-event of a frame, and treated deltas in lines and pages as pixels (Firefox mouse wheels report lines, so content
-moved by 3 px per notch). Now all events of a frame add up, lines are 16 px and a page is the viewport size.
+- A wheel event scrolls the content and is prevented only when the content can move along the main axis of the
+  event. Otherwise it goes to the page: at the edge, or across `direction`, so vertical wheel over a horizontal
+  gallery scrolls the page. 3.x either never prevented the page scroll or prevented every event in one direction,
+  also at the edges.
+- A gesture that started on the content stays with it until it ends (no events for 80 ms), so the page does not
+  jump or navigate back when the content reaches its edge in the middle of a swipe.
+- A scroller nested in the content takes the event first, the outer one moves only when the inner one cannot.
+- Wheel is ignored while the pointer drags content.
+- `onWheel` is called only for events that scroll the content.
+- Content moves exactly by the wheel delta. 3.x moved it by 95% of the delta, took only the last event of a frame,
+  and treated deltas in lines and pages as pixels (Firefox mouse wheels report lines, so content moved by 3 px per
+  notch). Now all events of a frame add up, lines are 16 px and a page is the viewport size.
+- With `wheel: false` there is no `wheel` listener on the viewport. With `scrollMode: 'native'` and a viewport
+  with `overflow: auto` this leaves wheel scrolling to the browser.
+
+`dragDirectionTolerance` is removed with `preventDefaultOnEmulateScroll` and `lockScrollOnDragDirection`, the
+only options that used it.
 
 ## Methods and state
 
@@ -120,7 +134,7 @@ The constructor and `updateOptions()` throw `TypeError` for invalid options, bef
 - unknown option, for example `scrollMethod` instead of `scrollMode` or the removed `preventPointerMoveDefault`;
 - a value of the wrong type or outside the allowed set, for example `direction: 'diagonal'`, `bounce: 'yes'`,
   `onUpdate: null`, explicit `undefined`;
-- `friction` or `bounceForce` not between 0 and 1 exclusive, `dragDirectionTolerance` outside 0 to 90;
+- `friction` or `bounceForce` not between 0 and 1 exclusive;
 - `viewport` that is not an `HTMLElement`, a viewport without child element and no `content`, `content` that is not
   inside `viewport`.
 

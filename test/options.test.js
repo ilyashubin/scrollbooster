@@ -143,7 +143,7 @@ describe('destroy', () => {
             onClick: vi.fn(),
             onWheel: vi.fn(),
         };
-        const { sb, pointer, viewport } = mount({ emulateScroll: true, ...callbacks });
+        const { sb, pointer, viewport } = mount(callbacks);
         tick(5);
 
         sb.destroy();
@@ -175,7 +175,7 @@ describe('destroy', () => {
 
     it('clears wheel timer', () => {
         vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-        const { sb, viewport } = mount({ emulateScroll: true });
+        const { sb, viewport } = mount();
         wheel(viewport, 0, 100);
 
         sb.destroy();
@@ -231,18 +231,6 @@ describe('destroy', () => {
     });
 });
 
-describe('drag direction', () => {
-    it('detects drag direction with dragDirectionTolerance', () => {
-        const { sb } = mount();
-
-        expect(sb.getDragDirection(sb.getDragAngle(100, 0), 40)).toBe('horizontal');
-        expect(sb.getDragDirection(sb.getDragAngle(0, 100), 40)).toBe('vertical');
-        // 45° drag: tolerance 40 treats it as horizontal, tolerance 50 as vertical
-        expect(sb.getDragDirection(sb.getDragAngle(100, 100), 40)).toBe('horizontal');
-        expect(sb.getDragDirection(sb.getDragAngle(100, 100), 50)).toBe('vertical');
-    });
-});
-
 describe('touch-action', () => {
     it.each([
         ['all', 'pinch-zoom'],
@@ -293,22 +281,22 @@ describe('wheel listener', () => {
         return add.mock.calls.filter(([type]) => type === 'wheel').length;
     }
 
-    it('is not added without emulateScroll', () => {
-        expect(wheelListeners(() => mount())).toBe(0);
+    it('is not added with wheel: false', () => {
+        expect(wheelListeners(() => mount({ wheel: false }))).toBe(0);
     });
 
-    it('follows emulateScroll in updateOptions', () => {
+    it('follows wheel option in updateOptions', () => {
         vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-        const { sb, viewport } = mount();
+        const { sb, viewport } = mount({ wheel: false });
 
-        expect(wheelListeners(() => sb.updateOptions({ emulateScroll: true }))).toBe(1);
+        expect(wheelListeners(() => sb.updateOptions({ wheel: true }))).toBe(1);
         wheel(viewport, 0, 100);
         tick(10);
         expect(roundedPosition(sb).y).toBeGreaterThan(0);
 
         sb.setPosition({ y: 0 });
         vi.advanceTimersByTime(100);
-        sb.updateOptions({ emulateScroll: false });
+        sb.updateOptions({ wheel: false });
         wheel(viewport, 0, 100);
         tick(10);
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
@@ -324,28 +312,12 @@ describe('wheel listener', () => {
             .map(([type]) => type);
     }
 
-    it('is passive and no touch listeners block scroll by default', () => {
-        expect(blockingListeners(() => mount({ emulateScroll: true }))).toEqual([]);
+    it('only wheel listener may block scroll', () => {
+        expect(blockingListeners(() => mount())).toEqual(['wheel']);
     });
 
-    it('stays passive with preventDefaultOnEmulateScroll but without emulateScroll', () => {
-        expect(blockingListeners(() => mount({ preventDefaultOnEmulateScroll: 'vertical' }))).toEqual([]);
-    });
-
-    it('is not passive with preventDefaultOnEmulateScroll', () => {
-        expect(
-            blockingListeners(() => mount({ emulateScroll: true, preventDefaultOnEmulateScroll: 'vertical' }))
-        ).toEqual(['wheel']);
-    });
-
-    it('becomes not passive when preventDefaultOnEmulateScroll is enabled later', () => {
-        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-        const { sb, viewport } = mount({ emulateScroll: true });
-        expect(wheel(viewport, 0, 100).defaultPrevented).toBe(false);
-
-        sb.updateOptions({ preventDefaultOnEmulateScroll: 'vertical' });
-
-        expect(wheel(viewport, 0, 100).defaultPrevented).toBe(true);
+    it('no listener blocks scroll with wheel: false', () => {
+        expect(blockingListeners(() => mount({ wheel: false }))).toEqual([]);
     });
 });
 
@@ -357,22 +329,25 @@ describe('options validation', () => {
                 pointerMode: 'touch',
                 scrollMode: 'native',
                 reducedMotion: 'never',
-                preventDefaultOnEmulateScroll: 'vertical',
                 friction: 0.2,
                 bounceForce: 0.3,
-                dragDirectionTolerance: 0,
+                wheel: false,
                 bounce: false,
                 onUpdate() {},
             })
         ).not.toThrow();
     });
 
-    it.each(['scrollMethod', 'preventPointerMoveDefault', 'lockScrollOnDragDirection'])(
-        'throws for unknown option %s',
-        (key) => {
-            expect(() => mount({ [key]: true })).toThrow(new TypeError(`ScrollBooster: unknown option "${key}"`));
-        }
-    );
+    it.each([
+        'scrollMethod',
+        'preventPointerMoveDefault',
+        'lockScrollOnDragDirection',
+        'emulateScroll',
+        'preventDefaultOnEmulateScroll',
+        'dragDirectionTolerance',
+    ])('throws for unknown option %s', (key) => {
+        expect(() => mount({ [key]: true })).toThrow(new TypeError(`ScrollBooster: unknown option "${key}"`));
+    });
 
     it.each([
         ['direction', 'diagonal', 'one of all, horizontal, vertical'],
@@ -381,11 +356,10 @@ describe('options validation', () => {
         ['scrollMode', 'smooth', 'one of transform, native, none'],
         ['scrollMode', undefined, 'one of transform, native, none'],
         ['reducedMotion', true, 'one of auto, always, never'],
-        ['preventDefaultOnEmulateScroll', 'all', 'one of false, horizontal, vertical'],
         ['friction', 0, 'a number between 0 and 1'],
         ['friction', 1, 'a number between 0 and 1'],
         ['bounceForce', '0.1', 'a number between 0 and 1'],
-        ['dragDirectionTolerance', 91, 'a number of degrees from 0 to 90'],
+        ['wheel', 'auto', 'a boolean'],
         ['bounce', 'yes', 'a boolean'],
         ['onUpdate', null, 'a function'],
         ['content', '.content', 'an HTMLElement'],

@@ -1,15 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-    approach,
-    clamp,
-    coast,
-    getDragAngle,
-    getDragDirection,
-    getEdgeMode,
-    hasVelocity,
-    type Motion,
-    spring,
-} from '../../src/physics';
+import { approach, clamp, coast, getDragAngle, getEdgeMode, hasVelocity, type Motion, spring } from '../../src/physics';
 
 const edgeX = { from: -700, to: 0 };
 const friction = 0.05;
@@ -156,12 +146,5 @@ describe('helpers', () => {
         expect(getDragAngle(10, 0)).toBe(90);
         expect(getDragAngle(-10, 0)).toBe(-90);
         expect(getDragAngle(0, -10)).toBe(180);
-    });
-
-    it('getDragDirection respects tolerance', () => {
-        expect(getDragDirection(90, 40)).toBe('horizontal');
-        expect(getDragDirection(0, 40)).toBe('vertical');
-        expect(getDragDirection(45, 40)).toBe('horizontal');
-        expect(getDragDirection(45, 50)).toBe('vertical');
     });
 });

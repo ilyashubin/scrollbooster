@@ -6,14 +6,13 @@ import {
     coast,
     FRAME_DURATION,
     getDragAngle,
-    getDragDirection,
     getEdgeMode,
     hasVelocity,
     type Motion,
     spring,
     TARGET_SCROLL_FACTOR,
 } from './physics';
-import type { Axis, Direction, Edge, Point, ScrollBoosterOptions, ScrollBoosterState, ScrollMode, Size } from './types';
+import type { Direction, Edge, Point, ScrollBoosterOptions, ScrollBoosterState, ScrollMode, Size } from './types';
 
 const CLICK_EVENT_THRESHOLD_PX = 5;
 
@@ -69,6 +68,9 @@ const toInternal = (value: number | undefined, current: number): number =>
 // Wheel deltas in lines are converted with this line height, in pages with the viewport size
 const WHEEL_LINE_HEIGHT = 16;
 
+// Wheel events closer than this belong to one gesture
+const WHEEL_GESTURE_TIMEOUT = 80;
+
 export class ScrollBooster {
     // Fields are declared without initializers to keep runtime shape of the JavaScript version
     declare props: Props;
@@ -116,10 +118,8 @@ export class ScrollBooster {
             friction: 0.05,
             textSelection: false,
             inputsFocus: true,
-            emulateScroll: false,
-            preventDefaultOnEmulateScroll: false, // 'vertical', 'horizontal'
+            wheel: true,
             pointerDownPreventDefault: true,
-            dragDirectionTolerance: 40,
             reducedMotion: 'auto',
             onPointerDown() {},
             onPointerUp() {},
@@ -462,13 +462,6 @@ export class ScrollBooster {
     }
 
     /**
-     * Get drag direction (horizontal or vertical)
-     */
-    getDragDirection(angle: number, tolerance: number): Axis {
-        return getDragDirection(angle, tolerance);
-    }
-
-    /**
      * Update DOM container elements metrics (width and height)
      */
     setContentPosition(state: ScrollBoosterState): void {
@@ -679,40 +672,41 @@ export class ScrollBooster {
 
         this.events.pointerup = endDrag;
 
-        // Listened only with emulateScroll, see bindWheel()
+        // Listened only with the wheel option, see bindWheel()
         this.events.wheel = (event) => {
-            const state = this.getState();
+            // A scroller nested in the content has taken this event, or drag holds the content
+            if (event.defaultPrevented || this.isDragging) {
+                return;
+            }
+            // Line deltas are converted with a fixed line height, page deltas with the viewport size
+            const { deltaMode } = event;
+            const { clientWidth, clientHeight } = this.props.viewport;
+            const pixels = deltaMode === WheelEvent.DOM_DELTA_LINE ? WHEEL_LINE_HEIGHT : 1;
+            const x = event.deltaX * (deltaMode === WheelEvent.DOM_DELTA_PAGE ? clientWidth : pixels);
+            const y = event.deltaY * (deltaMode === WheelEvent.DOM_DELTA_PAGE ? clientHeight : pixels);
+
+            // Like native scroll, a wheel gesture stays with the scroller that took its first event
+            // and goes to the page when content cannot move along the main axis of the gesture
+            if (!this.isScrolling && !this.canScroll(Math.abs(x) > Math.abs(y) ? 'x' : 'y', x || y)) {
+                return;
+            }
+            event.preventDefault();
+
             this.velocity.x = 0;
             this.velocity.y = 0;
             this.isScrolling = true;
             this.isTargetScroll = false;
+            // Deltas of all events until the next frame add up
+            this.scrollOffset.x -= x;
+            this.scrollOffset.y -= y;
 
-            // Deltas of all events until the next frame add up, line and page deltas are converted to pixels
-            const { deltaMode } = event;
-            const { clientWidth, clientHeight } = this.props.viewport;
-            const pixels = deltaMode === WheelEvent.DOM_DELTA_LINE ? WHEEL_LINE_HEIGHT : 1;
-            this.scrollOffset.x -= event.deltaX * (deltaMode === WheelEvent.DOM_DELTA_PAGE ? clientWidth : pixels);
-            this.scrollOffset.y -= event.deltaY * (deltaMode === WheelEvent.DOM_DELTA_PAGE ? clientHeight : pixels);
-
-            this.props.onWheel(state, event);
-
+            this.props.onWheel(this.getState(), event);
             this.startAnimationLoop();
 
             clearTimeout(this.wheelTimer);
             this.wheelTimer = setTimeout(() => {
                 this.isScrolling = false;
-            }, 80);
-
-            // get (trackpad) scrollDirection and prevent default events
-            if (
-                this.props.preventDefaultOnEmulateScroll &&
-                this.getDragDirection(
-                    this.getDragAngle(-event.deltaX, -event.deltaY),
-                    this.props.dragDirectionTolerance
-                ) === this.props.preventDefaultOnEmulateScroll
-            ) {
-                event.preventDefault();
-            }
+            }, WHEEL_GESTURE_TIMEOUT);
         };
 
         this.events.scroll = () => {
@@ -846,18 +840,30 @@ export class ScrollBooster {
     }
 
     /**
-     * Wheel is listened only with emulateScroll, and blocks page scroll only when it may prevent default
+     * Wheel listener cancels the events that scroll content, so it is not passive and is added only when needed
      */
     private bindWheel(): void {
-        const { viewport, emulateScroll, preventDefaultOnEmulateScroll } = this.props;
+        const { viewport, wheel } = this.props;
         viewport.removeEventListener('wheel', this.events.wheel);
-        if (!emulateScroll) {
-            return;
+        if (wheel) {
+            viewport.addEventListener('wheel', this.events.wheel, {
+                passive: false,
+                signal: this.abortController.signal,
+            });
         }
-        viewport.addEventListener('wheel', this.events.wheel, {
-            passive: !(emulateScroll && preventDefaultOnEmulateScroll),
-            signal: this.abortController.signal,
-        });
+    }
+
+    /**
+     * Check if wheel delta along the axis would move content
+     */
+    private canScroll(axis: 'x' | 'y', delta: number): boolean {
+        const { direction } = this.props;
+        if (direction === (axis === 'x' ? 'vertical' : 'horizontal')) {
+            return false;
+        }
+        const edge = axis === 'x' ? this.edgeX : this.edgeY;
+        const position = this.position[axis];
+        return delta > 0 ? position > edge.from : delta < 0 && position < edge.to;
     }
 
     /**

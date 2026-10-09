@@ -1,10 +1,11 @@
 import type { BrowserCommand } from 'vitest/node';
 
-type MouseStep = ['move', number, number] | ['down'] | ['up'];
+type MouseStep = ['move', number, number] | ['down'] | ['up'] | ['wheel', number, number];
 
 /**
- * Real mouse input through Playwright. Coordinates are client coordinates inside the test iframe,
- * `innerWidth` of the iframe window is passed to account for iframe scaling in the orchestrator page.
+ * Real mouse input through Playwright. Coordinates are client coordinates inside the test iframe, wheel takes
+ * deltas in pixels. `innerWidth` of the iframe window is passed to account for iframe scaling in the orchestrator
+ * page.
  */
 export const mouse: BrowserCommand<[steps: MouseStep[], innerWidth: number]> = async (context, steps, innerWidth) => {
     if (context.provider.name !== 'playwright') {
@@ -20,6 +21,8 @@ export const mouse: BrowserCommand<[steps: MouseStep[], innerWidth: number]> = a
     for (const [action, x, y] of steps) {
         if (action === 'move') {
             await mouse.move(box.x + (x as number) * scale, box.y + (y as number) * scale);
+        } else if (action === 'wheel') {
+            await mouse.wheel(x as number, y as number);
         } else if (action === 'down') {
             await mouse.down();
         } else {

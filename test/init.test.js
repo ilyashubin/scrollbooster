@@ -48,10 +48,8 @@ describe('init', () => {
             friction: 0.05,
             textSelection: false,
             inputsFocus: true,
-            emulateScroll: false,
-            preventDefaultOnEmulateScroll: false,
+            wheel: true,
             pointerDownPreventDefault: true,
-            dragDirectionTolerance: 40,
         });
     });
 

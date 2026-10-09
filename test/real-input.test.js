@@ -1,10 +1,10 @@
 /**
- * Real mouse input through Playwright: browser default actions, pointer capture and click targets
- * cannot be reproduced with synthetic events.
+ * Real mouse input through Playwright: browser default actions, pointer capture, click targets and page scroll
+ * by wheel cannot be reproduced with synthetic events.
  */
 import { describe, expect, it, vi } from 'vitest';
 import { commands } from 'vitest/browser';
-import { mount } from './helpers.js';
+import { mount, roundedPosition, tick } from './helpers.js';
 
 // Client coordinates of a point relative to element top left corner
 function at(element, x, y) {
@@ -104,5 +104,60 @@ describe('real mouse', () => {
         expect(sb.isDragging).toBe(false);
         expect(onPointerUp).toHaveBeenCalledTimes(1);
         expect(onPointerUp.mock.calls[0][0].dragOffset).toEqual({ x: 0, y: 200 });
+    });
+});
+
+describe('real wheel', () => {
+    // Page taller than the window, so a wheel that the content does not take scrolls the page
+    function scrollablePage() {
+        const spacer = document.createElement('div');
+        spacer.style.height = '3000px';
+        document.body.append(spacer);
+        window.scrollTo(0, 0);
+        return () => {
+            spacer.remove();
+            window.scrollTo(0, 0);
+        };
+    }
+
+    it('scrolls content and not the page', async () => {
+        const { sb, viewport } = mount();
+        const restore = scrollablePage();
+
+        await commands.mouse(
+            [
+                ['move', ...at(viewport, 150, 150)],
+                ['wheel', 0, 100],
+            ],
+            window.innerWidth
+        );
+        tick();
+
+        expect(roundedPosition(sb).y).toBeGreaterThan(0);
+        // Page scroll by wheel is asynchronous, the other test sees it within this time
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        expect(window.scrollY).toBe(0);
+        restore();
+    });
+
+    it('scrolls the page when content is at the edge', async () => {
+        const { sb, viewport } = mount();
+        const restore = scrollablePage();
+
+        sb.setPosition({ y: 700 });
+        tick();
+
+        await commands.mouse(
+            [
+                ['move', ...at(viewport, 150, 150)],
+                ['wheel', 0, 100],
+            ],
+            window.innerWidth
+        );
+        tick();
+
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 700 });
+        await expect.poll(() => window.scrollY, { timeout: 1000 }).toBeGreaterThan(0);
+        restore();
     });
 });

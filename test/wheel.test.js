@@ -1,10 +1,23 @@
 import { describe, expect, it, vi } from 'vitest';
 import { mount, roundedPosition, tick, wheel } from './helpers.js';
 
+const fakeTimers = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
 describe('wheel', () => {
-    it('is ignored without emulateScroll', () => {
+    it('moves content by wheel delta and prevents page scroll', () => {
+        fakeTimers();
+        const { sb, viewport } = mount();
+
+        const event = wheel(viewport, 20, 100);
+        tick();
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(roundedPosition(sb, 3)).toEqual({ x: 20, y: 100 });
+    });
+
+    it('is ignored with wheel: false', () => {
         const onWheel = vi.fn();
-        const { sb, viewport } = mount({ onWheel });
+        const { sb, viewport } = mount({ wheel: false, onWheel });
 
         const event = wheel(viewport, 0, 100);
         tick(10);
@@ -14,19 +27,9 @@ describe('wheel', () => {
         expect(event.defaultPrevented).toBe(false);
     });
 
-    it('emulateScroll: moves content by wheel delta', () => {
-        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-        const { sb, viewport } = mount({ emulateScroll: true });
-
-        wheel(viewport, 20, 100);
-        tick();
-
-        expect(roundedPosition(sb, 3)).toEqual({ x: 20, y: 100 });
-    });
-
-    it('emulateScroll: adds up wheel events within one frame', () => {
-        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-        const { sb, viewport } = mount({ emulateScroll: true });
+    it('adds up wheel events within one frame', () => {
+        fakeTimers();
+        const { sb, viewport } = mount();
 
         wheel(viewport, 0, 30);
         wheel(viewport, 0, 40);
@@ -38,9 +41,9 @@ describe('wheel', () => {
     it.each([
         ['lines', WheelEvent.DOM_DELTA_LINE, { x: 16, y: 48 }],
         ['pages', WheelEvent.DOM_DELTA_PAGE, { x: 300, y: 600 }],
-    ])('emulateScroll: converts deltas in %s to pixels', (_, deltaMode, expected) => {
-        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-        const { sb, viewport } = mount({ emulateScroll: true }, { contentHeight: 2000 });
+    ])('converts deltas in %s to pixels', (_, deltaMode, expected) => {
+        fakeTimers();
+        const { sb, viewport } = mount({}, { contentHeight: 2000 });
 
         wheel(viewport, 1, 3, deltaMode);
         if (deltaMode === WheelEvent.DOM_DELTA_PAGE) {
@@ -51,9 +54,9 @@ describe('wheel', () => {
         expect(roundedPosition(sb)).toEqual(expected);
     });
 
-    it('emulateScroll: stops right after the last wheel event, without inertia', () => {
-        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-        const { sb, viewport } = mount({ emulateScroll: true });
+    it('stops right after the last wheel event, without inertia', () => {
+        fakeTimers();
+        const { sb, viewport } = mount();
 
         wheel(viewport, 0, 100);
         tick();
@@ -63,55 +66,146 @@ describe('wheel', () => {
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 100 });
     });
 
-    it('emulateScroll: stops at edges without bounce', () => {
-        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-        const { sb, viewport } = mount({ emulateScroll: true });
-
-        wheel(viewport, 0, -100);
-        tick();
-        expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
+    it('stops at edges without bounce', () => {
+        fakeTimers();
+        const { sb, viewport } = mount();
 
         for (let i = 0; i < 20; i++) {
             wheel(viewport, 0, 100);
             tick();
         }
+
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 700 });
     });
 
-    it('emulateScroll: keeps animating for 80ms after the last wheel event', () => {
-        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-        const { sb, viewport } = mount({ emulateScroll: true });
+    it('keeps animating for 80ms after the last wheel event', () => {
+        fakeTimers();
+        const { sb, viewport } = mount();
 
         wheel(viewport, 0, 100);
         tick(5);
-        expect(sb.isScrolling).toBe(true);
         expect(sb.getState().isMoving).toBe(true);
 
         vi.advanceTimersByTime(80);
         tick(5);
-        expect(sb.isScrolling).toBe(false);
         expect(sb.getState().isMoving).toBe(false);
     });
 
-    it('calls onWheel with state before the wheel is applied', () => {
+    it('calls onWheel with state before content moves', () => {
         const onWheel = vi.fn();
-        const { viewport } = mount({ emulateScroll: true, onWheel });
+        const { viewport } = mount({ onWheel });
 
         const event = wheel(viewport, 0, 100);
 
         expect(onWheel).toHaveBeenCalledWith(expect.objectContaining({ position: { x: 0, y: 0 } }), event);
     });
+});
 
-    it('does not prevent default wheel by default', () => {
-        const { viewport } = mount({ emulateScroll: true });
+describe('wheel goes to the page', () => {
+    it('when content is at the edge in the direction of the wheel', () => {
+        const onWheel = vi.fn();
+        const { sb, viewport } = mount({ onWheel });
+
+        const event = wheel(viewport, 0, -100);
+        tick();
+
+        expect(event.defaultPrevented).toBe(false);
+        expect(onWheel).not.toHaveBeenCalled();
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
+    });
+
+    it('when the main axis of the wheel is disabled by direction', () => {
+        fakeTimers();
+        const { sb, viewport } = mount({ direction: 'horizontal' });
+
+        expect(wheel(viewport, 5, 100).defaultPrevented).toBe(false);
+        tick();
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
+
+        expect(wheel(viewport, 100, 5).defaultPrevented).toBe(true);
+        tick();
+        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
+    });
+
+    it('when content fits the viewport', () => {
+        const { viewport } = mount({}, { contentWidth: 200, contentHeight: 200 });
 
         expect(wheel(viewport, 0, 100).defaultPrevented).toBe(false);
     });
 
-    it('preventDefaultOnEmulateScroll: prevents only wheel in given direction', () => {
-        const { viewport } = mount({ emulateScroll: true, preventDefaultOnEmulateScroll: 'horizontal' });
+    it('not until the gesture that reached the edge ends', () => {
+        fakeTimers();
+        const { sb, viewport } = mount();
+        sb.setPosition({ y: 650 });
+        tick();
 
-        expect(wheel(viewport, 100, 0).defaultPrevented).toBe(true);
-        expect(wheel(viewport, 0, 100).defaultPrevented).toBe(false);
+        // Events of one gesture come closer than 80 ms, the edge is reached in the middle of it
+        for (let i = 0; i < 3; i++) {
+            expect(wheel(viewport, 0, 40).defaultPrevented).toBe(true);
+            tick();
+            vi.advanceTimersByTime(50);
+        }
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 700 });
+
+        vi.advanceTimersByTime(80);
+        expect(wheel(viewport, 0, 40).defaultPrevented).toBe(false);
+    });
+
+    it('takes the next gesture away from the edge', () => {
+        fakeTimers();
+        const { sb, viewport } = mount();
+        sb.setPosition({ y: 700 });
+        tick();
+
+        expect(wheel(viewport, 0, 40).defaultPrevented).toBe(false);
+        expect(wheel(viewport, 0, -40).defaultPrevented).toBe(true);
+        tick();
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 660 });
+    });
+});
+
+describe('wheel with nested scrollers', () => {
+    it('moves only the inner scroller', () => {
+        fakeTimers();
+        const outer = mount();
+        const inner = mount({}, { width: 200, height: 200, contentWidth: 400, contentHeight: 400 });
+        outer.content.append(inner.viewport);
+
+        const event = wheel(inner.content, 0, 100);
+        tick();
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(roundedPosition(inner.sb)).toEqual({ x: 0, y: 100 });
+        expect(roundedPosition(outer.sb)).toEqual({ x: 0, y: 0 });
+    });
+
+    it('moves the outer scroller when the inner one is at the edge', () => {
+        fakeTimers();
+        const outer = mount();
+        const inner = mount({}, { width: 200, height: 200, contentWidth: 400, contentHeight: 400 });
+        outer.content.append(inner.viewport);
+        outer.sb.setPosition({ y: 200 });
+        tick();
+
+        const event = wheel(inner.content, 0, -100);
+        tick();
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(roundedPosition(inner.sb)).toEqual({ x: 0, y: 0 });
+        expect(roundedPosition(outer.sb)).toEqual({ x: 0, y: 100 });
+    });
+});
+
+describe('wheel during drag', () => {
+    it('is ignored, content stays under the pointer', () => {
+        fakeTimers();
+        const { sb, pointer, viewport } = mount();
+
+        pointer.mouseDrag([200, 200], [200, 150], { release: false });
+        const event = wheel(viewport, 0, 100);
+        tick(100);
+
+        expect(event.defaultPrevented).toBe(false);
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 50 });
     });
 });

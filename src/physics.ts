@@ -1,4 +1,4 @@
-import type { Axis, Edge, Point } from './types';
+import type { Edge, Point } from './types';
 
 /** Share of the remaining distance to the target added to velocity on each frame of `scrollTo` */
 export const TARGET_SCROLL_FACTOR = 0.08;
@@ -127,16 +127,4 @@ export function clamp(value: number, edge: Edge): number {
  */
 export function getDragAngle(x: number, y: number): number {
     return Math.round(Math.atan2(x, y) * (180 / Math.PI));
-}
-
-/**
- * Get drag direction (horizontal or vertical)
- */
-export function getDragDirection(angle: number, tolerance: number): Axis {
-    const absAngle = Math.abs(90 - Math.abs(angle));
-
-    if (absAngle <= 90 - tolerance) {
-        return 'horizontal';
-    }
-    return 'vertical';
 }

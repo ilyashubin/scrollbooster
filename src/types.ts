@@ -60,14 +60,13 @@ export interface ScrollBoosterOptions {
     textSelection?: boolean;
     /** Enables focus on input elements */
     inputsFocus?: boolean;
-    /** Enables mouse wheel emulation */
-    emulateScroll?: boolean;
-    /** Prevents default wheel event in given direction when `emulateScroll` is enabled */
-    preventDefaultOnEmulateScroll?: Axis | false;
+    /**
+     * Mouse wheel and trackpad scroll content. The page scrolls instead when content cannot move along the
+     * main axis of the gesture
+     */
+    wheel?: boolean;
     /** Prevents default mousedown on drag start: text selection, native drag of images and links */
     pointerDownPreventDefault?: boolean;
-    /** Tolerance in degrees for horizontal or vertical drag detection */
-    dragDirectionTolerance?: number;
     /**
      * Reduced motion: no inertia and bounce, `scrollTo` jumps to the target.
      * `'auto'` follows `prefers-reduced-motion` media query
@@ -83,7 +82,7 @@ export interface ScrollBoosterOptions {
     onClick?: (state: ScrollBoosterState, event: MouseEvent) => void;
     /** State update handler */
     onUpdate?: (state: ScrollBoosterState) => void;
-    /** Wheel handler */
+    /** Wheel event that scrolls content, called before the content moves */
     onWheel?: (state: ScrollBoosterState, event: WheelEvent) => void;
     /** Predicate to allow or disable scroll on pointerdown */
     shouldScroll?: (state: ScrollBoosterState, event: PointerEvent) => boolean;

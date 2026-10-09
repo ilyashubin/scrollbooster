@@ -240,7 +240,7 @@ describe('settling', () => {
         ['setPosition', ({ sb }) => sb.setPosition({ x: 50 })],
     ])('%s cancels scrollTo', (_, interrupt) => {
         vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-        const mounted = mount({ emulateScroll: true });
+        const mounted = mount();
         mounted.sb.scrollTo({ x: 600 });
         tick(5);
 

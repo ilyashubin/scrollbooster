@@ -58,9 +58,7 @@ inputsFocus | Boolean | true | Enables focus for elements: 'input', 'textarea', 
 pointerMode | String | 'all' | Specify pointer type. Supported values - 'touch' (scroll only with touch), 'mouse' (scroll only with mouse and pen), 'all'
 friction | Number | 0.05 | Scroll friction factor - how fast scrolling stops after pointer release, per 60 Hz frame
 bounceForce | Number | 0.1 | Elastic bounce effect factor, per 60 Hz frame
-emulateScroll | Boolean | false | Enables mouse wheel/trackpad emulation inside viewport
-preventDefaultOnEmulateScroll | String | false | Prevents horizontal or vertical default when `emulateScroll` is enabled (eg. useful to prevent horizontal trackpad gestures while enabling vertical scrolling). Could be 'horizontal' or 'vertical'
-dragDirectionTolerance | Number | 40 | Tolerance in degrees for horizontal or vertical drag detection
+wheel | Boolean | true | Mouse wheel and trackpad scroll content. A gesture goes to the page when content cannot move along its main axis, for example at the edge or across `direction`
 pointerDownPreventDefault | Boolean | true | Prevents default `mousedown` on drag start: text selection, native drag of images and links
 reducedMotion | String | 'auto' | 'always' disables inertia and bounce and makes `scrollTo` jump to the target, 'never' keeps them, 'auto' follows `prefers-reduced-motion` user setting
 onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates. Called on animation frames, the first time on the frame after the constructor
@@ -68,7 +66,7 @@ onClick | Function | noop | Click handler function. Here you can, for example, p
 onPointerDown | Function | noop | Called when a press starts dragging, after `shouldScroll` allowed it. Receives state and `PointerEvent`, `event.pointerType` tells mouse, touch and pen apart
 onPointerUp | Function | noop | Called when the pointer that drags content is released or cancelled
 onPointerMove | Function | noop | Called when the pointer that drags content moves
-onWheel | Function | noop | `wheel` event handler, called with `emulateScroll`
+onWheel | Function | noop | Called for each `wheel` event that scrolls content, before it moves
 shouldScroll | Function | noop | Function to permit or disable scrolling. Receives object with scrolling state and `PointerEvent`. Calls on `pointerdown` in scrollable area. You can return `true` or `false` to enable or disable scrolling
 
 Touch dragging relies on CSS `touch-action`: ScrollBooster sets it on the viewport, so the browser keeps the
@@ -98,7 +96,6 @@ const sb = new ScrollBooster({
   scrollMode: 'none',
   bounce: true,
   textSelection: false,
-  emulateScroll: true,
   onUpdate: (state) => {
     // state contains useful metrics: position, dragOffset, dragAngle, isDragging, isMoving, borderCollision
     // with scrollMode: 'none' you render the scroll yourself:
@@ -124,7 +121,7 @@ const sb = new ScrollBooster({
 // methods usage examples:
 sb.updateMetrics();
 sb.scrollTo({ x: 100, y: 100 });
-sb.updateOptions({ emulateScroll: false });
+sb.updateOptions({ wheel: false });
 sb.destroy();
 ```
 
