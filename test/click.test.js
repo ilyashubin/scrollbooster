@@ -12,8 +12,7 @@ describe('click', () => {
         expect(event.defaultPrevented).toBe(false);
         expect(onClick).toHaveBeenCalledWith(
             expect.objectContaining({ isDragging: false, dragOffset: { x: 0, y: 0 } }),
-            event,
-            false
+            event
         );
     });
 

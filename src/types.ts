@@ -78,14 +78,14 @@ export interface ScrollBoosterOptions {
      * `'auto'` follows `prefers-reduced-motion` media query
      */
     reducedMotion?: ReducedMotion;
-    /** Primary pointer pressed on viewport, called before drag guards */
-    onPointerDown?: (state: ScrollBoosterState, event: PointerEvent, isTouch: boolean) => void;
+    /** Press that starts dragging, after `shouldScroll` allowed it */
+    onPointerDown?: (state: ScrollBoosterState, event: PointerEvent) => void;
     /** Drag pointer released or cancelled */
-    onPointerUp?: (state: ScrollBoosterState, event: PointerEvent, isTouch: boolean) => void;
+    onPointerUp?: (state: ScrollBoosterState, event: PointerEvent) => void;
     /** Drag pointer moved */
-    onPointerMove?: (state: ScrollBoosterState, event: PointerEvent, isTouch: boolean) => void;
-    /** Click handler */
-    onClick?: (state: ScrollBoosterState, event: MouseEvent, isTouch: boolean) => void;
+    onPointerMove?: (state: ScrollBoosterState, event: PointerEvent) => void;
+    /** Click on viewport, `event.defaultPrevented` is `true` for the click that ends a drag */
+    onClick?: (state: ScrollBoosterState, event: MouseEvent) => void;
     /** State update handler */
     onUpdate?: (state: ScrollBoosterState) => void;
     /** Wheel handler */

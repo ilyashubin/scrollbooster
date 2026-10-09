@@ -152,7 +152,7 @@ describe('mouse drag', () => {
         expect(onPointerUp).not.toHaveBeenCalled();
     });
 
-    it('calls pointer callbacks with state, event and isTouch', () => {
+    it('calls pointer callbacks with state and event', () => {
         const onPointerDown = vi.fn();
         const onPointerMove = vi.fn();
         const onPointerUp = vi.fn();
@@ -164,7 +164,7 @@ describe('mouse drag', () => {
         expect(onPointerMove).toHaveBeenCalledTimes(2);
         expect(onPointerUp).toHaveBeenCalledTimes(1);
         expect(onPointerDown.mock.calls[0][1]).toBeInstanceOf(PointerEvent);
-        expect(onPointerDown.mock.calls[0][2]).toBe(false);
+        expect(onPointerDown.mock.calls[0]).toHaveLength(2);
         expect(onPointerUp.mock.calls[0][0].dragOffset).toEqual({ x: -50, y: 0 });
     });
 });
@@ -185,13 +185,14 @@ describe('touch drag', () => {
         expect(pointer.touchStart(100, 100).defaultPrevented).toBe(false);
     });
 
-    it('passes isTouch to callbacks', () => {
+    it('passes touch PointerEvent to callbacks', () => {
         const onPointerDown = vi.fn();
         const { pointer } = mount({ onPointerDown });
 
         pointer.touchStart(100, 100);
 
-        expect(onPointerDown.mock.calls[0][2]).toBe(true);
+        expect(onPointerDown.mock.calls[0]).toHaveLength(2);
+        expect(onPointerDown.mock.calls[0][1].pointerType).toBe('touch');
     });
 
     it('ignores second finger', () => {

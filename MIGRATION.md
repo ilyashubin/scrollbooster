@@ -30,7 +30,9 @@ Mouse and touch listeners are replaced with Pointer Events.
 
 - `onPointerDown`, `onPointerMove`, `onPointerUp` and `shouldScroll` receive a `PointerEvent` instead of
   `MouseEvent` or `TouchEvent`. `event.touches` is gone: read `clientX`, `pageX` and others from the event itself.
-  `isTouch` is `true` for `event.pointerType === 'touch'`, pen counts as mouse like in 3.x.
+  Callbacks get `(state, event)`, the third argument `isTouch` is removed: check `event.pointerType === 'touch'`,
+  it also tells pen from mouse. In `onClick` use `'pointerType' in event && event.pointerType === 'touch'`, older
+  browsers may send `click` as a `MouseEvent` without `pointerType`.
 - `onPointerMove` is called only while dragging. In 3.x it was called on every mouse move over the page.
 - `onPointerDown` and `onPointerUp` come in pairs for a press that starts dragging. `onPointerDown` is not called
   anymore for presses that do not drag: other mouse buttons, scrollbars, form inputs with `inputsFocus`, presses

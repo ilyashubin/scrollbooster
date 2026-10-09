@@ -580,7 +580,7 @@ export class ScrollBooster {
             // onPointerUp gets offset and angle of the drag that ended
             const state = this.getState();
             stopDragging();
-            this.props.onPointerUp(state, event, isTouch);
+            this.props.onPointerUp(state, event);
         };
 
         this.events.pointerdown = (event) => {
@@ -666,7 +666,7 @@ export class ScrollBooster {
             this.dragStartPosition.y = this.position.y;
 
             setDragPosition(event);
-            this.props.onPointerDown(this.getState(), event, isTouch);
+            this.props.onPointerDown(this.getState(), event);
             this.startAnimationLoop();
 
             // Pointer may leave viewport before capture, so drag events are listened on window until release
@@ -703,7 +703,7 @@ export class ScrollBooster {
                     // Pointer is not active anymore
                 }
             }
-            this.props.onPointerMove(this.getState(), event, isTouch);
+            this.props.onPointerMove(this.getState(), event);
         };
 
         this.events.pointerup = endDrag;
@@ -773,7 +773,7 @@ export class ScrollBooster {
                 event.preventDefault();
                 event.stopPropagation();
             }
-            this.props.onClick(this.getState(), event, isTouch);
+            this.props.onClick(this.getState(), event);
         };
 
         this.events.contentLoad = () => this.updateMetrics();

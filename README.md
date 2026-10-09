@@ -66,8 +66,8 @@ dragDirectionTolerance | Number | 40 | Tolerance in degrees for horizontal or ve
 pointerDownPreventDefault | Boolean | true | Prevents default `mousedown` on drag start: text selection, native drag of images and links
 reducedMotion | String | 'auto' | 'always' disables inertia and bounce and makes `scrollTo` jump to the target, 'never' keeps them, 'auto' follows `prefers-reduced-motion` user setting
 onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates. Called on animation frames, the first time on the frame after the constructor
-onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives object with scrolling metrics, event object and `isTouch`. Calls after each `click` in scrollable area
-onPointerDown | Function | noop | Called when a press starts dragging, after `shouldScroll` allowed it. Receives state, `PointerEvent` and `isTouch`
+onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives state and the event. Calls after each `click` in scrollable area, `event.defaultPrevented` is `true` for the click that ends a drag
+onPointerDown | Function | noop | Called when a press starts dragging, after `shouldScroll` allowed it. Receives state and `PointerEvent`, `event.pointerType` tells mouse, touch and pen apart
 onPointerUp | Function | noop | Called when the pointer that drags content is released or cancelled
 onPointerMove | Function | noop | Called when the pointer that drags content moves
 onWheel | Function | noop | `wheel` event handler, called with `emulateScroll`
@@ -113,7 +113,7 @@ const sb = new ScrollBooster({
     const isButton = event.target.nodeName.toLowerCase() === 'button';
     return !isButton;
   },
-  onClick: (state, event, isTouch) => {
+  onClick: (state, event) => {
     // prevent default link event
     const isLink = event.target.nodeName.toLowerCase() === 'a';
     if (isLink) {
