@@ -158,16 +158,15 @@ p code {
     height: 120px;
     margin: 0 auto 28px;
     overflow: hidden;
-    border-radius: 14px;
-    background: var(--peach);
-    box-shadow: var(--shadow);
+    border-radius: 6px;
+    background: #ffab92;
 }
 
 .logo-window {
     position: absolute;
-    inset: 6px 60px;
-    border-radius: 8px;
-    box-shadow: 0 0 0 200px rgb(255 255 255 / 78%);
+    inset: 5px 60px;
+    border-radius: 4px;
+    box-shadow: 0 0 0 200px rgb(255 255 255 / 80%);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -182,61 +181,25 @@ p code {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: #fafafa;
     font-size: 66px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
+    font-weight: 700;
+    letter-spacing: 0.05em;
     text-shadow:
-        0 2px var(--peach-strong),
-        0 -2px var(--peach-strong),
-        2px 0 var(--peach-strong),
-        -2px 0 var(--peach-strong);
+        0 2px #ffa083,
+        0 -2px #ffa083,
+        2px 0 #ffa083,
+        -2px 0 #ffa083;
 }
 
 .logo-lines span {
     position: absolute;
+    top: calc(var(--y) - 1.5px);
     left: 0;
-    width: 80px;
+    width: var(--w);
     height: 3px;
-    border-radius: 2px;
     background: var(--cyan);
-    animation: logo-line 2.4s linear infinite;
-}
-
-.logo-lines span:nth-child(1) {
-    top: 18px;
-    animation-delay: -0.2s;
-}
-
-.logo-lines span:nth-child(2) {
-    top: 18px;
-    width: 40px;
-    animation-delay: -1.4s;
-}
-
-.logo-lines span:nth-child(3) {
-    top: 58px;
-    width: 60px;
-    animation-delay: -0.8s;
-    animation-duration: 3.1s;
-}
-
-.logo-lines span:nth-child(4) {
-    top: 80px;
-    width: 90px;
-    animation-delay: -2s;
-    animation-duration: 2.8s;
-}
-
-.logo-lines span:nth-child(5) {
-    top: 99px;
-    animation-delay: -0.5s;
-}
-
-.logo-lines span:nth-child(6) {
-    top: 99px;
-    width: 30px;
-    animation-delay: -1.7s;
+    animation: logo-line 3.5s linear var(--d) infinite;
 }
 
 @keyframes logo-line {
@@ -566,8 +529,16 @@ main > section {
     margin-bottom: 10px;
     border-radius: 10px;
     background:
-        radial-gradient(circle at 75% 30%, hsl(calc(var(--hue) + 40) 90% 80%) 0 14%, transparent 15%),
-        linear-gradient(160deg, hsl(var(--hue) 75% 72%), hsl(calc(var(--hue) + 50) 70% 52%));
+        radial-gradient(circle at 75% 30%, rgb(255 255 255 / 55%) 0 14%, transparent 15%),
+        linear-gradient(160deg, hsl(var(--hue) 70% 88%), hsl(calc(var(--hue) + 35) 45% 77%));
+}
+
+@media (prefers-color-scheme: dark) {
+    .card-art {
+        background:
+            radial-gradient(circle at 75% 30%, rgb(255 255 255 / 25%) 0 14%, transparent 15%),
+            linear-gradient(160deg, hsl(var(--hue) 30% 58%), hsl(calc(var(--hue) + 35) 25% 44%));
+    }
 }
 
 .card strong {

@@ -29,7 +29,7 @@ function buildGallery(): void {
         const card = document.createElement('a');
         card.className = 'card';
         card.href = `#${place.toLowerCase().replace(' ', '-')}`;
-        card.style.setProperty('--hue', String((index * 37 + 8) % 360));
+        card.style.setProperty('--hue', String((index * 67 + 10) % 360));
         card.innerHTML = `<span class="card-art"></span><strong>${place}</strong><span>Open guide →</span>`;
         cards.append(card);
     });
