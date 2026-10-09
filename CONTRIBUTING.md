@@ -8,10 +8,9 @@ Contributions are welcome!
 4. Make your changes in `src`. Build output in `dist` is not committed
 5. Run `pnpm exec playwright install chromium firefox webkit` once, then `pnpm test` to run unit tests in Node
    (project `unit`) and browser tests in all three browsers (projects `chromium`, `firefox`, `webkit`).
-   Use `pnpm test --project unit --project chromium` to run a subset and `pnpm test:watch` while developing.
-   Run `pnpm lint` and `pnpm typecheck` before committing
+   Use `pnpm test --project unit --project chromium` to run a subset and `pnpm test:watch` while developing
 6. Quick way to try changes manually is to run `pnpm start` and check the demo in your browser
-7. Run `pnpm build` to build the package
+7. Run `pnpm check` before committing: lint, typecheck, all tests, build and package checks in one command
 8. If the change affects users, run `pnpm changeset`, pick the bump type and describe the change. It adds a file
    to `.changeset/` that goes to the changelog on release
 9. Commit your changes and make PR
@@ -28,14 +27,32 @@ Physics is defined per 60 Hz frame; `tick(frames, frameDuration)` with another d
 Known bugs are kept in `test/known-bugs.test.js` as `it.fails`: when a fix makes such a test fail, switch it to `it`
 and move it next to related tests.
 
+## Checks
+
+Command | What it does
+------- | ------------
+`pnpm lint` | Biome linter and formatter check, `pnpm lint:fix` applies fixes. The only check that runs in CI
+`pnpm typecheck` | TypeScript for `src` (`tsconfig.json`) and for TypeScript tests and configs (`tsconfig.test.json`)
+`pnpm test` | Unit tests in Node and browser tests in Chromium, Firefox and WebKit
+`pnpm test:coverage` | Unit and Chromium tests with V8 coverage of `src`, HTML report in `coverage/`. V8 coverage works in Chromium only
+`pnpm build` | ESM, CommonJS and `<script>` builds with types in `dist`
+`pnpm check:package` | Checks the built package: `publint` for `package.json`, `@arethetypeswrong/cli` for types of every entry point, `size-limit` for the gzip size budget in `.size-limit.json`. Run `pnpm build` first
+`pnpm check` | All of the above except coverage, in this order
+
+Debugging tests:
+
+- `pnpm test:watch --project chromium --browser.headless=false` opens the browser with the test page, rerun a
+  single file with `pnpm test:watch test/drag.test.js`.
+- Trajectory snapshots in `test/__snapshots__/` pin the physics. A change that is not meant to change motion must
+  not update them. When a change is meant to, update with `pnpm test -u` and review the snapshot diff.
+
+devDependencies are pinned to exact versions, `pnpm outdated` shows what is behind.
+
 ## Release
 
 Releases are made locally, CI only runs the linter.
 
-1. Run `pnpm install`, `pnpm lint`, `pnpm typecheck`, `pnpm test` on a clean `master`. Check the package: `pnpm build`,
-   `npx publint` and `npm pack`, then
-   `npx @arethetypeswrong/cli@0.18.5 scrollbooster-<version>.tgz --exclude-entrypoints ./dist/scrollbooster.min.js`
-   (older versions of the tool fail on this package with an internal error)
+1. Run `pnpm install` and `pnpm check` on a clean `master`
 2. Run `pnpm changeset version`: it bumps the version in `package.json` and writes `CHANGELOG.md` from the files in
    `.changeset/`. Review and commit the result
 3. Run `pnpm changeset publish`: it builds the package (`prepublishOnly`), publishes it to npm (asks for the 2FA code)

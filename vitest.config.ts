@@ -5,6 +5,12 @@ import { mouse } from './test/commands/mouse.ts';
 
 export default defineConfig({
     test: {
+        // V8 coverage works in Chromium only, `pnpm test:coverage` runs unit and chromium projects
+        coverage: {
+            provider: 'v8',
+            include: ['src/**/*.ts'],
+            reporter: ['text', 'html'],
+        },
         projects: [
             {
                 test: {

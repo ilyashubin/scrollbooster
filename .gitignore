@@ -18,3 +18,6 @@ dist/
 
 # Package tarballs from npm pack
 *.tgz
+
+# Coverage report from pnpm test:coverage
+coverage/

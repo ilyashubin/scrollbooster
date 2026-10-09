@@ -33,9 +33,12 @@
     "dev": "tsdown --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage --project unit --project chromium",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "typecheck": "tsc",
+    "typecheck": "tsc && tsc -p tsconfig.test.json",
+    "check:package": "publint --strict && attw --pack . --exclude-entrypoints ./dist/scrollbooster.min.js && size-limit",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:package",
     "changeset": "changeset",
     "start": "pnpm run --parallel \"/^start:/\"",
     "start:build": "tsdown --watch",
@@ -57,13 +60,18 @@
   "homepage": "https://ilyashubin.github.io/scrollbooster",
   "packageManager": "pnpm@12.10.1",
   "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
     "@biomejs/biome": "2.5.15",
-    "@changesets/cli": "^3.0.3",
-    "@vitest/browser-playwright": "^5.0.3",
-    "playwright": "~1.63.0",
-    "tsdown": "^0.23.0",
+    "@changesets/cli": "3.0.3",
+    "@size-limit/preset-small-lib": "14.1.0",
+    "@vitest/browser-playwright": "5.0.3",
+    "@vitest/coverage-v8": "5.0.3",
+    "playwright": "1.63.0",
+    "publint": "0.3.25",
+    "size-limit": "14.1.0",
+    "tsdown": "0.23.0",
     "typescript": "7.0.2",
-    "vite": "~8.3.3",
-    "vitest": "^5.0.3"
+    "vite": "8.3.3",
+    "vitest": "5.0.3"
   }
 }

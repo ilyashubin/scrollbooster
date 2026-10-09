@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "isolatedDeclarations": false,
+    "declaration": false,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["test/**/*.ts", "vitest.config.ts", "tsdown.config.ts"]
+}
