@@ -42,6 +42,8 @@ Mouse and touch listeners are replaced with Pointer Events.
 - `onPointerUp` is called only for the pointer that started the drag, also when the browser cancels it
   (`pointercancel`, `event.type` tells which). In 3.x it was called on every `mouseup` and `touchend` on the page.
 - Only the main mouse button drags. Middle and side buttons are ignored, in 3.x only the right button was.
+- Nested instances share a gesture: past the click threshold it goes to the innermost instance that can move along
+  its main axis, the others get `onPointerUp` with that `pointermove` event. In 3.x one drag moved all of them.
 - One pointer drags at a time: a second finger on the same viewport is ignored and lifting it does not end the drag.
   If the browser never delivers `pointerup` of the dragging finger (the element was removed, capture was lost), the
   next touch starts a new drag, `onPointerUp` is not called for the lost one.

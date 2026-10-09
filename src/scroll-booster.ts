@@ -205,7 +205,7 @@ export class ScrollBooster {
         const { motion, props, press, wheel } = this;
         if (frames > 0) {
             const bounce = props.bounce && !this.isReducedMotion();
-            const drag = press.isActive ? mirrorX(press.offset, this.isRtl) : null;
+            const drag = press.isActive ? mirrorX(press.isHeld ? { x: 0, y: 0 } : press.offset, this.isRtl) : null;
             motion.step(frames, props, bounce, drag, wheel.isActive ? mirrorX(wheel.offset, this.isRtl) : null);
             wheel.offset.x = 0;
             wheel.offset.y = 0;
@@ -305,6 +305,9 @@ export class ScrollBooster {
                 }
                 this.snap();
             },
+            // Drag to the right moves the position to the left, to the right in a right-to-left viewport
+            canDrag: (axis, offset) =>
+                this.motion.canScroll(axis, axis === 'x' && this.isRtl ? offset : -offset, this.props.direction),
         });
         this.wheel = bindWheel(viewport, signal, {
             props,

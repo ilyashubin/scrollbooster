@@ -2,6 +2,8 @@ import { clearTextSelection, textNodeFromPoint } from './dom';
 import type { Props } from './options';
 import type { Direction, Point, ScrollBoosterState } from './types';
 
+type Axis = 'x' | 'y';
+
 // A press is a click until the pointer moves further than this along scroll directions
 const CLICK_THRESHOLD_PX = 5;
 
@@ -13,6 +15,8 @@ const FORM_NODES = ['input', 'textarea', 'button', 'select', 'label'];
  */
 export interface Press {
     isActive: boolean;
+    /** Nested instances took the same press and none of them owns it yet: content stays in place */
+    readonly isHeld: boolean;
     /** Page coordinates: content follows them */
     offset: Point;
     /** Client coordinates: the angle of the gesture on screen */
@@ -27,6 +31,25 @@ export interface DragHost {
     start(): void;
     /** Drag pointer released or cancelled, before onPointerUp gets the state */
     release(): void;
+    /** A drag by the offset along the axis moves content */
+    canDrag(axis: Axis, offset: number): boolean;
+}
+
+// Instances that took a pointerdown, from the innermost viewport out: the event bubbles in this order.
+// Past the click threshold the gesture goes to one of them, like native scroll goes to one scroller.
+interface Claim {
+    canDrag(axis: Axis, offset: number): boolean;
+    direction(): Direction;
+}
+const claims = new WeakMap<Event, Claim[]>();
+
+/**
+ * The innermost instance that can move along the main axis of the gesture, or that allows that axis
+ */
+function chooseOwner(list: Claim[], offset: Point): Claim | undefined {
+    const axis: Axis = Math.abs(offset.x) > Math.abs(offset.y) ? 'x' : 'y';
+    const allows = (claim: Claim) => claim.direction() !== (axis === 'x' ? 'vertical' : 'horizontal');
+    return list.find((claim) => allows(claim) && claim.canDrag(axis, offset[axis])) ?? list.find(allows) ?? list[0];
 }
 
 /**
@@ -43,7 +66,17 @@ export function isPastClickThreshold(offset: Point, direction: Direction): boole
  * the click that ends a drag is prevented. Listeners are removed and the press is reset with the signal.
  */
 export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragHost): Press {
-    const press: Press = { isActive: false, offset: { x: 0, y: 0 }, clientOffset: { x: 0, y: 0 } };
+    const claim: Claim = { canDrag: host.canDrag, direction: () => host.props().direction };
+    let pressClaims: Claim[] = [claim];
+    let isOwned = false;
+    const press: Press = {
+        isActive: false,
+        get isHeld() {
+            return !isOwned && pressClaims.length > 1;
+        },
+        offset: { x: 0, y: 0 },
+        clientOffset: { x: 0, y: 0 },
+    };
     const pageOrigin = { x: 0, y: 0 };
     const clientOrigin = { x: 0, y: 0 };
     let activePointerId: number | null = null;
@@ -117,6 +150,10 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
             return;
         }
 
+        pressClaims = claims.get(event) ?? [];
+        pressClaims.push(claim);
+        claims.set(event, pressClaims);
+        isOwned = false;
         press.isActive = true;
         activePointerId = event.pointerId;
         activePointerType = event.pointerType;
@@ -142,6 +179,16 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
             return;
         }
         setOffsets(event);
+        if (!isOwned && isPastClickThreshold(press.offset, 'all')) {
+            isOwned = true;
+            if (chooseOwner(pressClaims, press.offset) !== claim) {
+                // A nested instance takes the gesture, content has stayed in place
+                const state = host.getState();
+                stop();
+                host.props().onPointerUp(state, event);
+                return;
+            }
+        }
         // Capture right away would retarget a plain click on content to viewport, so wait for the click threshold
         if (!isCaptured && isPastThreshold()) {
             isCaptured = true;

@@ -137,6 +137,13 @@ sb.destroy();
 - In `transform` mode focusing an element outside the visible area (for example with Tab) scrolls the content to
   show it.
 
+### Nested instances
+
+An instance may live inside the content of another one, for example horizontal rows in a vertical board. Both
+contents stay in place until the pointer moves past the click threshold, then the gesture goes to the innermost
+instance that can move along its main axis, like native scroll goes to one scroller. A row at its edge passes the
+gesture to the outer content. The other instance gets `onPointerUp` with the `pointermove` event that decided.
+
 ### Right-to-left
 
 In a viewport with `direction: rtl` content starts at the right edge. `position.x` is the distance from that edge

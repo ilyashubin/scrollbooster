@@ -4,7 +4,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { commands, server, userEvent } from 'vitest/browser';
-import { type Coords, mount, roundedPosition, tick } from './helpers.ts';
+import { ScrollBooster } from '../src/index.ts';
+import { type Coords, createFixture, mount, roundedPosition, tick } from './helpers.ts';
 
 // Client coordinates of a point relative to element top left corner
 function at(element: Element, x: number, y: number): Coords {
@@ -104,6 +105,28 @@ describe.runIf(server.browser === 'chromium')('real touch', () => {
         expect(onPointerDown).not.toHaveBeenCalled();
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
         expect(window.scrollY).toBeGreaterThan(0);
+    });
+
+    // touch-action of the row and the outer viewport intersect to pinch-zoom, both axes come as pointer events
+    it.each([
+        ['horizontal', [150, 50], [30, 50], 'row'],
+        ['vertical', [100, 90], [100, 10], 'outer'],
+    ] as const)('%s swipe on a nested row moves the %s', async (_, from, to, moved) => {
+        const outer = mount({ direction: 'vertical' });
+        const row = createFixture({ width: 200, height: 100, contentWidth: 1000, contentHeight: 100 });
+        outer.content.prepend(row.viewport);
+        const inner = new ScrollBooster({ viewport: row.viewport, direction: 'horizontal' });
+        document.body.append(spacer);
+
+        await swipe(at(row.viewport, from[0], from[1]), at(row.viewport, to[0], to[1]));
+        await settle();
+        inner.destroy();
+
+        const [movedSb, still] = moved === 'row' ? [inner, outer.sb] : [outer.sb, inner];
+        const { x, y } = movedSb.getState().position;
+        expect(x + y).toBeGreaterThan(50);
+        expect(roundedPosition(still)).toEqual({ x: 0, y: 0 });
+        expect(window.scrollY).toBe(0);
     });
 
     it('tap reaches content element', async () => {
