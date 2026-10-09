@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScrollBooster gallery</title>
+    <link rel="stylesheet" href="./shared/demo.css">
+    <style>
+        .slides .card {
+            width: 288px;
+            height: 200px;
+        }
+
+        .slides .strip {
+            gap: 12px;
+        }
+
+        .tabs .strip {
+            gap: 4px;
+            padding: 8px;
+        }
+
+        .tabs button[aria-selected='true'] {
+            border-color: var(--accent);
+            background: var(--cell);
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Gallery</h1>
+    <p class="hint">
+        Horizontal strips inside a page that scrolls vertically. On a touch screen a vertical swipe over a strip
+        scrolls the page, a horizontal one drags the strip.
+    </p>
+
+    <section>
+        <h2>Free gallery</h2>
+        <p class="hint">
+            <code>direction: 'horizontal'</code>. Links open on click and stay closed after a drag. Vertical wheel
+            over the strip scrolls the page; horizontal wheel and trackpad swipes move the strip until its edge.
+        </p>
+        <div class="stage">
+            <section class="viewport" id="gallery" tabindex="0" aria-label="Free gallery">
+                <div class="strip"></div>
+            </section>
+            <div id="gallery-panel"></div>
+        </div>
+    </section>
+
+    <section class="slides">
+        <h2>Carousel with snap</h2>
+        <p class="hint">
+            <code>snap</code> stops on a slide where inertia would end, buttons use <code>scrollBy()</code>.
+        </p>
+        <div class="toolbar">
+            <button type="button" id="prev">← Previous</button>
+            <button type="button" id="next">Next →</button>
+        </div>
+        <div class="stage">
+            <section class="viewport" id="carousel" tabindex="0" aria-label="Carousel">
+                <div class="strip"></div>
+            </section>
+            <div id="carousel-panel"></div>
+        </div>
+    </section>
+
+    <section class="tabs">
+        <h2>Tabs</h2>
+        <p class="hint">
+            The selected tab is centered with <code>scrollIntoView(tab, { align: 'center' })</code>. With
+            <code>wheel: 'horizontal'</code> the mouse wheel scrolls the tabs, past their end it scrolls the page.
+        </p>
+        <div class="viewport" id="tabs">
+            <div class="strip" role="tablist" aria-label="Tabs"></div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Right-to-left</h2>
+        <p class="hint">
+            A viewport with <code>dir="rtl"</code>: content starts at the right edge, <code>position.x</code> grows to
+            the left, arrow keys follow the reading direction.
+        </p>
+        <div class="stage">
+            <section class="viewport" id="rtl" dir="rtl" tabindex="0" aria-label="Right-to-left gallery">
+                <div class="strip"></div>
+            </section>
+            <div id="rtl-panel"></div>
+        </div>
+    </section>
+
+    <div id="filler-bottom" class="filler"></div>
+</main>
+<script type="module" src="./gallery.ts"></script>
+</body>
+</html>

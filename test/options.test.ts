@@ -1,0 +1,523 @@
+import { describe, expect, it, type Mock, vi } from 'vitest';
+import { ScrollBooster, type ScrollMode } from '../src/index.ts';
+import {
+    createFixture,
+    createPointer,
+    mount,
+    nextRender,
+    pendingFrames,
+    roundedPosition,
+    tick,
+    wheel,
+} from './helpers.ts';
+
+describe('updateOptions', () => {
+    it('merges options and calls onUpdate on the next frame', () => {
+        const onUpdate = vi.fn();
+        const { sb } = mount({ onUpdate });
+        tick(5);
+        onUpdate.mockClear();
+
+        sb.updateOptions({ bounce: false, friction: 0.2 });
+        expect(onUpdate).not.toHaveBeenCalled();
+
+        tick();
+        expect(onUpdate).toHaveBeenCalledTimes(1);
+        expect(pendingFrames()).toBe(0);
+    });
+
+    it('keeps options that are not passed', () => {
+        const { sb, pointer } = mount({ direction: 'vertical' });
+
+        sb.updateOptions({ friction: 0.2 });
+        pointer.mouseDrag([200, 200], [100, 100], { release: false });
+        tick(100);
+
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 100 });
+    });
+
+    it('applies new direction to next drag', () => {
+        const { sb, pointer } = mount();
+
+        sb.updateOptions({ direction: 'vertical' });
+        pointer.mouseDrag([200, 200], [100, 100], { release: false });
+        tick(100);
+
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 100 });
+    });
+
+    it('measures and observes new content', async () => {
+        const { sb, viewport } = mount();
+        const bigger = document.createElement('div');
+        bigger.style.cssText = 'width: 2000px; height: 2000px;';
+        viewport.append(bigger);
+
+        sb.updateOptions({ content: bigger });
+        expect(sb.getState().content).toEqual({ width: 2000, height: 2000 });
+
+        bigger.style.height = '3000px';
+        await nextRender();
+        expect(sb.getState().content).toEqual({ width: 2000, height: 3000 });
+    });
+
+    it('moves listeners to new viewport and reads its scroll position', () => {
+        const { sb, pointer } = mount();
+        const next = createFixture({ contentWidth: 2000 });
+        next.viewport.scrollLeft = 100;
+
+        sb.updateOptions({ viewport: next.viewport });
+
+        expect(sb.getState().content.width).toBe(2000);
+        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
+
+        pointer.mouseDrag([200, 200], [100, 200]);
+        tick(100);
+        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
+
+        createPointer(next.viewport).mouseDrag([200, 200], [100, 200], { release: false });
+        tick(100);
+        expect(roundedPosition(sb)).toEqual({ x: 200, y: 0 });
+        expect(getComputedStyle(next.content).translate).toBe('-200px');
+        next.viewport.remove();
+    });
+
+    it('throws TypeError and keeps current elements for viewport without content', () => {
+        const { sb, pointer } = mount();
+
+        expect(() => sb.updateOptions({ viewport: document.createElement('div') })).toThrow(
+            'first child of viewport is not an HTMLElement'
+        );
+        pointer.mouseDrag([200, 200], [100, 200], { release: false });
+        tick(100);
+        expect(roundedPosition(sb)).toEqual({ x: 100, y: 0 });
+    });
+});
+
+describe('updateOptions elements', () => {
+    // Only the translation that the instance rendered is removed from the previous content
+    it('leaves style of previous content in native mode', () => {
+        const { sb, content } = mount({ scrollMode: 'native' });
+        content.style.translate = '5px';
+        const next = document.createElement('div');
+        content.append(next);
+
+        sb.updateOptions({ content: next });
+
+        expect(content.style.translate).toBe('5px');
+    });
+});
+
+describe('updateOptions scrollMode', () => {
+    function scrolled(scrollMode: ScrollMode) {
+        const mounted = mount({ scrollMode });
+        mounted.sb.setPosition({ x: 100, y: 50 });
+        tick();
+        return mounted;
+    }
+
+    it('transform to native: removes translation and scrolls natively', () => {
+        const { sb, content, viewport } = scrolled('transform');
+
+        sb.updateOptions({ scrollMode: 'native' });
+
+        expect(content.style.translate).toBe('');
+        expect([viewport.scrollLeft, viewport.scrollTop]).toEqual([100, 50]);
+        expect(sb.getState().position).toEqual({ x: 100, y: 50 });
+    });
+
+    it('native to transform: resets native scroll and moves content with translate', () => {
+        const { sb, content, viewport } = scrolled('native');
+
+        sb.updateOptions({ scrollMode: 'transform' });
+
+        expect([viewport.scrollLeft, viewport.scrollTop]).toEqual([0, 0]);
+        expect(content.style.translate).toBe('-100px -50px');
+        expect(sb.getState().position).toEqual({ x: 100, y: 50 });
+    });
+
+    it('transform to none: removes translation', () => {
+        const { sb, content } = scrolled('transform');
+
+        sb.updateOptions({ scrollMode: 'none' });
+        tick(5);
+
+        expect(content.style.translate).toBe('');
+    });
+
+    it('new content: removes translation from previous content', () => {
+        const { sb, content, viewport } = scrolled('transform');
+        const next = document.createElement('div');
+        next.style.cssText = 'width: 1000px; height: 1000px;';
+        viewport.append(next);
+
+        sb.updateOptions({ content: next });
+        tick();
+
+        expect(content.style.translate).toBe('');
+        expect(next.style.translate).toBe('-100px -50px');
+    });
+});
+
+// Content moved with translate gets its own compositing layer, the instance restores the inline value it found
+describe('will-change', () => {
+    it.each([
+        ['transform', 'translate'],
+        ['native', 'opacity'],
+        ['none', 'opacity'],
+    ] as const)('%s mode sets %s', (scrollMode, willChange) => {
+        const { viewport, content } = mount((fixture) => {
+            fixture.content.style.willChange = 'opacity';
+            return { scrollMode };
+        });
+
+        expect(content.style.willChange).toBe(willChange);
+        expect(viewport.style.willChange).toBe('');
+    });
+
+    it('follows scrollMode changes', () => {
+        const { sb, content } = mount();
+
+        sb.updateOptions({ scrollMode: 'native' });
+        expect(content.style.willChange).toBe('');
+        sb.updateOptions({ scrollMode: 'transform' });
+        expect(content.style.willChange).toBe('translate');
+    });
+
+    it('moves to new content and is restored on previous content and on destroy', () => {
+        const { sb, content, viewport } = mount();
+        content.style.willChange = 'translate';
+        const next = document.createElement('div');
+        next.style.willChange = 'opacity';
+        viewport.append(next);
+
+        sb.updateOptions({ content: next });
+        expect(content.style.willChange).toBe('');
+        expect(next.style.willChange).toBe('translate');
+
+        sb.destroy();
+        expect(next.style.willChange).toBe('opacity');
+    });
+});
+
+describe('destroy', () => {
+    it('removes pointer, click and wheel listeners', () => {
+        const callbacks = {
+            onUpdate: vi.fn(),
+            onPointerDown: vi.fn(),
+            onPointerMove: vi.fn(),
+            onPointerUp: vi.fn(),
+            onClick: vi.fn(),
+            onWheel: vi.fn(),
+        };
+        const { sb, pointer, viewport } = mount(callbacks);
+        tick(5);
+
+        sb.destroy();
+        callbacks.onUpdate.mockClear();
+        pointer.mouseDrag([200, 200], [100, 100]);
+        pointer.click(100, 100);
+        pointer.touchDrag([200, 200], [100, 100]);
+        wheel(viewport, 0, 100);
+        tick(10);
+
+        for (const callback of Object.values(callbacks)) {
+            expect(callback).not.toHaveBeenCalled();
+        }
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
+    });
+
+    it('removes translation from content and keeps native scroll', () => {
+        const transform = mount();
+        const native = mount({ scrollMode: 'native' });
+        for (const { sb } of [transform, native]) {
+            sb.setPosition({ x: 200 });
+        }
+        tick();
+
+        transform.sb.destroy();
+        native.sb.destroy();
+
+        expect(transform.content.style.translate).toBe('');
+        expect(native.viewport.scrollLeft).toBe(200);
+    });
+
+    it('stops running animation', () => {
+        const onUpdate = vi.fn();
+        const { sb, pointer } = mount({ onUpdate });
+        pointer.mouseDrag([250, 250], [150, 250], { steps: 5 });
+
+        sb.destroy();
+        onUpdate.mockClear();
+        tick(10);
+
+        expect(onUpdate).not.toHaveBeenCalled();
+        expect(pendingFrames()).toBe(0);
+    });
+
+    it('clears wheel timer', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const { sb, viewport } = mount();
+        wheel(viewport, 0, 100);
+
+        sb.destroy();
+
+        expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('removes capture load listener from content', () => {
+        const onUpdate = vi.fn();
+        const { sb, content } = mount({ onUpdate });
+        const image = document.createElement('img');
+        content.append(image);
+
+        sb.destroy();
+        onUpdate.mockClear();
+        image.dispatchEvent(new Event('load'));
+
+        expect(onUpdate).not.toHaveBeenCalled();
+    });
+
+    it('stops observing element sizes', async () => {
+        const disconnect = vi.spyOn(ResizeObserver.prototype, 'disconnect');
+        const onUpdate = vi.fn();
+        const { sb, content } = mount({ onUpdate });
+
+        sb.destroy();
+        expect(disconnect).toHaveBeenCalledTimes(1);
+        onUpdate.mockClear();
+        content.style.height = '2000px';
+        await nextRender();
+
+        expect(onUpdate).not.toHaveBeenCalled();
+    });
+
+    it('turns further calls into no-ops', () => {
+        const onUpdate = vi.fn();
+        const { sb } = mount({ onUpdate });
+        tick(5);
+
+        sb.destroy();
+        onUpdate.mockClear();
+        sb.destroy();
+        sb.updateOptions({ friction: 0.2 });
+        sb.updateMetrics();
+        sb.setPosition({ x: 100 });
+        sb.scrollTo({ x: 100 });
+        tick(10);
+
+        expect(onUpdate).not.toHaveBeenCalled();
+        expect(pendingFrames()).toBe(0);
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
+    });
+});
+
+describe('touch-action', () => {
+    it.each([
+        ['all', 'pinch-zoom'],
+        ['horizontal', 'pan-y pinch-zoom'],
+        ['vertical', 'pan-x pinch-zoom'],
+    ] as const)('direction %s leaves %s to the browser', (direction, touchAction) => {
+        const { viewport } = mount({ direction });
+
+        expect(viewport.style.touchAction).toBe(touchAction);
+    });
+
+    it('keeps viewport touch-action with pointerMode: mouse', () => {
+        const { viewport } = createFixture();
+        viewport.style.touchAction = 'manipulation';
+        const sb = new ScrollBooster({ viewport, pointerMode: 'mouse' });
+
+        expect(viewport.style.touchAction).toBe('manipulation');
+        sb.destroy();
+        viewport.remove();
+    });
+
+    it('follows updateOptions', () => {
+        const { sb, viewport } = mount();
+
+        sb.updateOptions({ direction: 'vertical' });
+        expect(viewport.style.touchAction).toBe('pan-x pinch-zoom');
+
+        sb.updateOptions({ pointerMode: 'mouse' });
+        expect(viewport.style.touchAction).toBe('');
+    });
+
+    it('restores initial inline value on destroy', () => {
+        const { viewport } = createFixture();
+        viewport.style.touchAction = 'pan-y';
+        const sb = new ScrollBooster({ viewport });
+
+        expect(viewport.style.touchAction).toBe('pinch-zoom');
+        sb.destroy();
+        expect(viewport.style.touchAction).toBe('pan-y');
+        viewport.remove();
+    });
+
+    it('moves to new viewport and restores initial value of the previous one', () => {
+        const { viewport } = createFixture();
+        viewport.style.touchAction = 'pan-y';
+        const next = createFixture();
+        next.viewport.style.touchAction = 'manipulation';
+        const sb = new ScrollBooster({ viewport });
+
+        sb.updateOptions({ viewport: next.viewport });
+        expect(viewport.style.touchAction).toBe('pan-y');
+        expect(next.viewport.style.touchAction).toBe('pinch-zoom');
+
+        sb.destroy();
+        expect(next.viewport.style.touchAction).toBe('manipulation');
+        viewport.remove();
+        next.viewport.remove();
+    });
+});
+
+describe('wheel listener', () => {
+    function wheelListeners(callback: () => void) {
+        const add = vi.spyOn(EventTarget.prototype, 'addEventListener');
+        callback();
+        return add.mock.calls.filter(([type]) => type === 'wheel').length;
+    }
+
+    it('is not added with wheel: false', () => {
+        expect(wheelListeners(() => mount({ wheel: false }))).toBe(0);
+    });
+
+    it('follows wheel option in updateOptions', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        const { sb, viewport } = mount({ wheel: false });
+
+        expect(wheelListeners(() => sb.updateOptions({ wheel: true }))).toBe(1);
+        wheel(viewport, 0, 100);
+        tick(10);
+        expect(roundedPosition(sb).y).toBeGreaterThan(0);
+
+        sb.setPosition({ y: 0 });
+        vi.advanceTimersByTime(100);
+        sb.updateOptions({ wheel: false });
+        wheel(viewport, 0, 100);
+        tick(10);
+        expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
+    });
+
+    // Vitest browser mode wraps window.addEventListener, so window needs its own spy
+    function blockingListeners(callback: () => void) {
+        const elementListeners = vi.spyOn(EventTarget.prototype, 'addEventListener');
+        const windowListeners = vi.spyOn(window, 'addEventListener');
+        callback();
+        return [...elementListeners.mock.calls, ...windowListeners.mock.calls]
+            .filter(([, , options]) => typeof options === 'object' && options.passive === false)
+            .map(([type]) => type);
+    }
+
+    it('only wheel listener may block scroll', () => {
+        expect(blockingListeners(() => mount())).toEqual(['wheel']);
+    });
+
+    it('no listener blocks scroll with wheel: false', () => {
+        expect(blockingListeners(() => mount({ wheel: false }))).toEqual([]);
+    });
+});
+
+describe('options validation', () => {
+    it('accepts valid options', () => {
+        expect(() =>
+            mount({
+                direction: 'horizontal',
+                pointerMode: 'touch',
+                scrollMode: 'native',
+                reducedMotion: 'never',
+                friction: 0.2,
+                bounceForce: 0.3,
+                wheel: false,
+                bounce: false,
+                onUpdate() {},
+            })
+        ).not.toThrow();
+    });
+
+    it.each([
+        'scrollMethod',
+        'preventPointerMoveDefault',
+        'lockScrollOnDragDirection',
+        'emulateScroll',
+        'preventDefaultOnEmulateScroll',
+        'dragDirectionTolerance',
+        'pointerDownPreventDefault',
+        'shouldScroll',
+    ])('throws for unknown option %s', (key) => {
+        expect(() => mount({ [key]: true })).toThrow(new TypeError(`ScrollBooster: unknown option "${key}"`));
+    });
+
+    it.each([
+        ['direction', 'diagonal', 'one of all, horizontal, vertical'],
+        ['direction', undefined, 'one of all, horizontal, vertical'],
+        ['pointerMode', 'pen', 'one of all, touch, mouse'],
+        ['scrollMode', 'smooth', 'one of transform, native, none'],
+        ['scrollMode', undefined, 'one of transform, native, none'],
+        ['reducedMotion', true, 'one of auto, always, never'],
+        ['friction', 0, 'a number between 0 and 1'],
+        ['friction', 1, 'a number between 0 and 1'],
+        ['bounceForce', '0.1', 'a number between 0 and 1'],
+        ['wheel', 'auto', 'one of true, false, horizontal'],
+        ['bounce', 'yes', 'a boolean'],
+        ['onUpdate', null, 'a function'],
+        ['content', '.content', 'an HTMLElement'],
+    ])('throws for %s: %s', (key, value, expected) => {
+        expect(() => mount({ [key]: value })).toThrow(
+            new TypeError(`ScrollBooster: option "${key}" must be ${expected}`)
+        );
+    });
+
+    it('updateOptions throws and applies nothing when any option is invalid', () => {
+        const { sb, pointer } = mount({ direction: 'horizontal' });
+
+        // @ts-expect-error invalid direction
+        expect(() => sb.updateOptions({ friction: 0.2, direction: 'diagonal' })).toThrow(TypeError);
+        // @ts-expect-error unknown option
+        expect(() => sb.updateOptions({ friction: 0.5, direction: 'all', bounse: false })).toThrow(
+            'unknown option "bounse"'
+        );
+
+        // Default friction 0.05 moves content by 95% of the pointer offset on the first frame
+        pointer.mouseDown(200, 200);
+        pointer.mouseMove(100, 100);
+        tick();
+        expect(roundedPosition(sb)).toEqual({ x: 95, y: 0 });
+    });
+});
+
+describe('updateOptions callbacks', () => {
+    const CALLBACKS = ['onPointerDown', 'onPointerMove', 'onPointerUp', 'onClick', 'onUpdate', 'onWheel'] as const;
+    const callbacks = () =>
+        Object.fromEntries(CALLBACKS.map((name) => [name, vi.fn()])) as Record<(typeof CALLBACKS)[number], Mock>;
+
+    it('calls new callbacks and not the replaced ones', () => {
+        const previous = callbacks();
+        const { sb, pointer, viewport } = mount(previous);
+        const next = { ...callbacks(), shouldDrag: vi.fn(() => true) };
+
+        sb.updateOptions(next);
+        pointer.mouseDrag([200, 200], [100, 200]);
+        pointer.click(100, 200);
+        wheel(viewport, 0, 10);
+        tick();
+
+        for (const name of CALLBACKS) {
+            expect(next[name], name).toHaveBeenCalled();
+            expect(previous[name], name).not.toHaveBeenCalled();
+        }
+        expect(next.shouldDrag).toHaveBeenCalled();
+    });
+
+    it('shouldDrag from updateOptions decides the next press', () => {
+        const onPointerDown = vi.fn();
+        const { sb, pointer } = mount({ onPointerDown });
+
+        sb.updateOptions({ shouldDrag: () => false });
+        pointer.mouseDrag([200, 200], [100, 200]);
+        tick(10);
+
+        expect(onPointerDown).not.toHaveBeenCalled();
+        expect(sb.getState().position).toEqual({ x: 0, y: 0 });
+    });
+});

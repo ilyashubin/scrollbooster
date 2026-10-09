@@ -1,123 +1,236 @@
 # ScrollBooster
 
-Enjoyable drag-to-scroll micro library (~2KB gzipped). Supports smooth content scroll via mouse/touch dragging, trackpad or mouse wheel. Zero dependencies.
+Enjoyable drag-to-scroll micro library (~6 kB gzipped). Supports smooth content scroll via mouse, touch and pen
+dragging, trackpad or mouse wheel, with inertia and elastic bounce. Zero dependencies.
 
 Easy to setup yet flexible enough to support any custom scrolling logic.
 
-### Installation
+Upgrading from 3.x? See [MIGRATION.md](MIGRATION.md).
 
-You can install it via `npm` or `yarn` package manager or via `script` tag:
+### Installation
 
 ``` bash
 npm i scrollbooster
 ```
 
-``` bash
-yarn add scrollbooster
-```
+Or with `<script>` tag, the library is available as global `ScrollBooster`:
 
 ``` html
-<script src="https://unpkg.com/scrollbooster@2/dist/scrollbooster.min.js"></script>
+<script src="https://unpkg.com/scrollbooster@4/dist/scrollbooster.min.js"></script>
 ```
 
 ### Usage
 
-The most simple setup with default settings:
+Simplest setup:
 
 ``` js
-import ScrollBooster from 'scrollbooster';
+import { ScrollBooster } from 'scrollbooster';
 
 new ScrollBooster({
     viewport: document.querySelector('.viewport'),
-    scrollMode: 'transform'
 });
 ```
 
-Please note that in order to support IE11 you should replace arrow functions and string templates from code examples to supported equivalents or just use Babel.
+The package is ESM only, `require()` loads it in Node 20.19+ and 22.12+:
+
+``` js
+const { ScrollBooster } = require('scrollbooster');
+```
+
+Types for options and state are exported for TypeScript:
+
+``` ts
+import { ScrollBooster, type ScrollBoosterOptions, type ScrollBoosterState } from 'scrollbooster';
+```
 
 ### Options
 
 Option | Type | Default | Description
 ------ | ---- | ------- | -----------
-viewport | DOM Node | null | Content viewport element (required)
-content | DOM Node | viewport child element | Scrollable content element inside viewport
-scrollMode | String | undefined | Scroll technique - via CSS transform or natively. Could be 'transform' or 'native'
-direction | String | 'all' | Scroll direction. Could be 'horizontal', 'vertical' or 'all'
-bounce | Boolean | true | Enables elastic bounce effect when hitting viewport borders
-textSelection | Boolean | false | Enables text selection inside viewport
-inputsFocus | Boolean | true | Enables focus for elements: 'input', 'textarea', 'button', 'select' and 'label'
-pointerMode | String | 'all' | Specify pointer type. Supported values - 'touch' (scroll only on touch devices), 'mouse' (scroll only on desktop), 'all' (mobile and desktop)
-friction | Number | 0.05 | Scroll friction factor - how fast scrolling stops after pointer release
-bounceForce | Number | 0.1 | Elastic bounce effect factor
-emulateScroll | Boolean | false | Enables mouse wheel/trackpad emulation inside viewport
-preventDefaultOnEmulateScroll | String | false | Prevents horizontal or vertical default when `emulateScroll` is enabled (eg. useful to prevent horizontal trackpad gestures while enabling vertical scrolling). Could be 'horizontal' or 'vertical'.
-lockScrollOnDragDirection | String | false | Detect drag direction and either prevent default `mousedown`/`touchstart` event or lock content scroll. Could be 'horizontal', 'vertical' or 'all'
-dragDirectionTolerance | Number | 40 | Tolerance for horizontal or vertical drag detection
-onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates
-onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives object with scrolling metrics and event object. Calls after each `click` in scrollable area
-onPointerDown | Function | noop | `mousedown`/`touchstart` events handler
-onPointerUp | Function | noop | `mouseup`/`touchend` events handler
-onPointerMove | Function | noop | `mousemove`/`touchmove` events handler
-onWheel | Function | noop | `wheel` event handler
-shouldScroll | Function | noop | Function to permit or disable scrolling. Receives object with scrolling state and event object. Calls on `pointerdown` (mousedown, touchstart) in scrollable area. You can return `true` or `false` to enable or disable scrolling
+viewport | HTMLElement | | Element that shows and clips the content (required)
+content | HTMLElement | first child of viewport | Element that moves inside viewport
+direction | `'all'`, `'horizontal'`, `'vertical'` | `'all'` | Directions the content scrolls in
+scrollMode | `'transform'`, `'native'`, `'none'` | `'transform'` | How the position is rendered, see [Choosing `scrollMode`](#choosing-scrollmode)
+pointerMode | `'all'`, `'touch'`, `'mouse'` | `'all'` | Pointers that drag content, `'mouse'` includes pen
+bounce | boolean | `true` | Content can be pulled beyond the edges with resistance and bounces back when thrown beyond them
+friction | number | `0.05` | How fast motion slows down after release, between 0 and 1
+bounceForce | number | `0.1` | How fast content returns from beyond an edge, between 0 and 1
+textSelection | boolean | `false` | Text can be selected: a mouse press on text selects it instead of dragging, a long touch press selects a word
+axisLock | boolean | `false` | A drag or a wheel gesture moves content only along the axis it starts along, for `direction: 'all'`
+inputsFocus | boolean | `true` | A press on a form control, `summary`, media controls or editable content, or inside them, does not drag
+wheel | `true`, `false`, `'horizontal'` | `true` | Wheel and trackpad scroll content. The page scrolls instead when content cannot move that way. `'horizontal'` scrolls only along x, a vertical mouse wheel too
+keyboard | boolean | `true` | Keys scroll content while it has focus, see [Accessibility](#accessibility)
+reducedMotion | `'auto'`, `'always'`, `'never'` | `'auto'` | `'always'` turns off inertia, bounce and smooth `scrollTo`, `'never'` keeps them, `'auto'` follows the `prefers-reduced-motion` setting
+snap | function | | Where content stops after a drag or a wheel gesture, for carousels and paging. Receives the position where it would stop and the state, returns the position to scroll to, for example `(rest) => ({ x: Math.round(rest.x / 300) * 300 })`
+shouldDrag | function | | Return `false` to not drag from this press, for example on a slider inside content. Receives the state and the `PointerEvent`
+onUpdate | function | | Called with the state on animation frames while anything changes, the first time after creation
+onClick | function | | Called with the state and the event for each click in viewport. `event.defaultPrevented` is `true` for the click that ends a drag
+onPointerDown | function | | Called with the state and the `PointerEvent` when a press starts dragging
+onPointerMove | function | | Called when the dragging pointer moves
+onPointerUp | function | | Called when the dragging pointer is released or cancelled
+onWheel | function | | Called for each `wheel` event that scrolls content
 
-### List of methods
+`friction` and `bounceForce` are per 60 Hz frame, motion is the same on any refresh rate.
+
+On touch screens ScrollBooster sets CSS `touch-action` on the viewport, so swipes across `direction` scroll the page
+and pinch zoom always works.
+
+### Methods
 
 Method | Description
 ------ | -----------
-setPosition | Sets new scroll position in viewport. Receives an object with properties `x` and `y`
-scrollTo | Smooth scroll to position in viewport. Receives an object with properties `x` and `y`
-updateMetrics | Forces to recalculate elements metrics. Useful for cases when content in scrollable area change its size dynamically
-updateOptions | Sets option value. All properties from `Options` config object are supported
-getState | Returns current scroll state in a same format as `onUpdate`
-destroy | Removes all instance's event listeners
+scrollTo | Smooth scroll to `{ x, y }`, a missing coordinate stays. Does nothing while the user drags content
+scrollBy | Smooth scroll by `{ x, y }`. Repeated calls add up, for "next" and "previous" buttons
+scrollIntoView | Smooth scroll to show an element of the content: `sb.scrollIntoView(element, { align })`, `align` is `'nearest'` (default), `'start'`, `'center'` or `'end'`
+setPosition | Jump to `{ x, y }` and stop motion
+getState | Current state, the same as `onUpdate` receives
+updateOptions | Change options, including `viewport` and `content`
+updateMetrics | Measure viewport and content again. Size changes are tracked automatically, call it for other changes, for example of `direction: rtl`
+destroy | Stop motion, remove listeners and the styles the instance set
 
-### Full Example
+Positions stay within the edges. State has `position`, `maxPosition`, `viewport` and `content` sizes, `isMoving`,
+`isDragging`, `dragOffset`, `dragAngle` and `borderCollision`.
+
+### Example
 
 ``` js
-const viewport = document.querySelector('.viewport');
-const content = document.querySelector('.scrollable-content');
-
 const sb = new ScrollBooster({
-  viewport,
-  content,
-  bounce: true,
-  textSelection: false,
-  emulateScroll: true,
+  viewport: document.querySelector('.gallery'),
+  direction: 'horizontal',
   onUpdate: (state) => {
-    // state contains useful metrics: position, dragOffset, dragAngle, isDragging, isMoving, borderCollision
-    // you can control scroll rendering manually without 'scrollMethod' option:
-    content.style.transform = `translate(
-      ${-state.position.x}px,
-      ${-state.position.y}px
-    )`;
+    progress.value = state.position.x / (state.maxPosition.x || 1);
   },
-  shouldScroll: (state, event) => {
-    // disable scroll if clicked on button
-    const isButton = event.target.nodeName.toLowerCase() === 'button';
-    return !isButton;
-  },
-  onClick: (state, event, isTouchDevice) => {
-    // prevent default link event
-    const isLink = event.target.nodeName.toLowerCase() === 'link';
-    if (isLink) {
-      event.preventDefault();
+  onClick: (state, event) => {
+    if (!event.defaultPrevented) {
+      // a click without drag
     }
-  }
+  },
 });
 
-// methods usage examples:
-sb.updateMetrics();
-sb.scrollTo({ x: 100, y: 100 });
-sb.updateOptions({ emulateScroll: false });
-sb.destroy();
+sb.scrollTo({ x: 0 });
 ```
 
-### [Live ScrollBooster Examples On CodeSandbox](https://codesandbox.io/s/scrollbooster-examples-3g00p)
+### Choosing `scrollMode`
+
+- `'transform'` (default) moves content with the CSS `translate` property and bounces beyond the edges. Your own
+  `transform` of the content, like `scale()`, stays. The viewport itself does not scroll, so `position: sticky`
+  inside content and code that listens to `scroll` do not work. Use `sb.scrollIntoView()` instead of
+  `element.scrollIntoView()`.
+- `'native'` sets `scrollLeft` and `scrollTop` of the viewport. No bounce, everything the browser does with a
+  scroller works.
+- `'none'` renders nothing, render the position in `onUpdate`. Set `will-change: transform` on the content in CSS,
+  so it is not repainted every frame:
+
+``` js
+onUpdate: ({ position }) => {
+  // in a right-to-left viewport use +position.x
+  content.style.transform = `translate(${-position.x}px, ${-position.y}px)`;
+},
+```
+
+### Recipes
+
+Gallery with links: clicks work, the click that ends a drag does not reach links and buttons.
+
+``` js
+new ScrollBooster({ viewport, direction: 'horizontal' });
+```
+
+Carousel that stops on a slide, with buttons:
+
+``` js
+const slide = 300;
+const sb = new ScrollBooster({
+  viewport,
+  direction: 'horizontal',
+  snap: (rest) => ({ x: Math.round(rest.x / slide) * slide }),
+});
+next.addEventListener('click', () => sb.scrollBy({ x: slide }));
+prev.addEventListener('click', () => sb.scrollBy({ x: -slide }));
+```
+
+Show the active tab: `sb.scrollIntoView(activeTab, { align: 'center' })`.
+
+Drag with the mouse on desktop, native scroll on touch screens:
+
+``` js
+// .viewport { overflow: auto; }
+new ScrollBooster({ viewport, pointerMode: 'mouse', scrollMode: 'native' });
+```
+
+Drag the whole page with the mouse:
+
+``` js
+new ScrollBooster({
+  viewport: document.documentElement,
+  content: document.body,
+  scrollMode: 'native',
+  direction: 'vertical',
+  pointerMode: 'mouse',
+});
+```
+
+Run code when motion ends, the last `onUpdate` of a motion has `isMoving: false`:
+
+``` js
+let wasMoving = false;
+new ScrollBooster({
+  viewport,
+  onUpdate: (state) => {
+    if (wasMoving && !state.isMoving) {
+      loadMoreIfNeeded(state.position, state.maxPosition);
+    }
+    wasMoving = state.isMoving;
+  },
+});
+```
+
+React:
+
+``` jsx
+function Gallery({ children, direction }) {
+  const viewport = useRef(null);
+  const sb = useRef(null);
+  useEffect(() => {
+    sb.current = new ScrollBooster({ viewport: viewport.current, direction });
+    return () => sb.current.destroy();
+  }, []);
+  useEffect(() => sb.current.updateOptions({ direction }), [direction]);
+  return (
+    <div ref={viewport} style={{ overflow: 'hidden' }}>
+      <div style={{ display: 'flex', width: 'max-content' }}>{children}</div>
+    </div>
+  );
+}
+```
+
+Tests in jsdom: there is no `ResizeObserver`, call `updateMetrics()` after changing sizes. Jest in CommonJS mode
+has to transform the package: `transformIgnorePatterns: ['/node_modules/(?!scrollbooster)']`.
+
+### Accessibility
+
+- With `prefers-reduced-motion: reduce` content stops right after release, does not bounce and `scrollTo` jumps
+  to the target, see the `reducedMotion` option.
+- Focus on an element outside the visible area, for example with Tab, scrolls content to show it.
+- Arrow keys, Page Up, Page Down, Space, Home and End scroll content while the viewport or an element in it has
+  focus, like a native scroller. Keys in inputs are left alone. Make the viewport focusable when its content has
+  no focusable elements: `<section class="viewport" tabindex="0" aria-label="Gallery">`.
+
+### Nested instances
+
+An instance may live inside the content of another one, for example horizontal rows in a vertical board. Like
+native scroll, a gesture goes to the innermost instance that can move along it, a row at its edge passes it to the
+outer content.
+
+### Right-to-left
+
+In a viewport with `direction: rtl` content starts at the right edge, and `position.x` is the distance from it:
+it grows to the left, from 0 to `maxPosition.x`, so progress bars and `scrollTo()` work the same in both
+directions. `dragOffset` and `borderCollision` stay physical, `borderCollision.right` is `true` at the start.
 
 ### Browser support
 
-ScrollBooster has been tested in IE 11, Edge and other modern browsers (Chrome, Firefox, Safari).
+Chrome and Edge 104+, Firefox 90+, Safari and iOS Safari 15+. Version 3.x supports IE11.
 
 ### Special thanks
 

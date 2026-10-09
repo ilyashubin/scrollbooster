@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScrollBooster images</title>
+    <link rel="stylesheet" href="./shared/demo.css">
+    <style>
+        .strip img {
+            display: block;
+            height: 200px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Images</h1>
+    <p class="hint">
+        Images without size attributes load one by one with a delay and widen the strip. Content size and
+        <code>maxPosition</code> follow without <code>updateMetrics()</code>: the viewport and content are watched
+        with <code>ResizeObserver</code>. Resize the window to change the viewport.
+    </p>
+    <div class="toolbar">
+        <button type="button" id="reload">Load images again</button>
+        <button type="button" id="add">Add 3 images</button>
+        <button type="button" id="end">scrollTo end</button>
+    </div>
+    <div class="stage">
+        <section class="viewport" id="gallery" tabindex="0" aria-label="Images">
+            <div class="strip"></div>
+        </section>
+        <div id="panel"></div>
+    </div>
+</main>
+<script type="module" src="./images.ts"></script>
+</body>
+</html>

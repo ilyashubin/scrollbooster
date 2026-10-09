@@ -3,8 +3,108 @@
 Contributions are welcome!
 
 1. Fork this repository and clone it
-2. Run `yarn` to install all dependencies
-3. Make your changes. Do not change `dist` directory files manually
-4. Quick way to test it is to run `yarn start` and check it in your browser
-5. Run `yarn build` to build minified files
-6. Commit your changes and make PR
+2. Use Node.js version from `.nvmrc` and run `corepack enable` once to get the pnpm version pinned in `package.json`
+3. Run `pnpm install` to install all dependencies
+4. Make your changes in `src`. Build output in `dist` is not committed
+5. Run `pnpm exec playwright install chromium firefox webkit` once, then `pnpm test` to run unit tests in Node
+   (project `unit`) and browser tests in all three browsers (projects `chromium`, `firefox`, `webkit`).
+   Use `pnpm test --project unit --project chromium` to run a subset and `pnpm test:watch` while developing
+6. Try changes by hand in the demo: `pnpm dev` serves `demo/` and opens it in the browser, the pages import `src/`
+   directly and reload on change. The server listens on the local network, open the printed Network address on a
+   phone to try touch
+7. Run `pnpm check` before committing: lint, typecheck, all tests, build and package checks in one command
+8. If the change affects users, run `pnpm changeset`, pick the bump type and describe the change. It adds a file
+   to `.changeset/` that goes to the changelog on release
+9. Commit your changes and make PR
+
+Source is TypeScript in `src/`: `index.ts` is the ESM entry, `global.ts` is the entry of the `<script>`
+build. `scroll-booster.ts` holds the public class and connects the modules:
+
+- `options.ts`: defaults, validation and merging of options, `touch-action` for each direction;
+- `input.ts`: drag with Pointer Events, click threshold, pointer capture, the click after drag, the gesture of
+  nested instances;
+- `wheel.ts`: wheel and trackpad, which gesture the content takes;
+- `keyboard.ts`: which keys scroll and by how much;
+- `motion.ts`: content position, drag, wheel, `scrollTo`, inertia and bounce, without DOM;
+- `physics.ts`: formulas of motion per 60 Hz frame, without DOM;
+- `loop.ts`: `requestAnimationFrame` loop that measures frame duration;
+- `dom.ts`: measuring, rendering of the built-in scroll modes and other DOM helpers.
+
+`input.ts` and `wheel.ts` do not know the class: they get current options and callbacks from it. `motion.ts` and
+`physics.ts` are covered by unit tests in `test/unit/`, they run in Node.
+
+Browser tests live in `test/` and run in real browsers with Vitest browser mode. `requestAnimationFrame` is replaced with a manual
+clock (`tick()` in `test/helpers.ts`), so physics advances frame by frame and trajectories are deterministic.
+Pointer helpers dispatch synthetic `PointerEvent`s in browser order. Browser default actions, pointer capture and
+click targets need real input, these tests in `test/real-input.test.ts` drive Playwright mouse through the `mouse`
+command. `touch-action`, page scroll by a swipe and `pointercancel` need real touch: `test/real-touch.test.ts` sends
+touches through Chrome DevTools Protocol with the `touch` command and runs in Chromium only. Browser commands live in
+`test/commands/` and are typed in `test/commands/index.d.ts`, `emulateReducedMotion` switches
+`prefers-reduced-motion`.
+Physics is defined per 60 Hz frame; `tick(frames, frameDuration)` with another duration checks other refresh rates.
+A known bug that is not fixed yet can be written as `it.fails` next to related tests: when a fix makes it fail,
+switch it to `it`.
+
+## Demo
+
+Pages in `demo/` cover one scenario each, every scroller has a panel with live `getState()`, the measured refresh
+rate and `touch-action` of the viewport:
+
+Page | Scenario
+---- | --------
+`index.html` | Sandbox: every option is a control, applied with `updateOptions()` and kept in `localStorage`, methods as buttons, callback log
+`gallery.html` | Horizontal gallery with links in a scrolling page, carousel with `snap`, tabs with `scrollIntoView()`, right-to-left gallery
+`native.html` | `scrollMode: 'native'` with mouse drag and native touch, dragging the whole page
+`nested.html` | Rows in a board, scroller in a scroller
+`focus.html` | Tab and fields in `transform` mode, keyboard scrolling
+`images.html` | Images that load later and change the content size
+`spa.html` | Create, move to another viewport, replace content, destroy
+`motion.html` | `reducedMotion`, position over time at simulated lower refresh rates
+
+Shared code lives in `demo/shared/`: page list for the navigation and the build, state panel, styles. A new page is
+added to `demo/shared/pages.ts`. `pnpm build:demo` builds the pages to `dist-demo/` with relative paths, for any
+static host, `pnpm preview:demo` builds and serves them. Biome rule `noNoninteractiveTabindex` is off for demo
+pages: a viewport in `transform` mode has `overflow: hidden`, it is reachable from the keyboard only with `tabindex`.
+
+Before a release try `index.html` and `gallery.html` on real devices: a high refresh rate display, iOS and Android.
+Tests do not catch how scrolling feels. `pnpm dev` is reachable from a phone in the same network at the `Network`
+address it prints. Add `?events` to a page address to see raw input events on the page, for devices without
+devtools: pointer, touch, mouse and click events, capture, selection and native drag, the start of a wheel gesture,
+and which of them were prevented. Send keeps the log in the dev server, read it with
+`curl localhost:5173/__events`; Copy puts it to the clipboard.
+
+## Checks
+
+Command | What it does
+------- | ------------
+`pnpm lint` | Biome linter and formatter check, `pnpm lint:fix` applies fixes. The only check that runs in CI
+`pnpm typecheck` | TypeScript for `src` (`tsconfig.json`) and for tests and configs (`tsconfig.test.json`)
+`pnpm test` | Unit tests in Node and browser tests in Chromium, Firefox and WebKit
+`pnpm test:coverage` | Unit and Chromium tests with V8 coverage of `src`, HTML report in `coverage/`. V8 coverage works in Chromium only
+`pnpm build` | ESM and `<script>` builds with types in `dist`, `pnpm build:watch` rebuilds on change, for a package linked into another project
+`pnpm check:package` | Checks the built package: `publint` for `package.json`, `@arethetypeswrong/cli` for types of every entry point, `size-limit` for the gzip size budget in `.size-limit.json`. Run `pnpm build` first
+`pnpm check` | All of the above except coverage, in this order
+
+Debugging tests:
+
+- `pnpm test:watch --project chromium --browser.headless=false` opens the browser with the test page, rerun a
+  single file with `pnpm test:watch test/drag.test.ts`.
+- Trajectory snapshots in `test/__snapshots__/` pin the physics. A change that is not meant to change motion must
+  not update them. When a change is meant to, update with `pnpm test -u` and review the snapshot diff.
+
+devDependencies are pinned to exact versions, `pnpm outdated` shows what is behind.
+
+## Release
+
+Releases are made locally, CI only runs the linter.
+
+1. Run `pnpm install` and `pnpm check` on a clean `master`
+2. Run `pnpm changeset version`: it bumps the version in `package.json` and writes `CHANGELOG.md` from the files in
+   `.changeset/`. Review and commit the result
+3. Run `pnpm changeset publish`: it builds the package (`prepublishOnly`), publishes it to npm (asks for the 2FA code)
+   and creates a git tag
+4. Push the commit and the tag: `git push --follow-tags`
+
+For a prerelease run `pnpm changeset pre enter beta` first: while `.changeset/pre.json` exists, versions get the
+`beta` suffix (`5.0.0-beta.0`) and are published under the `beta` dist-tag, so `npm i scrollbooster` keeps installing
+the stable version. Run `pnpm changeset pre exit` before the stable release.

@@ -1,0 +1,321 @@
+import { clearTextSelection, isTextAtPoint } from './dom';
+import type { Props } from './options';
+import type { Direction, Point, ScrollBoosterState } from './types';
+
+type Axis = 'x' | 'y';
+
+// A press is a click until the pointer moves further than this along scroll directions
+const CLICK_THRESHOLD_PX = 5;
+
+// Presses on these elements and inside them focus or use them instead of dragging, with `inputsFocus`
+const CONTROLS =
+    'input, textarea, button, select, label, summary, audio[controls], video[controls], ' +
+    '[contenteditable]:not([contenteditable="false"])';
+
+/**
+ * Pointer pressed on viewport that drags content. Offsets are from the press point, 0 when nothing is pressed.
+ */
+export interface Press {
+    isActive: boolean;
+    /** Nested instances took the same press and none of them owns it yet: content stays in place */
+    readonly isHeld: boolean;
+    /** Page coordinates: content follows them */
+    offset: Point;
+    /** Client coordinates: the angle of the gesture on screen */
+    clientOffset: Point;
+    /** Main axis of the gesture, chosen when it passes the click threshold along any axis */
+    axis: Axis | null;
+}
+
+export interface DragHost {
+    /** Current options */
+    props(): Props;
+    getState(): ScrollBoosterState;
+    /** Press passed all checks and starts dragging */
+    start(): void;
+    /** Drag pointer released or cancelled, before onPointerUp gets the state */
+    release(): void;
+    /** A drag by the offset along the axis moves content */
+    canDrag(axis: Axis, offset: number): boolean;
+}
+
+// Instances that took a pointerdown, from the innermost viewport out: the event bubbles in this order.
+// Past the click threshold the gesture goes to one of them, like native scroll goes to one scroller.
+interface Claim {
+    canDrag(axis: Axis, offset: number): boolean;
+    direction(): Direction;
+}
+const claims = new WeakMap<Event, Claim[]>();
+
+/**
+ * The innermost instance that can move along the main axis of the gesture, or that allows that axis
+ */
+const getMainAxis = (offset: Point): Axis => (Math.abs(offset.x) > Math.abs(offset.y) ? 'x' : 'y');
+
+function chooseOwner(list: Claim[], offset: Point): Claim | undefined {
+    const axis = getMainAxis(offset);
+    const allows = (claim: Claim) => claim.direction() !== (axis === 'x' ? 'vertical' : 'horizontal');
+    return list.find((claim) => allows(claim) && claim.canDrag(axis, offset[axis])) ?? list.find(allows) ?? list[0];
+}
+
+/**
+ * Check if pointer moved far enough along scroll directions to count as drag, not click
+ */
+export function isPastClickThreshold(offset: Point, direction: Direction): boolean {
+    const x = direction !== 'vertical' ? offset.x : 0;
+    const y = direction !== 'horizontal' ? offset.y : 0;
+    return Math.max(Math.abs(x), Math.abs(y)) > CLICK_THRESHOLD_PX;
+}
+
+/**
+ * Drag with Pointer Events on viewport: one pointer drags at a time, it is captured past the click threshold,
+ * the click that ends a drag is prevented. Listeners are removed and the press is reset with the signal.
+ */
+export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragHost): Press {
+    const claim: Claim = { canDrag: host.canDrag, direction: () => host.props().direction };
+    let pressClaims: Claim[] = [claim];
+    let isOwned = false;
+    const press: Press = {
+        isActive: false,
+        get isHeld() {
+            return !isOwned && pressClaims.length > 1;
+        },
+        offset: { x: 0, y: 0 },
+        clientOffset: { x: 0, y: 0 },
+        axis: null,
+    };
+    const pageOrigin = { x: 0, y: 0 };
+    const clientOrigin = { x: 0, y: 0 };
+    let activePointerId: number | null = null;
+    let activePointerType = '';
+    let isCaptured = false;
+    // Pointer event of the press that onPointerUp gets when the press ends without pointerup
+    let lastPointerEvent: PointerEvent | null = null;
+    // The click that follows a drag past the click threshold is prevented
+    let preventClick = false;
+    // Pointer may leave viewport before capture, so drag events are listened on window until release
+    let dragController: AbortController | null = null;
+
+    const isPastThreshold = () => isPastClickThreshold(press.offset, host.props().direction);
+
+    const setOffsets = ({ pageX, pageY, clientX, clientY }: PointerEvent) => {
+        press.offset.x = pageX - pageOrigin.x;
+        press.offset.y = pageY - pageOrigin.y;
+        press.clientOffset.x = clientX - clientOrigin.x;
+        press.clientOffset.y = clientY - clientOrigin.y;
+    };
+
+    const stop = () => {
+        press.isActive = false;
+        activePointerId = null;
+        press.offset.x = 0;
+        press.offset.y = 0;
+        press.clientOffset.x = 0;
+        press.clientOffset.y = 0;
+        press.axis = null;
+        dragController?.abort();
+        dragController = null;
+        lastPointerEvent = null;
+    };
+
+    // A control inside the viewport, an icon in a button counts too. A viewport inside a label still drags.
+    const isControl = (target: Element): boolean => {
+        const control = target.closest(CONTROLS);
+        return control !== null && control !== viewport && viewport.contains(control);
+    };
+
+    // Presses that do not drag: scrollbars, other buttons, pointer types and elements excluded by options
+    const isDragStart = (event: PointerEvent): boolean => {
+        const props = host.props();
+        const { clientX, clientY, target } = event;
+        const rect = viewport.getBoundingClientRect();
+        const isTouch = event.pointerType === 'touch';
+        if (
+            clientX - rect.left >= viewport.clientLeft + viewport.clientWidth ||
+            clientY - rect.top >= viewport.clientTop + viewport.clientHeight ||
+            !props.shouldDrag(host.getState(), event) ||
+            // Touch and pen contact report the main button too. Safari on iOS follows a long press on a link with
+            // a mouse pointerdown without pressed buttons and never releases it.
+            event.button !== 0 ||
+            !(event.buttons & 1) ||
+            (props.pointerMode === 'mouse' && isTouch) ||
+            (props.pointerMode === 'touch' && !isTouch) ||
+            !(target instanceof Element) ||
+            (props.inputsFocus && isControl(target))
+        ) {
+            return false;
+        }
+        // A touch drag does not select text, a long touch press does. A mouse press on text selects it with
+        // textSelection, elsewhere it drops the selection like on the rest of the page: prevented selectstart
+        // keeps it in Chromium and WebKit.
+        if (!isTouch) {
+            if (props.textSelection && isTextAtPoint(target, clientX, clientY)) {
+                return false;
+            }
+            clearTextSelection();
+        }
+        return true;
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+        // One pointer drags at a time, other fingers on viewport are ignored until it is released
+        if (activePointerId !== null && event.pointerId !== activePointerId) {
+            // Browser makes a pointer primary when no other pointer of its type is active, and a pointer of another
+            // type means another input device: release of the dragging pointer was lost (element removed, capture
+            // lost, a press that the browser never releases)
+            if (!event.isPrimary) {
+                return;
+            }
+            stop();
+        }
+        preventClick = false;
+        if (!isDragStart(event)) {
+            return;
+        }
+
+        pressClaims = claims.get(event) ?? [];
+        pressClaims.push(claim);
+        claims.set(event, pressClaims);
+        isOwned = false;
+        press.isActive = true;
+        activePointerId = event.pointerId;
+        activePointerType = event.pointerType;
+        isCaptured = false;
+        pageOrigin.x = event.pageX;
+        pageOrigin.y = event.pageY;
+        clientOrigin.x = event.clientX;
+        clientOrigin.y = event.clientY;
+        setOffsets(event);
+        lastPointerEvent = event;
+        host.start();
+        host.props().onPointerDown(host.getState(), event);
+
+        dragController?.abort();
+        dragController = new AbortController();
+        const options = { capture: true, signal: dragController.signal };
+        window.addEventListener('pointermove', onPointerMove, options);
+        window.addEventListener('pointerup', onPointerUp, options);
+        window.addEventListener('pointercancel', onPointerUp, options);
+        // Only during a touch press: a browser that decides at touchstart whether touch listeners block the
+        // page scroll, like Chromium, keeps touches non-blocking, and touch-action works there anyway
+        if (event.pointerType === 'touch') {
+            viewport.addEventListener('touchmove', onTouchMove, { passive: false, signal: dragController.signal });
+        }
+    };
+
+    const endPress = (event: PointerEvent, canClick: boolean) => {
+        preventClick = canClick && isPastThreshold();
+        press.isActive = false;
+        host.release();
+        // onPointerUp gets offset and angle of the drag that ended
+        const state = host.getState();
+        stop();
+        host.props().onPointerUp(state, event);
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+        if (event.pointerId !== activePointerId) {
+            return;
+        }
+        // Main button is released while another one is held, pointerup comes only when all are released. Without
+        // any button the release went past the page, like into the link preview of a force click in Safari, and no
+        // click follows.
+        if (event.pointerType !== 'touch' && !(event.buttons & 1)) {
+            endPress(event, event.buttons !== 0);
+            return;
+        }
+        setOffsets(event);
+        lastPointerEvent = event;
+        if (!isOwned && isPastClickThreshold(press.offset, 'all')) {
+            isOwned = true;
+            press.axis = getMainAxis(press.offset);
+            if (chooseOwner(pressClaims, press.offset) !== claim) {
+                // A nested instance takes the gesture, content has stayed in place
+                const state = host.getState();
+                stop();
+                host.props().onPointerUp(state, event);
+                return;
+            }
+        }
+        // Capture right away would retarget a plain click on content to viewport, so wait for the click threshold
+        if (!isCaptured && isPastThreshold()) {
+            isCaptured = true;
+            try {
+                viewport.setPointerCapture(event.pointerId);
+            } catch {
+                // Pointer is not active anymore
+            }
+        }
+        host.props().onPointerMove(host.getState(), event);
+    };
+
+    const onPointerUp = (event: PointerEvent) => {
+        if (event.pointerId === activePointerId) {
+            endPress(event, true);
+        }
+    };
+
+    // Text selection and native drag of images and links would take the pointer from the drag.
+    // Mousedown keeps its default action, so a press moves focus like a click on any other element.
+    const preventDuringDrag = (event: Event) => {
+        if (press.isActive) {
+            event.preventDefault();
+        }
+    };
+
+    // Safari on iOS 18 pans the page from a touch that starts on a link despite touch-action of viewport, then
+    // cancels the pointer. A move of the dragging finger along the main axis of the drag is prevented, so the
+    // browser cannot start a pan. Before the click threshold and across direction the browser decides, pinch too.
+    const onTouchMove = (event: TouchEvent) => {
+        if (event.touches.length !== 1 || !event.cancelable) {
+            return;
+        }
+        const { direction } = host.props();
+        const isHorizontal = Math.abs(press.offset.x) > Math.abs(press.offset.y);
+        const isAlongDirection = direction === 'all' || (direction === 'horizontal') === isHorizontal;
+        if (isAlongDirection && isPastThreshold()) {
+            event.preventDefault();
+        }
+    };
+
+    // A long touch press without movement selects text with textSelection: the finger then moves the selection,
+    // so the press ends. Selection that starts during a drag is prevented.
+    const onSelectStart = (event: Event) => {
+        if (!press.isActive || !lastPointerEvent) {
+            return;
+        }
+        if (!host.props().textSelection || activePointerType !== 'touch' || isPastThreshold()) {
+            event.preventDefault();
+            return;
+        }
+        host.release();
+        const state = host.getState();
+        const pointerEvent = lastPointerEvent;
+        stop();
+        host.props().onPointerUp(state, pointerEvent);
+    };
+
+    // Click of the pointer that ended a drag, stopped in the capture phase: a touch drag within the tap distance of
+    // the browser clicks the element under the finger, and its own handlers must not run. A touch drag past the tap
+    // distance has no click, then the next click may come from keyboard or element.click() with detail 0.
+    const onClickCapture = (event: MouseEvent) => {
+        if (preventClick && event.detail > 0) {
+            preventClick = false;
+            event.preventDefault();
+            event.stopPropagation();
+            host.props().onClick(host.getState(), event);
+        }
+    };
+
+    // Other clicks reach onClick after content handlers. The stopped one does not get here: stopPropagation() in the
+    // capture phase also skips bubble listeners of the target, and a nested instance may have stopped it.
+    const onClick = (event: MouseEvent) => host.props().onClick(host.getState(), event);
+
+    viewport.addEventListener('pointerdown', onPointerDown, { signal });
+    viewport.addEventListener('selectstart', onSelectStart, { signal });
+    viewport.addEventListener('dragstart', preventDuringDrag, { signal });
+    viewport.addEventListener('click', onClickCapture, { capture: true, signal });
+    viewport.addEventListener('click', onClick, { signal });
+    signal.addEventListener('abort', stop);
+    return press;
+}

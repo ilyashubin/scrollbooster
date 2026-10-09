@@ -9,3 +9,18 @@ yarn-error.log
 *.ntvs*
 *.njsproj
 *.sln
+
+# Build output
+dist/
+
+# Vitest
+.vitest/
+
+# Package tarballs from npm pack
+*.tgz
+
+# Coverage report from pnpm test:coverage
+coverage/
+
+# Demo build from vite build
+dist-demo/

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScrollBooster native scroll</title>
+    <link rel="stylesheet" href="./shared/demo.css">
+    <style>
+        #native {
+            overflow: auto;
+        }
+
+        .sticky-title {
+            position: sticky;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            width: max-content;
+            padding: 6px 10px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--line);
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Native scroll</h1>
+
+    <section>
+        <h2>Mouse drag, native touch</h2>
+        <p class="hint">
+            <code>pointerMode: 'mouse', scrollMode: 'native'</code> on a viewport with <code>overflow: auto</code>.
+            The mouse drags with inertia, touch, scrollbars and the sticky header inside are the browser's own.
+            The panel follows any scroll, including the scrollbar.
+        </p>
+        <div class="stage">
+            <section class="viewport tall" id="native" tabindex="0" aria-label="Native scroller">
+                <div>
+                    <div class="sticky-title">Sticky header inside content</div>
+                    <div class="board"></div>
+                </div>
+            </section>
+            <div id="native-panel"></div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Drag the whole page</h2>
+        <p class="hint">
+            <code>viewport: document.documentElement, content: document.body</code>, vertical, mouse only.
+            Turn it on and drag the page anywhere outside the scroller above.
+        </p>
+        <div class="toolbar">
+            <button type="button" id="page-toggle" aria-pressed="false">Drag the page: off</button>
+        </div>
+        <div id="page-panel"></div>
+    </section>
+
+    <div id="filler" class="filler"></div>
+</main>
+<script type="module" src="./native.ts"></script>
+</body>
+</html>

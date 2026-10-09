@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    // ES2022 syntax keeps #private names short after minification. Library built-ins stay at ES2020:
+    // some ES2022 ones like Array.prototype.at() are missing in Chrome 90
+    "target": "ES2022",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "isolatedDeclarations": true,
+    "declaration": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["src"]
+}

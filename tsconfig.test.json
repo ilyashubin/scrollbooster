@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Index access in tests is checked by the test itself: a missing call or element fails the assertion
+    "noUncheckedIndexedAccess": false,
+    "isolatedDeclarations": false,
+    "declaration": false,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["test/**/*.ts", "demo/**/*.ts", "vitest.config.ts", "tsdown.config.ts", "vite.config.ts"]
+}
