@@ -228,7 +228,8 @@ export function createPointer(viewport: HTMLElement) {
         },
         click(x: number, y: number) {
             const [clientX, clientY] = toClient(x, y);
-            const event = new MouseEvent('click', { bubbles: true, cancelable: true, clientX, clientY });
+            // Click of a pointer has click count in detail, keyboard and element.click() have 0
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true, clientX, clientY, detail: 1 });
             mouseTarget.dispatchEvent(event);
             return event;
         },

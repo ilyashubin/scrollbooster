@@ -176,7 +176,9 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
     };
 
     const onClick = (event: MouseEvent) => {
-        if (preventClick) {
+        // Click of the pointer that ended a drag. A touch drag past the tap distance has no click, then the next
+        // click may come from keyboard or element.click() with detail 0 and must not be prevented.
+        if (preventClick && event.detail > 0) {
             preventClick = false;
             event.preventDefault();
             event.stopPropagation();

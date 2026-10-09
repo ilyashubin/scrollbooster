@@ -48,6 +48,20 @@ describe('click', () => {
         expect(pointer.click(150, 100).defaultPrevented).toBe(false);
     });
 
+    // A touch drag past the tap distance ends without click. Keyboard activation and element.click() dispatch
+    // click with detail 0, it never ends a drag.
+    it('passes click without pointer through after drag that had no click', () => {
+        const onClick = vi.fn();
+        const { pointer, content } = mount({ onClick });
+
+        pointer.touchDrag([100, 100], [150, 100]);
+        const event = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 });
+        content.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(false);
+        expect(onClick).toHaveBeenCalledWith(expect.anything(), event);
+    });
+
     it('resets drag offset on next pointerdown', () => {
         const { pointer } = mount();
 
