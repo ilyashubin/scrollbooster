@@ -263,7 +263,10 @@ export class ScrollBooster {
             },
         });
 
-        viewport.addEventListener('scroll', () => this.onNativeScroll(), { signal });
+        // Scroll of the page comes to window, not to the root element
+        const { ownerDocument } = viewport;
+        const scrollTarget = viewport === ownerDocument.scrollingElement ? ownerDocument.defaultView : viewport;
+        scrollTarget?.addEventListener('scroll', () => this.onNativeScroll(), { signal });
         // Content moved with transform has no native scroll to bring focused element into view.
         // Focus by the press that drags content keeps the content under the pointer.
         viewport.addEventListener(

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ScrollBooster } from '../src/index.ts';
 import { mount, nextRender, pendingFrames, recordTrajectory, roundedPosition, tick } from './helpers.ts';
 
 describe('setPosition', () => {
@@ -270,5 +271,33 @@ describe('getState', () => {
         sb.setPosition({ x: 300, y: 300 });
         tick();
         expect(sb.getState().borderCollision).toEqual({ left: false, right: false, top: false, bottom: false });
+    });
+});
+
+describe('page as viewport', () => {
+    it('follows page scroll by the browser', async () => {
+        const spacer = document.createElement('div');
+        spacer.style.height = '3000px';
+        document.body.append(spacer);
+        const sb = new ScrollBooster({
+            viewport: document.documentElement,
+            content: document.body,
+            scrollMode: 'native',
+            direction: 'vertical',
+        });
+        try {
+            window.scrollTo(0, 500);
+            await nextRender();
+            tick();
+            expect(sb.getState().position.y).toBe(500);
+
+            sb.setPosition({ y: 800 });
+            tick();
+            expect(window.scrollY).toBe(800);
+        } finally {
+            sb.destroy();
+            spacer.remove();
+            window.scrollTo(0, 0);
+        }
     });
 });
