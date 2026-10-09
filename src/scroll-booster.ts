@@ -112,6 +112,18 @@ export class ScrollBooster {
     }
 
     /**
+     * Smoothly scroll by the offset from the target of a running scroll or from the current position, so repeated
+     * calls add up. Does nothing while the user drags content
+     */
+    scrollBy(offset: Partial<Point> = {}): void {
+        if (this.isDestroyed || this.press.isActive) {
+            return;
+        }
+        const { x, y } = this.motion.getTarget();
+        this.scrollTo({ x: x + (offset.x ?? 0), y: y + (offset.y ?? 0) });
+    }
+
+    /**
      * Jump to the position within edges, stops any motion
      */
     setPosition(position: Partial<Point> = {}): void {

@@ -212,6 +212,14 @@ export class ContentMotion {
         return { x: 0 - this.position.x, y: 0 - this.position.y };
     }
 
+    /**
+     * Public target of a running scrollTo, the position otherwise
+     */
+    getTarget(): Point {
+        const target = this.isTargetScroll ? this.target : this.position;
+        return { x: 0 - target.x, y: 0 - target.y };
+    }
+
     getMaxPosition(): Point {
         return { x: 0 - this.edgeX.from, y: 0 - this.edgeY.from };
     }

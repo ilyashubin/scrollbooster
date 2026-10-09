@@ -148,6 +148,59 @@ describe('scrollTo', () => {
     });
 });
 
+describe('scrollBy', () => {
+    it('adds up calls during the running scroll', () => {
+        const { sb } = mount();
+
+        sb.scrollBy({ x: 300 });
+        tick(3);
+        sb.scrollBy({ x: 300 });
+        tick(300);
+
+        expect(sb.getState().position).toEqual({ x: 600, y: 0 });
+    });
+
+    it('scrolls from the current position', () => {
+        const { sb } = mount();
+        sb.setPosition({ x: 100, y: 200 });
+        tick();
+
+        sb.scrollBy({ y: -50 });
+        tick(300);
+
+        expect(sb.getState().position).toEqual({ x: 100, y: 150 });
+    });
+
+    it('stops at edges', () => {
+        const { sb } = mount();
+
+        sb.scrollBy({ x: 500 });
+        sb.scrollBy({ x: 500 });
+        tick(300);
+
+        expect(sb.getState().position).toEqual({ x: 700, y: 0 });
+    });
+
+    it('jumps with reduced motion', () => {
+        const { sb } = mount({ reducedMotion: 'always' });
+
+        sb.scrollBy({ x: 300 });
+        tick();
+
+        expect(sb.getState().position).toEqual({ x: 300, y: 0 });
+    });
+
+    it('does nothing while dragging', () => {
+        const { sb, pointer } = mount();
+        pointer.mouseDown(100, 100);
+
+        sb.scrollBy({ x: 300 });
+        tick(100);
+
+        expect(sb.getState().position).toEqual({ x: 0, y: 0 });
+    });
+});
+
 describe('updateMetrics', () => {
     it('picks up changed content size', () => {
         const { sb, content } = mount();
