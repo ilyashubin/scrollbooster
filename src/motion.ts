@@ -8,7 +8,8 @@ type Axis = (typeof AXES)[number];
 
 type MotionOptions = Pick<Props, 'direction' | 'friction' | 'bounceForce'>;
 
-// Public coordinates grow to the right and down, internal ones are content offsets with the opposite sign.
+// Public coordinates grow from the start edge, internal ones are content offsets with the opposite sign.
+// Mirroring of x in a right-to-left viewport is up to the caller, this class knows no DOM.
 // Missing coordinate keeps the given internal value, `|| 0` turns -0 and NaN into 0.
 const toInternal = (value: number | undefined, current: number): number =>
     value === undefined ? current : -value || 0;

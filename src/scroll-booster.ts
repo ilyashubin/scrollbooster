@@ -1,14 +1,24 @@
-import { getRevealOffset, isSameSize, type Metrics, measure, prefersReducedMotion, render } from './dom';
+import {
+    getRevealOffset,
+    isRightToLeft,
+    isSameSize,
+    type Metrics,
+    measure,
+    mirrorX,
+    prefersReducedMotion,
+    render,
+} from './dom';
 import { bindDrag, isPastClickThreshold, type Press } from './input';
 import { createLoop } from './loop';
 import { ContentMotion } from './motion';
 import { mergeOptions, type Props, resolveOptions, TOUCH_ACTION } from './options';
 import { getDragAngle } from './physics';
-import type { Point, ScrollBoosterOptions, ScrollBoosterState, ScrollMode } from './types';
+import type { BorderCollision, Point, ScrollBoosterOptions, ScrollBoosterState, ScrollMode } from './types';
 import { bindWheel, type WheelGesture } from './wheel';
 
 // Content position follows native scroll position of the viewport, so a scrolled viewport keeps its scroll
-const getScrollPosition = (viewport: HTMLElement): Point => ({ x: -viewport.scrollLeft, y: -viewport.scrollTop });
+const getScrollPosition = (viewport: HTMLElement): Point =>
+    mirrorX({ x: -viewport.scrollLeft, y: -viewport.scrollTop }, isRightToLeft(viewport));
 
 export class ScrollBooster {
     private props: Props;
@@ -16,6 +26,8 @@ export class ScrollBooster {
     private motion: ContentMotion;
     private loop = createLoop((frames) => this.animate(frames));
     private metrics: Metrics = { viewport: { width: 0, height: 0 }, content: { width: 0, height: 0 } };
+    // Right-to-left viewport mirrors the x axis between public position and the DOM
+    private isRtl = false;
     // Set by bindEvents() from the constructor
     private press!: Press;
     private wheel!: WheelGesture;
@@ -81,6 +93,7 @@ export class ScrollBooster {
             return;
         }
         this.metrics = measure(this.props.viewport, this.props.content);
+        this.isRtl = isRightToLeft(this.props.viewport);
         this.motion.setSizes(this.metrics.viewport, this.metrics.content);
         // Next frame renders new state and returns content within new edges
         this.loop.start();
@@ -126,7 +139,7 @@ export class ScrollBooster {
             position: motion.getPosition(),
             dragOffset: { ...press.offset },
             dragAngle: getDragAngle(press.clientOffset.x, press.clientOffset.y),
-            borderCollision: motion.getBorderCollision(),
+            borderCollision: this.getBorderCollision(),
             viewport: { ...viewport },
             content: { ...content },
             maxPosition: motion.getMaxPosition(),
@@ -152,8 +165,8 @@ export class ScrollBooster {
         const { motion, props, press, wheel } = this;
         if (frames > 0) {
             const bounce = props.bounce && !this.isReducedMotion();
-            const drag = press.isActive ? press.offset : null;
-            motion.step(frames, props, bounce, drag, wheel.isActive ? wheel.offset : null);
+            const drag = press.isActive ? mirrorX(press.offset, this.isRtl) : null;
+            motion.step(frames, props, bounce, drag, wheel.isActive ? mirrorX(wheel.offset, this.isRtl) : null);
             wheel.offset.x = 0;
             wheel.offset.y = 0;
         }
@@ -181,7 +194,15 @@ export class ScrollBooster {
      */
     private renderPosition(): void {
         const { viewport, content, scrollMode } = this.props;
-        render(viewport, content, scrollMode, this.motion.getPosition());
+        render(viewport, content, scrollMode, mirrorX(this.motion.getPosition(), this.isRtl));
+    }
+
+    /**
+     * Collisions with the sides of viewport, the start edge is on the right in right-to-left viewport
+     */
+    private getBorderCollision(): BorderCollision {
+        const collision = this.motion.getBorderCollision();
+        return this.isRtl ? { ...collision, left: collision.right, right: collision.left } : collision;
     }
 
     /**
@@ -201,10 +222,11 @@ export class ScrollBooster {
     }
 
     /**
-     * Jump by given scroll offset and render right away: browser computes focus scroll from the current layout
+     * Jump by given scroll offset in the DOM and render right away: browser computes focus scroll from the current
+     * layout
      */
     private jumpBy(offset: Point): void {
-        this.motion.jumpBy(offset, this.props.direction);
+        this.motion.jumpBy(mirrorX(offset, this.isRtl), this.props.direction);
         this.renderPosition();
         this.loop.start();
     }
@@ -236,7 +258,8 @@ export class ScrollBooster {
             props,
             getState,
             isDragging: () => this.press.isActive,
-            canScroll: (axis, delta) => this.motion.canScroll(axis, delta, this.props.direction),
+            canScroll: (axis, delta) =>
+                this.motion.canScroll(axis, axis === 'x' && this.isRtl ? -delta : delta, this.props.direction),
             scroll: () => {
                 this.motion.interrupt();
                 this.loop.start();
@@ -303,7 +326,7 @@ export class ScrollBooster {
             }
             return;
         }
-        this.motion.followNativeScroll({ x: scrollLeft, y: scrollTop });
+        this.motion.followNativeScroll(mirrorX({ x: scrollLeft, y: scrollTop }, this.isRtl));
     }
 
     /**

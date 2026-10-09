@@ -71,15 +71,23 @@ export function measure(viewport: HTMLElement, content: HTMLElement): Metrics {
     };
 }
 
+export const isRightToLeft = (viewport: HTMLElement): boolean => getComputedStyle(viewport).direction === 'rtl';
+
 /**
- * Render public position with the built-in scroll mode
+ * Convert between public position and scroll offset in the DOM. Public `x` is the distance from the start edge of
+ * the line, so it grows to the left in a right-to-left viewport, like negative `scrollLeft`.
  */
-export function render(viewport: HTMLElement, content: HTMLElement, scrollMode: ScrollMode, position: Point): void {
+export const mirrorX = (point: Point, isRtl: boolean): Point => (isRtl ? { x: -point.x || 0, y: point.y } : point);
+
+/**
+ * Render scroll offset with the built-in scroll mode, `x` grows to the right
+ */
+export function render(viewport: HTMLElement, content: HTMLElement, scrollMode: ScrollMode, scroll: Point): void {
     if (scrollMode === 'transform') {
-        content.style.transform = `translate(${-position.x}px, ${-position.y}px)`;
+        content.style.transform = `translate(${-scroll.x}px, ${-scroll.y}px)`;
     }
     if (scrollMode === 'native') {
-        viewport.scrollTop = position.y;
-        viewport.scrollLeft = position.x;
+        viewport.scrollTop = scroll.y;
+        viewport.scrollLeft = scroll.x;
     }
 }

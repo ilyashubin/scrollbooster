@@ -33,9 +33,15 @@ export interface BorderCollision {
 export interface ScrollBoosterState {
     isMoving: boolean;
     isDragging: boolean;
+    /**
+     * Scroll position from the start edges, from 0 to `maxPosition`. In a right-to-left viewport `x` is the distance
+     * from the right edge and grows to the left, like negative `scrollLeft`.
+     */
     position: Point;
+    /** Pointer offset of the current press on screen, `x` grows to the right */
     dragOffset: Point;
     dragAngle: number;
+    /** Sides of viewport that content touches */
     borderCollision: BorderCollision;
     /** Client size of viewport, without borders and scrollbars */
     viewport: Size;

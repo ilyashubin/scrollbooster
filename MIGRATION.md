@@ -130,6 +130,9 @@ only options that used it.
   `true` after release until the next press.
 - `dragOffset` and `dragAngle` describe the current press and return to 0 on release. `onPointerUp` gets the values
   of the press that ended. In 3.x they kept the last drag until the next press, `onClick` saw them.
+- Right-to-left viewport (`direction: rtl`) is supported. `position.x` is the distance from the right edge and grows
+  to the left, from 0 to `maxPosition.x`. In 3.x the start of content was out of reach and dragging moved content
+  into empty space.
 - `getState()` and `onUpdate` get new objects every time: a saved state does not change with later motion, and
   changing it does not affect the instance. In 3.x `dragOffset` was the internal object.
 - `updateOptions({ scrollMode })` removes the rendering of the previous mode: leaving `'transform'` removes the

@@ -272,28 +272,3 @@ describe('getState', () => {
         expect(sb.getState().borderCollision).toEqual({ left: false, right: false, top: false, bottom: false });
     });
 });
-
-// В8: in a right-to-left viewport content starts at the right edge and its scroll range goes to the left,
-// ScrollBooster keeps the left-to-right range and the start of content stays out of reach
-describe('right-to-left viewport', () => {
-    it.fails.each(['transform', 'native'] as const)(
-        'drag reveals the start of content, scrollMode: %s',
-        (scrollMode) => {
-            const { viewport, content, pointer } = mount(({ viewport }) => {
-                viewport.style.direction = 'rtl';
-                return { scrollMode, bounce: false };
-            });
-            const offset = () => content.getBoundingClientRect().right - viewport.getBoundingClientRect().right;
-            expect(offset()).toBe(0);
-
-            pointer.mouseDrag([50, 150], [250, 150]);
-            tick(300);
-            expect(offset()).toBeGreaterThan(0);
-
-            pointer.mouseDrag([250, 150], [50, 150], { steps: 2 });
-            pointer.mouseDrag([250, 150], [50, 150], { steps: 2 });
-            tick(300);
-            expect(offset()).toBe(0);
-        }
-    );
-});

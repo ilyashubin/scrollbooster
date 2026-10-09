@@ -97,7 +97,8 @@ const sb = new ScrollBooster({
   textSelection: false,
   onUpdate: (state) => {
     // state: position, maxPosition, viewport, content, isMoving, isDragging, dragOffset, dragAngle, borderCollision
-    // with scrollMode: 'none' you render the scroll yourself:
+    // with scrollMode: 'none' you render the scroll yourself
+    // (in a right-to-left viewport position.x grows to the left, translate by +x):
     content.style.transform = `translate(
       ${-state.position.x}px,
       ${-state.position.y}px
@@ -132,6 +133,14 @@ sb.destroy();
   to the target. Control it with the `reducedMotion` option.
 - In `transform` mode focusing an element outside the visible area (for example with Tab) scrolls the content to
   show it.
+
+### Right-to-left
+
+In a viewport with `direction: rtl` content starts at the right edge. `position.x` is the distance from that edge
+and grows to the left, from 0 to `maxPosition.x`, so progress bars and `scrollTo()` work the same in both
+directions. `dragOffset` and `borderCollision` stay physical: dragging to the right gives a positive `dragOffset.x`,
+`borderCollision.right` is `true` at the start. `scrollMode: 'native'` writes negative `scrollLeft`, as browsers
+do. Direction is read on `updateMetrics()`, call it after changing `direction` of the viewport.
 
 ### Browser support
 

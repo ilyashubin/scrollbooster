@@ -30,3 +30,4 @@ all behavior changes.
   the delta, events within a frame add up, lines and pages are converted. `dragDirectionTolerance` is removed.
 - Public API is the constructor and six methods, internal fields and methods are private. `getState()` reports
   `viewport` and `content` sizes and `maxPosition`.
+- Right-to-left viewport: `position.x` is the distance from the start edge on the right, from 0 to `maxPosition.x`.
