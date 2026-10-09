@@ -19,7 +19,7 @@ export type Direction = Axis | 'all';
 
 export type PointerMode = 'all' | 'touch' | 'mouse';
 
-export type ScrollMode = 'transform' | 'native';
+export type ScrollMode = 'transform' | 'native' | 'none';
 
 export type ReducedMotion = 'auto' | 'always' | 'never';
 
@@ -48,7 +48,7 @@ export interface ScrollBoosterOptions {
     direction?: Direction;
     /** Mouse or touch support, pen counts as mouse. Touch drag sets CSS `touch-action` on viewport */
     pointerMode?: PointerMode;
-    /** Predefined scrolling technique, scroll is rendered in `onUpdate` when not set */
+    /** How content is scrolled: CSS transform, native scroll of viewport, or `'none'` to render in `onUpdate` */
     scrollMode?: ScrollMode;
     /** Bounce effect */
     bounce?: boolean;

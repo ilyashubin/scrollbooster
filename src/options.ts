@@ -18,7 +18,7 @@ const CHECKS: Record<string, Check> = {
     content: ELEMENT,
     direction: oneOf(...DIRECTIONS),
     pointerMode: oneOf('all', 'touch', 'mouse'),
-    scrollMode: oneOf(undefined, 'transform', 'native'),
+    scrollMode: oneOf('transform', 'native', 'none'),
     bounce: BOOLEAN,
     bounceForce: FACTOR,
     friction: FACTOR,

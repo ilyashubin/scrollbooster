@@ -57,16 +57,8 @@
         content: content,
         // textSelection: true,
         emulateScroll: true,
-        shouldScroll: (data, event) => {
+        shouldScroll: (_state, event) => {
             return event.target.tagName !== 'BUTTON';
-        },
-        onUpdate: (data) => {
-            // viewport.scrollLeft = data.position.x
-            // viewport.scrollTop = data.position.y
-            content.style.transform = `translate(
-            ${-data.position.x}px,
-            ${-data.position.y}px
-          )`
         },
         onClick() {
             console.log('clicked')

@@ -30,7 +30,7 @@ const prefersReducedMotion = (): boolean => {
     return reducedMotionQuery.matches;
 };
 
-type Props = Required<Omit<ScrollBoosterOptions, 'scrollMode'>> & { scrollMode: ScrollMode | undefined };
+type Props = Required<ScrollBoosterOptions>;
 
 interface EventHandlers {
     pointerdown: (event: PointerEvent) => void;
@@ -110,7 +110,7 @@ export class ScrollBooster {
             content: options.viewport.firstElementChild as HTMLElement,
             direction: 'all', // 'vertical', 'horizontal'
             pointerMode: 'all', // 'touch', 'mouse'
-            scrollMode: undefined, // 'transform', 'native'
+            scrollMode: 'transform', // 'native', 'none'
             bounce: true,
             bounceForce: 0.1,
             friction: 0.05,
@@ -486,7 +486,7 @@ export class ScrollBooster {
      * Remove rendering of the previous scroll mode, so offsets of two modes do not add up.
      * Native scroll left by a custom `onUpdate` renderer stays, it may be the way that renderer scrolls.
      */
-    private switchScrollMode(previous: ScrollMode | undefined): void {
+    private switchScrollMode(previous: ScrollMode): void {
         const { viewport, content, scrollMode } = this.props;
         if (previous === 'transform') {
             content.style.transform = '';

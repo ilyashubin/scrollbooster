@@ -99,6 +99,12 @@ moved by 3 px per notch). Now all events of a frame add up, lines are 16 px and 
   transform from content, switching to `'transform'` moves native scroll into the transform. In 3.x the offsets of
   both modes added up. A new `content` in `'transform'` mode leaves the previous content without transform.
 
+## Scroll mode
+
+`scrollMode` defaults to `'transform'`: `new ScrollBooster({ viewport })` scrolls the content right away. In 3.x
+nothing was rendered without `scrollMode`. If you render the scroll yourself in `onUpdate`, pass
+`scrollMode: 'none'`, `undefined` is not a valid value anymore.
+
 ## `onUpdate` timing
 
 `onUpdate` is called only on animation frames, right before the browser paints. The constructor,
@@ -112,7 +118,7 @@ The constructor and `updateOptions()` throw `TypeError` for invalid options, bef
 
 - unknown option, for example `scrollMethod` instead of `scrollMode` or the removed `preventPointerMoveDefault`;
 - a value of the wrong type or outside the allowed set, for example `direction: 'diagonal'`, `bounce: 'yes'`,
-  `onUpdate: null`, explicit `undefined` for anything but `scrollMode`;
+  `onUpdate: null`, explicit `undefined`;
 - `friction` or `bounceForce` not between 0 and 1 exclusive, `dragDirectionTolerance` outside 0 to 90;
 - `viewport` that is not an `HTMLElement`, a viewport without child element and no `content`, `content` that is not
   inside `viewport`.

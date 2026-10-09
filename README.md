@@ -29,7 +29,6 @@ import { ScrollBooster } from 'scrollbooster';
 
 new ScrollBooster({
     viewport: document.querySelector('.viewport'),
-    scrollMode: 'transform'
 });
 ```
 
@@ -51,7 +50,7 @@ Option | Type | Default | Description
 ------ | ---- | ------- | -----------
 viewport | HTMLElement | | Content viewport element (required)
 content | HTMLElement | viewport child element | Scrollable content element inside viewport
-scrollMode | String | undefined | Scroll technique - via CSS transform or natively. Could be 'transform' or 'native'. Without it scroll is rendered in `onUpdate`
+scrollMode | String | 'transform' | Scroll technique: 'transform' moves content with CSS transform, 'native' scrolls viewport natively, 'none' leaves rendering to `onUpdate`
 direction | String | 'all' | Scroll direction. Could be 'horizontal', 'vertical' or 'all'
 bounce | Boolean | true | Enables elastic bounce effect when hitting viewport borders
 textSelection | Boolean | false | Enables text selection inside viewport
@@ -97,12 +96,13 @@ const content = document.querySelector('.scrollable-content');
 const sb = new ScrollBooster({
   viewport,
   content,
+  scrollMode: 'none',
   bounce: true,
   textSelection: false,
   emulateScroll: true,
   onUpdate: (state) => {
     // state contains useful metrics: position, dragOffset, dragAngle, isDragging, isMoving, borderCollision
-    // you can control scroll rendering manually without 'scrollMode' option:
+    // with scrollMode: 'none' you render the scroll yourself:
     content.style.transform = `translate(
       ${-state.position.x}px,
       ${-state.position.y}px

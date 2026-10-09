@@ -49,8 +49,18 @@ describe('setPosition', () => {
         expect(roundedPosition(sb)).toEqual({ x: 40, y: 100 });
     });
 
-    it('does not touch DOM without scrollMode', () => {
+    it('renders with transform by default', () => {
         const { sb, content, viewport } = mount();
+
+        sb.setPosition({ x: 100, y: 50 });
+        tick();
+
+        expect(content.style.transform).toBe('translate(-100px, -50px)');
+        expect([viewport.scrollLeft, viewport.scrollTop]).toEqual([0, 0]);
+    });
+
+    it('does not touch DOM with scrollMode: none', () => {
+        const { sb, content, viewport } = mount({ scrollMode: 'none' });
 
         sb.setPosition({ x: 100, y: 100 });
         tick();

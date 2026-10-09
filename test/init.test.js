@@ -42,7 +42,7 @@ describe('init', () => {
         expect(sb.props).toMatchObject({
             direction: 'all',
             pointerMode: 'all',
-            scrollMode: undefined,
+            scrollMode: 'transform',
             bounce: true,
             bounceForce: 0.1,
             friction: 0.05,

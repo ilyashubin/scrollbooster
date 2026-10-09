@@ -110,10 +110,10 @@ describe('updateOptions scrollMode', () => {
         expect(sb.getState().position).toEqual({ x: 100, y: 50 });
     });
 
-    it('transform to custom rendering: removes transform', () => {
+    it('transform to none: removes transform', () => {
         const { sb, content } = scrolled('transform');
 
-        sb.updateOptions({ scrollMode: undefined });
+        sb.updateOptions({ scrollMode: 'none' });
         tick(5);
 
         expect(content.style.transform).toBe('');
@@ -423,7 +423,8 @@ describe('options validation', () => {
         ['direction', 'diagonal', 'one of all, horizontal, vertical'],
         ['direction', undefined, 'one of all, horizontal, vertical'],
         ['pointerMode', 'pen', 'one of all, touch, mouse'],
-        ['scrollMode', 'smooth', 'one of undefined, transform, native'],
+        ['scrollMode', 'smooth', 'one of transform, native, none'],
+        ['scrollMode', undefined, 'one of transform, native, none'],
         ['reducedMotion', true, 'one of auto, always, never'],
         ['lockScrollOnDragDirection', 'both', 'one of false, all, horizontal, vertical'],
         ['preventDefaultOnEmulateScroll', 'all', 'one of false, horizontal, vertical'],
