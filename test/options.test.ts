@@ -387,6 +387,7 @@ describe('options validation', () => {
         'preventDefaultOnEmulateScroll',
         'dragDirectionTolerance',
         'pointerDownPreventDefault',
+        'shouldScroll',
     ])('throws for unknown option %s', (key) => {
         expect(() => mount({ [key]: true })).toThrow(new TypeError(`ScrollBooster: unknown option "${key}"`));
     });
@@ -437,7 +438,7 @@ describe('updateOptions callbacks', () => {
     it('calls new callbacks and not the replaced ones', () => {
         const previous = callbacks();
         const { sb, pointer, viewport } = mount(previous);
-        const next = { ...callbacks(), shouldScroll: vi.fn(() => true) };
+        const next = { ...callbacks(), shouldDrag: vi.fn(() => true) };
 
         sb.updateOptions(next);
         pointer.mouseDrag([200, 200], [100, 200]);
@@ -449,14 +450,14 @@ describe('updateOptions callbacks', () => {
             expect(next[name], name).toHaveBeenCalled();
             expect(previous[name], name).not.toHaveBeenCalled();
         }
-        expect(next.shouldScroll).toHaveBeenCalled();
+        expect(next.shouldDrag).toHaveBeenCalled();
     });
 
-    it('shouldScroll from updateOptions decides the next press', () => {
+    it('shouldDrag from updateOptions decides the next press', () => {
         const onPointerDown = vi.fn();
         const { sb, pointer } = mount({ onPointerDown });
 
-        sb.updateOptions({ shouldScroll: () => false });
+        sb.updateOptions({ shouldDrag: () => false });
         pointer.mouseDrag([200, 200], [100, 200]);
         tick(10);
 

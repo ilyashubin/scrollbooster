@@ -17,7 +17,8 @@ all behavior changes.
   `destroy()` stops animation and removes all listeners.
 - An already scrolled viewport keeps its position on init, focused elements stay visible in `transform` mode.
 - `scrollMode` defaults to `'transform'`, `'none'` leaves rendering to `onUpdate`.
-- Invalid options throw `TypeError`. `preventPointerMoveDefault` and `lockScrollOnDragDirection` are removed,
+- Invalid options throw `TypeError`. `shouldScroll` is renamed to `shouldDrag`. `preventPointerMoveDefault` and
+  `lockScrollOnDragDirection` are removed,
   `touch-action` follows `direction`. `pointerDownPreventDefault` is removed: a press moves focus as usual,
   selection and native drag are prevented only while dragging.
 - `onUpdate` is called only on animation frames, `onPointerDown` only for a press that starts dragging.

@@ -114,7 +114,7 @@ describe('mouse drag', () => {
         const onPointerDown = vi.fn();
         const { pointer } = mount(({ content }) => ({
             onPointerDown,
-            shouldScroll: (_, event) => event.target === content,
+            shouldDrag: (_, event) => event.target === content,
         }));
 
         pointer.mouseDown(100, 100, { button: 2, buttons: 2 });
@@ -324,15 +324,15 @@ describe('pointerMode', () => {
 });
 
 describe('drag guards', () => {
-    it('shouldScroll: false prevents drag and receives state and event', () => {
-        const shouldScroll = vi.fn(() => false);
-        const { sb, pointer } = mount({ shouldScroll });
+    it('shouldDrag: false prevents drag and receives state and event', () => {
+        const shouldDrag = vi.fn(() => false);
+        const { sb, pointer } = mount({ shouldDrag });
 
         pointer.mouseDrag([200, 200], [100, 100]);
         tick(10);
 
         expect(position(sb)).toEqual({ x: 0, y: 0 });
-        expect(shouldScroll).toHaveBeenCalledWith(
+        expect(shouldDrag).toHaveBeenCalledWith(
             expect.objectContaining({ position: { x: 0, y: 0 } }),
             expect.any(PointerEvent)
         );

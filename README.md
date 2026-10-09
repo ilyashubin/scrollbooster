@@ -62,11 +62,11 @@ wheel | Boolean | true | Mouse wheel and trackpad scroll content. A gesture goes
 reducedMotion | String | 'auto' | 'always' disables inertia and bounce and makes `scrollTo` jump to the target, 'never' keeps them, 'auto' follows `prefers-reduced-motion` user setting
 onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates. Called on animation frames, the first time on the frame after the constructor
 onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives state and the event. Calls after each `click` in scrollable area, `event.defaultPrevented` is `true` for the click that ends a drag
-onPointerDown | Function | noop | Called when a press starts dragging, after `shouldScroll` allowed it. Receives state and `PointerEvent`, `event.pointerType` tells mouse, touch and pen apart
+onPointerDown | Function | noop | Called when a press starts dragging, after `shouldDrag` allowed it. Receives state and `PointerEvent`, `event.pointerType` tells mouse, touch and pen apart
 onPointerUp | Function | noop | Called when the pointer that drags content is released or cancelled
 onPointerMove | Function | noop | Called when the pointer that drags content moves
 onWheel | Function | noop | Called for each `wheel` event that scrolls content, before it moves
-shouldScroll | Function | noop | Function to permit or disable scrolling. Receives object with scrolling state and `PointerEvent`. Calls on `pointerdown` in scrollable area. You can return `true` or `false` to enable or disable scrolling
+shouldDrag | Function | () => true | Decides whether a press starts dragging. Receives state and `PointerEvent`, called on `pointerdown` in the viewport. Return `false` to leave the press to the page, for example on buttons. Wheel is switched with the `wheel` option
 
 Touch dragging relies on CSS `touch-action`: ScrollBooster sets it on the viewport, so the browser keeps the
 native gestures that do not drag content. With `direction: 'horizontal'` vertical swipes scroll the page, with
@@ -104,7 +104,7 @@ const sb = new ScrollBooster({
       ${-state.position.y}px
     )`;
   },
-  shouldScroll: (state, event) => {
+  shouldDrag: (state, event) => {
     // disable scroll if clicked on button
     const isButton = event.target.nodeName.toLowerCase() === 'button';
     return !isButton;

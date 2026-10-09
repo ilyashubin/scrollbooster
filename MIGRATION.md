@@ -28,7 +28,9 @@ old Edge are not supported anymore, the build is ES2020 without polyfills. If yo
 
 Mouse and touch listeners are replaced with Pointer Events.
 
-- `onPointerDown`, `onPointerMove`, `onPointerUp` and `shouldScroll` receive a `PointerEvent` instead of
+- `shouldScroll` is renamed to `shouldDrag`: it decides only whether a press starts dragging. Wheel scrolling is
+  switched with the `wheel` option, `scrollTo()` is not affected. Passing `shouldScroll` throws.
+- `onPointerDown`, `onPointerMove`, `onPointerUp` and `shouldDrag` receive a `PointerEvent` instead of
   `MouseEvent` or `TouchEvent`. `event.touches` is gone: read `clientX`, `pageX` and others from the event itself.
   Callbacks get `(state, event)`, the third argument `isTouch` is removed: check `event.pointerType === 'touch'`,
   it also tells pen from mouse. In `onClick` use `'pointerType' in event && event.pointerType === 'touch'`, older
@@ -36,7 +38,7 @@ Mouse and touch listeners are replaced with Pointer Events.
 - `onPointerMove` is called only while dragging. In 3.x it was called on every mouse move over the page.
 - `onPointerDown` and `onPointerUp` come in pairs for a press that starts dragging. `onPointerDown` is not called
   anymore for presses that do not drag: other mouse buttons, scrollbars, form inputs with `inputsFocus`, presses
-  rejected by `shouldScroll` or `pointerMode`. `shouldScroll` is called before `onPointerDown`.
+  rejected by `shouldDrag` or `pointerMode`. `shouldDrag` is called before `onPointerDown`.
 - `onPointerUp` is called only for the pointer that started the drag, also when the browser cancels it
   (`pointercancel`, `event.type` tells which). In 3.x it was called on every `mouseup` and `touchend` on the page.
 - Only the main mouse button drags. Middle and side buttons are ignored, in 3.x only the right button was.

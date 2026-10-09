@@ -83,7 +83,7 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         if (
             clientX - rect.left >= viewport.clientLeft + viewport.clientWidth ||
             clientY - rect.top >= viewport.clientTop + viewport.clientHeight ||
-            !props.shouldScroll(host.getState(), event) ||
+            !props.shouldDrag(host.getState(), event) ||
             // Touch and pen contact report the main button too
             event.button !== 0 ||
             (props.pointerMode === 'mouse' && isTouch) ||

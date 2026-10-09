@@ -82,7 +82,7 @@ export interface ScrollBoosterOptions {
      * `'auto'` follows `prefers-reduced-motion` media query
      */
     reducedMotion?: ReducedMotion;
-    /** Press that starts dragging, after `shouldScroll` allowed it */
+    /** Press that starts dragging, after `shouldDrag` allowed it */
     onPointerDown?: (state: ScrollBoosterState, event: PointerEvent) => void;
     /** Drag pointer released or cancelled */
     onPointerUp?: (state: ScrollBoosterState, event: PointerEvent) => void;
@@ -94,6 +94,6 @@ export interface ScrollBoosterOptions {
     onUpdate?: (state: ScrollBoosterState) => void;
     /** Wheel event that scrolls content, called before the content moves */
     onWheel?: (state: ScrollBoosterState, event: WheelEvent) => void;
-    /** Predicate to allow or disable scroll on pointerdown */
-    shouldScroll?: (state: ScrollBoosterState, event: PointerEvent) => boolean;
+    /** Decides on `pointerdown` whether the press starts dragging. Wheel is switched with the `wheel` option */
+    shouldDrag?: (state: ScrollBoosterState, event: PointerEvent) => boolean;
 }

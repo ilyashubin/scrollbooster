@@ -56,7 +56,7 @@
         viewport: viewport,
         content: content,
         // textSelection: true,
-        shouldScroll: (_state, event) => {
+        shouldDrag: (_state, event) => {
             return event.target.tagName !== 'BUTTON';
         },
         onClick() {

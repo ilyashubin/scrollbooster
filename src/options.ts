@@ -19,7 +19,7 @@ const DEFAULTS: Omit<Props, 'viewport' | 'content'> = {
     onClick() {},
     onUpdate() {},
     onWheel() {},
-    shouldScroll() {
+    shouldDrag() {
         return true;
     },
 };
@@ -64,7 +64,7 @@ const CHECKS: Record<string, Check> = {
     onClick: FUNCTION,
     onUpdate: FUNCTION,
     onWheel: FUNCTION,
-    shouldScroll: FUNCTION,
+    shouldDrag: FUNCTION,
 };
 
 // Declared as a function: TypeScript narrows types after calls only to explicitly typed `never` functions
