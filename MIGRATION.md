@@ -46,8 +46,10 @@ Mouse and touch listeners are replaced with Pointer Events.
 - After a mouse drag `click` goes to the viewport and is prevented, so `click` handlers on elements inside the
   content do not run after a drag. A click without movement reaches them as usual. Only the first click after the
   drag is prevented. In `onClick` use `event.defaultPrevented` to tell a click after drag from a plain click.
-- `pointerDownPreventDefault` still prevents `mousedown` (text selection, native drag of images and links), other
-  `mousedown` listeners on the page keep working.
+- `pointerDownPreventDefault` is removed, passing it throws. `mousedown` is not prevented anymore, so a press inside
+  the viewport moves focus like a click anywhere else: an input outside loses focus, a focusable element inside gets
+  it. Text selection and native drag of images and links are prevented with `selectstart` and `dragstart` while
+  the pointer drags. Focus by the press that drags content does not scroll it in `'transform'` mode.
 
 ### Native touch gestures
 

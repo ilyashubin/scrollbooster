@@ -345,6 +345,7 @@ describe('options validation', () => {
         'emulateScroll',
         'preventDefaultOnEmulateScroll',
         'dragDirectionTolerance',
+        'pointerDownPreventDefault',
     ])('throws for unknown option %s', (key) => {
         expect(() => mount({ [key]: true })).toThrow(new TypeError(`ScrollBooster: unknown option "${key}"`));
     });

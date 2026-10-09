@@ -85,14 +85,67 @@ describe('real mouse', () => {
         expect(document.getSelection().toString()).toBe('');
     });
 
-    it('drag selects text with pointerDownPreventDefault: false', async () => {
-        const { content } = mount({ pointerDownPreventDefault: false });
+    it.each([
+        [
+            'image',
+            () => {
+                const image = document.createElement('img');
+                image.src = `data:image/svg+xml,${encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="100"><rect width="300" height="100"/></svg>'
+                )}`;
+                return image;
+            },
+        ],
+        [
+            'link',
+            () => {
+                const link = document.createElement('a');
+                link.href = '#link';
+                link.textContent = 'Link that can be dragged natively';
+                return link;
+            },
+        ],
+    ])('drag from %s does not start native drag', async (_, create) => {
+        const onPointerUp = vi.fn();
+        const { content } = mount({ onPointerUp });
+        const element = create();
+        element.style.cssText = 'display: block; width: 300px; height: 100px; font: 20px/100px monospace;';
+        content.prepend(element);
+        await element.decode?.();
+
+        await drag(at(element, 250, 50), at(element, 50, 50));
+
+        expect(onPointerUp).toHaveBeenCalledTimes(1);
+        expect(onPointerUp.mock.calls[0][1].type).toBe('pointerup');
+        expect(onPointerUp.mock.calls[0][0].dragOffset).toEqual({ x: -200, y: 0 });
+    });
+
+    it('press moves focus like a click outside of viewport', async () => {
+        const { content } = mount();
         const row = addRow(content);
+        const input = document.createElement('input');
+        document.body.prepend(input);
+        input.focus();
 
-        await drag(at(row, 250, 50), at(row, 50, 50));
+        await click(at(row, 150, 50));
 
-        expect(document.getSelection().toString()).not.toBe('');
-        document.getSelection().removeAllRanges();
+        expect(document.activeElement).not.toBe(input);
+        input.remove();
+    });
+
+    it('focus by the press that drags keeps content under the pointer', async () => {
+        const { sb, content } = mount();
+        // Focusable element partly beyond the right edge of viewport
+        const card = document.createElement('div');
+        card.tabIndex = 0;
+        card.style.cssText = 'margin-left: 200px; width: 300px; height: 100px; background: #ddd;';
+        content.prepend(card);
+
+        await click(at(card, 50, 50));
+        tick(100);
+
+        expect(document.activeElement).toBe(card);
+        expect(sb.getState().position).toEqual({ x: 0, y: 0 });
     });
 
     it('keeps dragging outside of viewport until release', async () => {

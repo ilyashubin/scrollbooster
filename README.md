@@ -59,7 +59,6 @@ pointerMode | String | 'all' | Specify pointer type. Supported values - 'touch' 
 friction | Number | 0.05 | Scroll friction factor - how fast scrolling stops after pointer release, per 60 Hz frame
 bounceForce | Number | 0.1 | Elastic bounce effect factor, per 60 Hz frame
 wheel | Boolean | true | Mouse wheel and trackpad scroll content. A gesture goes to the page when content cannot move along its main axis, for example at the edge or across `direction`
-pointerDownPreventDefault | Boolean | true | Prevents default `mousedown` on drag start: text selection, native drag of images and links
 reducedMotion | String | 'auto' | 'always' disables inertia and bounce and makes `scrollTo` jump to the target, 'never' keeps them, 'auto' follows `prefers-reduced-motion` user setting
 onUpdate | Function | noop | Handler function to perform actual scrolling. Receives scrolling state object with coordinates. Called on animation frames, the first time on the frame after the constructor
 onClick | Function | noop | Click handler function. Here you can, for example, prevent default event for click on links. Receives state and the event. Calls after each `click` in scrollable area, `event.defaultPrevented` is `true` for the click that ends a drag

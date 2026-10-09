@@ -49,7 +49,6 @@ describe('init', () => {
             textSelection: false,
             inputsFocus: true,
             wheel: true,
-            pointerDownPreventDefault: true,
         });
     });
 

@@ -23,16 +23,25 @@ describe('mouse drag', () => {
         expect(round(sb.getState().position.x)).toBe(95);
     });
 
-    it('prevents default mousedown', () => {
+    it('keeps default mousedown, so a press moves focus', () => {
         const { pointer } = mount();
 
-        expect(pointer.mouseDown(100, 100).defaultPrevented).toBe(true);
+        expect(pointer.mouseDown(100, 100).defaultPrevented).toBe(false);
     });
 
-    it('keeps default mousedown with pointerDownPreventDefault: false', () => {
-        const { pointer } = mount({ pointerDownPreventDefault: false });
+    it.each(['selectstart', 'dragstart'])('prevents %s only while dragging', (type) => {
+        const { pointer, content } = mount();
+        const dispatch = () => {
+            const event = new Event(type, { bubbles: true, cancelable: true });
+            content.dispatchEvent(event);
+            return event.defaultPrevented;
+        };
 
-        expect(pointer.mouseDown(100, 100).defaultPrevented).toBe(false);
+        expect(dispatch()).toBe(false);
+        pointer.mouseDown(100, 100);
+        expect(dispatch()).toBe(true);
+        pointer.mouseUp(100, 100);
+        expect(dispatch()).toBe(false);
     });
 
     it.each([

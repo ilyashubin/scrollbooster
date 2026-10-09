@@ -33,7 +33,7 @@ type Props = Required<ScrollBoosterOptions>;
 
 interface EventHandlers {
     pointerdown: (event: PointerEvent) => void;
-    mousedown: (event: MouseEvent) => void;
+    preventDuringDrag: (event: Event) => void;
     pointermove: (event: PointerEvent) => void;
     pointerup: (event: PointerEvent) => void;
     wheel: (event: WheelEvent) => void;
@@ -119,7 +119,6 @@ export class ScrollBooster {
             textSelection: false,
             inputsFocus: true,
             wheel: true,
-            pointerDownPreventDefault: true,
             reducedMotion: 'auto',
             onPointerDown() {},
             onPointerUp() {},
@@ -499,7 +498,6 @@ export class ScrollBooster {
         let activePointerId: number | null = null;
         let activePointerType = '';
         let isCaptured = false;
-        let preventMouseDown = false;
         // The click that follows a drag past the click threshold is prevented
         let preventClick = false;
 
@@ -559,7 +557,6 @@ export class ScrollBooster {
             }
 
             const isTouch = event.pointerType === 'touch';
-            preventMouseDown = false;
             preventClick = false;
 
             const { pageX, pageY, clientX, clientY } = event;
@@ -640,15 +637,12 @@ export class ScrollBooster {
             window.addEventListener('pointermove', this.events.pointermove, options);
             window.addEventListener('pointerup', this.events.pointerup, options);
             window.addEventListener('pointercancel', this.events.pointerup, options);
-
-            // Canceling pointerdown would also suppress mousedown for other listeners, like "click outside" handlers
-            preventMouseDown = !isTouch && this.props.pointerDownPreventDefault;
         };
 
-        // Compatibility mousedown follows pointerdown, its default action is text selection and native drag
-        this.events.mousedown = (event) => {
-            if (preventMouseDown) {
-                preventMouseDown = false;
+        // Text selection and native drag of images and links would take the pointer from the drag.
+        // Mousedown keeps its default action, so a press moves focus like a click on any other element.
+        this.events.preventDuringDrag = (event) => {
+            if (this.isDragging) {
                 event.preventDefault();
             }
         };
@@ -725,9 +719,10 @@ export class ScrollBooster {
             }
         };
 
-        // Content moved with transform has no native scroll to bring focused element into view
+        // Content moved with transform has no native scroll to bring focused element into view.
+        // Focus by the press that drags content keeps the content under the pointer.
         this.events.focusin = (event) => {
-            if (this.props.scrollMode === 'transform' && event.target instanceof Element) {
+            if (this.props.scrollMode === 'transform' && !this.isDragging && event.target instanceof Element) {
                 this.revealElement(event.target);
             }
         };
@@ -748,7 +743,8 @@ export class ScrollBooster {
         const { viewport, content } = this.props;
 
         viewport.addEventListener('pointerdown', this.events.pointerdown, { signal });
-        viewport.addEventListener('mousedown', this.events.mousedown, { signal });
+        viewport.addEventListener('selectstart', this.events.preventDuringDrag, { signal });
+        viewport.addEventListener('dragstart', this.events.preventDuringDrag, { signal });
         viewport.addEventListener('click', this.events.click, { signal });
         viewport.addEventListener('scroll', this.events.scroll, { signal });
         viewport.addEventListener('focusin', this.events.focusin, { signal });

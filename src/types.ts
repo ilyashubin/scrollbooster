@@ -65,8 +65,6 @@ export interface ScrollBoosterOptions {
      * main axis of the gesture
      */
     wheel?: boolean;
-    /** Prevents default mousedown on drag start: text selection, native drag of images and links */
-    pointerDownPreventDefault?: boolean;
     /**
      * Reduced motion: no inertia and bounce, `scrollTo` jumps to the target.
      * `'auto'` follows `prefers-reduced-motion` media query

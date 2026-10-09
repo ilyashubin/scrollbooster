@@ -24,7 +24,6 @@ const CHECKS: Record<string, Check> = {
     textSelection: BOOLEAN,
     inputsFocus: BOOLEAN,
     wheel: BOOLEAN,
-    pointerDownPreventDefault: BOOLEAN,
     reducedMotion: oneOf('auto', 'always', 'never'),
     onPointerDown: FUNCTION,
     onPointerUp: FUNCTION,
