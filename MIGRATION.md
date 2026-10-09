@@ -72,7 +72,7 @@ Mouse and touch listeners are replaced with Pointer Events.
 
 ### Native touch gestures
 
-ScrollBooster sets CSS `touch-action` on the viewport instead of calling `preventDefault()` on `touchmove`:
+ScrollBooster sets CSS `touch-action` on the viewport, `touchmove` listeners do not block page scroll anymore:
 
 | `direction`     | `touch-action`     | Native gestures left to the browser |
 | --------------- | ------------------ | ----------------------------------- |
@@ -92,6 +92,9 @@ With `pointerMode: 'mouse'` the style is not set. The previous inline value is r
 - To use your own `touch-action`, set it in CSS with `!important` or use `pointerMode: 'mouse'`.
 - `preventPointerMoveDefault` is removed, passing it throws. Native touch scrolling is controlled with
   `touch-action`.
+- While a finger drags content, its `touchmove` along the drag is prevented: Safari on iOS pans the page from a
+  touch that starts on a link despite `touch-action`. The listener exists only during a touch press, so it never
+  delays page scroll that starts elsewhere.
 
 ### Wheel
 

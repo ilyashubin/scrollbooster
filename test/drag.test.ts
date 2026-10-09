@@ -361,6 +361,60 @@ describe('touch drag', () => {
     });
 });
 
+describe('touchmove', () => {
+    // TouchEvent cannot be constructed in every engine, the handler reads only the touch count
+    function touchMove(target: Element, touches = 1) {
+        const event = new Event('touchmove', { bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'touches', { value: { length: touches } });
+        target.dispatchEvent(event);
+        return event.defaultPrevented;
+    }
+
+    it('is prevented along the drag past the click threshold, the browser cannot pan', () => {
+        const { pointer, content } = mount();
+
+        pointer.touchStart(200, 200);
+        pointer.touchMove(197, 200);
+        expect(touchMove(content)).toBe(false);
+        pointer.touchMove(150, 180);
+        expect(touchMove(content)).toBe(true);
+        pointer.touchEnd(150, 180);
+        expect(touchMove(content)).toBe(false);
+    });
+
+    it.each([
+        // Across: past the click threshold along direction, but mostly across it
+        ['horizontal', [150, 200], [170, 130]],
+        ['vertical', [200, 150], [130, 170]],
+    ] as const)('%s: is prevented only along direction', (direction, along, across) => {
+        const { pointer, content } = mount({ direction });
+
+        pointer.touchStart(200, 200);
+        pointer.touchMove(along[0], along[1]);
+        expect(touchMove(content)).toBe(true);
+        pointer.touchMove(across[0], across[1]);
+        expect(touchMove(content)).toBe(false);
+    });
+
+    it('is not prevented with two fingers, they pinch', () => {
+        const { pointer, content } = mount();
+
+        pointer.touchStart(200, 200);
+        pointer.touchMove(150, 200);
+
+        expect(touchMove(content, 2)).toBe(false);
+    });
+
+    it('is not prevented during a mouse drag', () => {
+        const { pointer, content } = mount();
+
+        pointer.mouseDown(200, 200);
+        pointer.mouseMove(150, 200);
+
+        expect(touchMove(content)).toBe(false);
+    });
+});
+
 describe('direction', () => {
     // Former test/xonly.test.js
     it('horizontal: moves only along x', () => {

@@ -182,6 +182,11 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
         window.addEventListener('pointermove', onPointerMove, options);
         window.addEventListener('pointerup', onPointerUp, options);
         window.addEventListener('pointercancel', onPointerUp, options);
+        // Only during a touch press: a browser that decides at touchstart whether touch listeners block the
+        // page scroll, like Chromium, keeps touches non-blocking, and touch-action works there anyway
+        if (event.pointerType === 'touch') {
+            viewport.addEventListener('touchmove', onTouchMove, { passive: false, signal: dragController.signal });
+        }
     };
 
     const endPress = (event: PointerEvent, canClick: boolean) => {
@@ -239,6 +244,21 @@ export function bindDrag(viewport: HTMLElement, signal: AbortSignal, host: DragH
     // Mousedown keeps its default action, so a press moves focus like a click on any other element.
     const preventDuringDrag = (event: Event) => {
         if (press.isActive) {
+            event.preventDefault();
+        }
+    };
+
+    // Safari on iOS 18 pans the page from a touch that starts on a link despite touch-action of viewport, then
+    // cancels the pointer. A move of the dragging finger along the main axis of the drag is prevented, so the
+    // browser cannot start a pan. Before the click threshold and across direction the browser decides, pinch too.
+    const onTouchMove = (event: TouchEvent) => {
+        if (event.touches.length !== 1 || !event.cancelable) {
+            return;
+        }
+        const { direction } = host.props();
+        const isHorizontal = Math.abs(press.offset.x) > Math.abs(press.offset.y);
+        const isAlongDirection = direction === 'all' || (direction === 'horizontal') === isHorizontal;
+        if (isAlongDirection && isPastThreshold()) {
             event.preventDefault();
         }
     };

@@ -73,6 +73,26 @@ describe.runIf(server.browser === 'chromium')('real touch', () => {
         expect(window.scrollY).toBe(0);
     });
 
+    it('prevents touch moves of a swipe along direction and not across it', async () => {
+        const { viewport } = mount({ direction: 'horizontal' });
+        document.body.append(spacer);
+        const moves: boolean[] = [];
+        // Read after the listeners of the instance
+        const onTouchMove = (event: TouchEvent) => moves.push(event.defaultPrevented);
+        window.addEventListener('touchmove', onTouchMove, { passive: true });
+
+        await swipe(at(viewport, 250, 150), at(viewport, 50, 150));
+        const along = [...moves];
+        moves.length = 0;
+        await swipe(at(viewport, 150, 250), at(viewport, 150, 50));
+        await settle();
+        window.removeEventListener('touchmove', onTouchMove);
+
+        expect(along[along.length - 1]).toBe(true);
+        expect(moves.some(Boolean)).toBe(false);
+        expect(window.scrollY).toBeGreaterThan(0);
+    });
+
     it('swipe drags content on both axes with direction all', async () => {
         const onPointerUp = vi.fn();
         const { sb, viewport } = mount({ onPointerUp });
