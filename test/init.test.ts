@@ -126,4 +126,20 @@ describe('init', () => {
         tick(2);
         expect(pendingFrames()).toBe(0);
     });
+
+    // Component tests of applications run in jsdom, it has no ResizeObserver
+    it('works without ResizeObserver', () => {
+        vi.stubGlobal('ResizeObserver', undefined);
+        try {
+            const { sb, content } = mount();
+            content.style.width = '2000px';
+            sb.updateMetrics();
+            sb.setPosition({ x: 1500 });
+            tick();
+            expect(sb.getState().position.x).toBe(1500);
+            sb.destroy();
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
 });

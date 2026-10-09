@@ -32,7 +32,7 @@ export class ScrollBooster {
     private press!: Press;
     private wheel!: WheelGesture;
     private abortController!: AbortController;
-    private resizeObserver!: ResizeObserver;
+    private resizeObserver?: ResizeObserver;
     private initialTouchAction = '';
 
     /**
@@ -284,6 +284,11 @@ export class ScrollBooster {
         this.initialTouchAction = viewport.style.touchAction;
         this.applyTouchAction();
 
+        // Test environments like jsdom have no ResizeObserver, sizes are then updated by updateMetrics()
+        if (typeof ResizeObserver !== 'function') {
+            this.resizeObserver = undefined;
+            return;
+        }
         this.resizeObserver = new ResizeObserver(() => {
             // Initial notification after observe() usually has nothing new
             const metrics = measure(viewport, content);
@@ -305,7 +310,7 @@ export class ScrollBooster {
     private unbindEvents(): void {
         const { viewport, content, scrollMode } = this.props;
         this.abortController.abort();
-        this.resizeObserver.disconnect();
+        this.resizeObserver?.disconnect();
         viewport.style.touchAction = this.initialTouchAction;
         if (scrollMode === 'transform') {
             content.style.transform = '';
