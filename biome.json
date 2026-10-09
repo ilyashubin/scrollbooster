@@ -32,6 +32,18 @@
       "indentWidth": 2
     }
   },
+  "overrides": [
+    {
+      "includes": ["demo/**/*.html"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noNoninteractiveTabindex": "off"
+          }
+        }
+      }
+    }
+  ],
   "assist": {
     "enabled": true,
     "actions": {

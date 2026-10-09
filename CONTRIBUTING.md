@@ -9,7 +9,9 @@ Contributions are welcome!
 5. Run `pnpm exec playwright install chromium firefox webkit` once, then `pnpm test` to run unit tests in Node
    (project `unit`) and browser tests in all three browsers (projects `chromium`, `firefox`, `webkit`).
    Use `pnpm test --project unit --project chromium` to run a subset and `pnpm test:watch` while developing
-6. Quick way to try changes manually is to run `pnpm start` and check the demo in your browser
+6. Try changes by hand in the demo: `pnpm start` serves `demo/` and opens it in the browser, the pages import `src/`
+   directly and reload on change. The server listens on the local network, open the printed Network address on a
+   phone to try touch
 7. Run `pnpm check` before committing: lint, typecheck, all tests, build and package checks in one command
 8. If the change affects users, run `pnpm changeset`, pick the bump type and describe the change. It adds a file
    to `.changeset/` that goes to the changelog on release
@@ -42,6 +44,30 @@ touches through Chrome DevTools Protocol with the `touch` command and runs in Ch
 Physics is defined per 60 Hz frame; `tick(frames, frameDuration)` with another duration checks other refresh rates.
 A known bug that is not fixed yet can be written as `it.fails` next to related tests: when a fix makes it fail,
 switch it to `it`.
+
+## Demo
+
+Pages in `demo/` cover one scenario each, every scroller has a panel with live `getState()`, the measured refresh
+rate and `touch-action` of the viewport:
+
+Page | Scenario
+---- | --------
+`index.html` | Sandbox: every option is a control, applied with `updateOptions()` and kept in `localStorage`, methods as buttons, callback log
+`gallery.html` | Horizontal gallery with links in a scrolling page, carousel with `snap`, tabs with `scrollIntoView()`, right-to-left gallery
+`native.html` | `scrollMode: 'native'` with mouse drag and native touch, dragging the whole page
+`nested.html` | Rows in a board, scroller in a scroller
+`focus.html` | Tab and fields in `transform` mode, keyboard scrolling
+`images.html` | Images that load later and change the content size
+`spa.html` | Create, move to another viewport, replace content, destroy
+`motion.html` | `reducedMotion`, position over time at simulated lower refresh rates
+
+Shared code lives in `demo/shared/`: page list for the navigation and the build, state panel, styles. A new page is
+added to `demo/shared/pages.ts`. `pnpm build:demo` builds the pages to `dist-demo/` with relative paths, for any
+static host. Biome rule `noNoninteractiveTabindex` is off for demo pages: a viewport in `transform` mode has
+`overflow: hidden`, it is reachable from the keyboard only with `tabindex`.
+
+Before a release try `index.html` and `gallery.html` on real devices: a high refresh rate display, iOS and Android.
+Tests do not catch how scrolling feels.
 
 ## Checks
 

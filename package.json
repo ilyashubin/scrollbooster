@@ -33,9 +33,8 @@
     "check:package": "publint --strict && attw --pack . --profile esm-only --exclude-entrypoints ./dist/scrollbooster.min.js && size-limit",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm check:package",
     "changeset": "changeset",
-    "start": "pnpm run --parallel \"/^start:/\"",
-    "start:build": "tsdown --watch",
-    "start:serve": "vite --host 0.0.0.0 --open",
+    "start": "vite",
+    "build:demo": "vite build",
     "prepublishOnly": "pnpm run build"
   },
   "repository": {

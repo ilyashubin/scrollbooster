@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScrollBooster mount and destroy</title>
+    <link rel="stylesheet" href="./shared/demo.css">
+    <style>
+        .pair {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+        }
+
+        .pair .viewport {
+            height: 260px;
+        }
+
+        .pair .viewport.current {
+            border-color: var(--accent);
+        }
+
+        .styles {
+            margin: 12px 0 0;
+            font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Mount and destroy</h1>
+    <p class="hint">
+        What a single page application does with an instance: create it, move it to another viewport with
+        <code>updateOptions({ viewport })</code>, replace the content and destroy it. After
+        <code>destroy()</code> the inline styles are the same as before mounting, and dragging does nothing.
+    </p>
+    <div class="toolbar">
+        <button type="button" id="mount">Create</button>
+        <button type="button" id="destroy">destroy()</button>
+        <button type="button" id="switch">Move to the other viewport</button>
+        <button type="button" id="replace">Replace content</button>
+        <button type="button" id="stress">Create and destroy 1000 times</button>
+    </div>
+    <div class="stage">
+        <div>
+            <div class="pair">
+                <section class="viewport" id="first" tabindex="0" aria-label="First viewport">
+                    <div class="board"></div>
+                </section>
+                <section class="viewport" id="second" tabindex="0" aria-label="Second viewport">
+                    <div class="board"></div>
+                </section>
+            </div>
+            <p class="styles" id="styles"></p>
+        </div>
+        <div id="panel"></div>
+    </div>
+</main>
+<script type="module" src="./spa.ts"></script>
+</body>
+</html>

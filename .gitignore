@@ -21,3 +21,6 @@ dist/
 
 # Coverage report from pnpm test:coverage
 coverage/
+
+# Demo build from vite build
+dist-demo/
