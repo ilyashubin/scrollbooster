@@ -47,12 +47,16 @@ switch it to `it`.
 
 ## Demo
 
-Pages in `demo/` cover one scenario each, every scroller has a panel with live `getState()`, the measured refresh
+`demo/index.html` is the landing page published on GitHub Pages: install, features and live examples. Each example
+is a script in `demo/landing/examples/` that runs on the page, and the page shows its source as the example code
+with the import rewritten to `'scrollbooster'`. Keep these scripts short and plain JavaScript, users copy them.
+
+The other pages cover one scenario each, every scroller has a panel with live `getState()`, the measured refresh
 rate and `touch-action` of the viewport:
 
 Page | Scenario
 ---- | --------
-`index.html` | Sandbox: every option is a control, applied with `updateOptions()` and kept in `localStorage`, methods as buttons, callback log
+`sandbox.html` | Every option is a control, applied with `updateOptions()` and kept in `localStorage`, methods as buttons, callback log
 `gallery.html` | Horizontal gallery with links in a scrolling page, carousel with `snap`, tabs with `scrollIntoView()`, right-to-left gallery
 `native.html` | `scrollMode: 'native'` with mouse drag and native touch, dragging the whole page
 `nested.html` | Rows in a board, scroller in a scroller
@@ -66,7 +70,7 @@ added to `demo/shared/pages.ts`. `pnpm build:demo` builds the pages to `dist-dem
 static host, `pnpm preview:demo` builds and serves them. Biome rule `noNoninteractiveTabindex` is off for demo
 pages: a viewport in `transform` mode has `overflow: hidden`, it is reachable from the keyboard only with `tabindex`.
 
-Before a release try `index.html` and `gallery.html` on real devices: a high refresh rate display, iOS and Android.
+Before a release try `index.html`, `sandbox.html` and `gallery.html` on real devices: a high refresh rate display, iOS and Android.
 Tests do not catch how scrolling feels. `pnpm dev` is reachable from a phone in the same network at the `Network`
 address it prints. Add `?events` to a page address to see raw input events on the page, for devices without
 devtools: pointer, touch, mouse and click events, capture, selection and native drag, the start of a wheel gesture,

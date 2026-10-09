@@ -1,6 +1,6 @@
-// Demo pages in navigation order, also the build input of `vite.config.ts`
+// Demo pages in navigation order, also the build input of `vite.config.ts` with the landing `index.html`
 export const PAGES = [
-    { file: 'index.html', title: 'Sandbox' },
+    { file: 'sandbox.html', title: 'Sandbox' },
     { file: 'gallery.html', title: 'Gallery' },
     { file: 'native.html', title: 'Native scroll' },
     { file: 'nested.html', title: 'Nested' },

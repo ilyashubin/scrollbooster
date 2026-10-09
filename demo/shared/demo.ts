@@ -5,9 +5,14 @@ import { PAGES } from './pages.ts';
  * Header with links to all demo pages
  */
 export function mountNav(): void {
-    const current = location.pathname.split('/').pop() || 'index.html';
+    const current = location.pathname.split('/').pop();
     const header = document.createElement('header');
     const nav = document.createElement('nav');
+    const home = document.createElement('a');
+    home.href = './';
+    home.className = 'home';
+    home.textContent = 'ScrollBooster';
+    nav.append(home);
     for (const page of PAGES) {
         const link = document.createElement('a');
         link.href = `./${page.file}`;

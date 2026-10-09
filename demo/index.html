@@ -3,65 +3,226 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ScrollBooster sandbox</title>
-    <link rel="stylesheet" href="./shared/demo.css">
-    <style>
-        .options {
-            margin: 0 0 16px;
-            padding: 8px 12px;
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            background: var(--surface);
-        }
-
-        .options summary {
-            cursor: pointer;
-        }
-
-        .settings {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 8px 16px;
-            padding: 8px 0 4px;
-        }
-
-        .settings label {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        .settings input[type='range'] {
-            width: 100px;
-        }
-
-        .settings output {
-            margin-left: auto;
-        }
-    </style>
+    <title>ScrollBooster</title>
+    <meta name="description" content="Enjoyable content drag-to-scroll library: mouse, touch, wheel and keyboard, inertia and bounce, TypeScript, no dependencies">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Raleway:wght@500;600;700;800&display=swap">
+    <link rel="stylesheet" href="./landing/landing.css">
 </head>
 <body>
-<main>
-    <h1>Sandbox</h1>
-    <p class="hint">
-        Every option is a control, changes go through <code>updateOptions()</code> and are kept in this browser.
-        Drag, fling, use the wheel, click links and buttons, Tab into the board and press arrow keys.
+<header class="hero">
+    <div class="logo" aria-hidden="true">
+        <div class="logo-lines"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="logo-window"></div>
+        <div class="logo-abbr">SB</div>
+    </div>
+    <h1>ScrollBooster</h1>
+    <p class="tagline">Enjoyable content drag-to-scroll library</p>
+    <p class="facts">
+        <span>Mouse, touch, wheel and keys</span>
+        <span>Inertia and rubber band</span>
+        <span>TypeScript</span>
+        <span>No dependencies</span>
+        <span>6.5&nbsp;kB gzip</span>
     </p>
-    <details class="options" id="options">
-        <summary>Options</summary>
-        <form class="settings" id="settings"></form>
-    </details>
-    <div class="toolbar" id="methods"></div>
-    <div class="stage">
+    <div class="install" id="install">
+        <div class="install-tabs" role="tablist" aria-label="Install with">
+            <button type="button" role="tab" aria-selected="true" data-command="npm i scrollbooster">npm</button>
+            <button type="button" role="tab" aria-selected="false" data-command="pnpm add scrollbooster">pnpm</button>
+            <button type="button" role="tab" aria-selected="false" data-command="yarn add scrollbooster">yarn</button>
+            <button type="button" role="tab" aria-selected="false" data-command='&lt;script src="https://cdn.jsdelivr.net/npm/scrollbooster@4/dist/scrollbooster.min.js"&gt;&lt;/script&gt;'>CDN</button>
+        </div>
+        <div class="install-line">
+            <code id="install-command">npm i scrollbooster</code>
+            <button type="button" class="copy" data-copy="#install-command">Copy</button>
+        </div>
+    </div>
+    <nav class="hero-links">
+        <a class="button primary" href="https://github.com/ilyashubin/scrollbooster">GitHub</a>
+        <a class="button" href="https://github.com/ilyashubin/scrollbooster#readme">Documentation</a>
+        <a class="button" href="https://github.com/ilyashubin/scrollbooster/blob/master/MIGRATION.md">Upgrading from 3.x</a>
+    </nav>
+</header>
+
+<main>
+    <section class="quick" aria-labelledby="quick-title">
         <div>
-            <section class="viewport tall" id="viewport" tabindex="0" aria-label="Sandbox board">
-                <div class="board" id="board"></div>
+            <h2 id="quick-title">Two elements and one line</h2>
+            <p>
+                The viewport clips, the content moves inside it. Drag with a mouse or a finger, throw it, pull it
+                past the edge, scroll with a wheel or a trackpad, Tab into it and use the arrow keys. Clicks on
+                links and buttons still work, the click that ends a drag does not fire.
+            </p>
+            <p>Every example below runs the code next to it.</p>
+        </div>
+        <div class="code">
+            <div class="code-bar"><span>index.html</span></div>
+            <pre><code id="quick-code"></code></pre>
+        </div>
+    </section>
+
+    <section class="example" id="example-gallery" aria-labelledby="gallery-title">
+        <div class="example-text">
+            <h2 id="gallery-title">Horizontal gallery</h2>
+            <p>
+                A strip in a page that scrolls vertically. Horizontal drags move the strip, vertical swipes and the
+                mouse wheel scroll the page. The cards are links: a click opens one, a drag does not.
+                <code>onUpdate</code> fills the progress bar.
+            </p>
+            <a class="more" href="./gallery.html">More strips: snap, tabs, right-to-left</a>
+        </div>
+        <div class="example-demo">
+            <section class="viewport strip" id="gallery" tabindex="0" aria-label="Gallery">
+                <div class="cards" id="gallery-cards"></div>
+            </section>
+            <div class="progress" aria-hidden="true"><span id="gallery-progress"></span></div>
+        </div>
+        <div class="code" data-example="gallery">
+            <div class="code-bar"><span>gallery.js</span></div>
+            <pre><code></code></pre>
+        </div>
+    </section>
+
+    <section class="example" id="example-picture" aria-labelledby="picture-title">
+        <div class="example-text">
+            <h2 id="picture-title">Big picture</h2>
+            <p>
+                Both directions with inertia. Pull the picture past an edge: it resists more the further you pull
+                and springs back on release. <code>setPosition()</code> starts from the middle once the image loads.
+            </p>
+            <a class="more" href="./images.html">Images that load later</a>
+        </div>
+        <div class="example-demo">
+            <section class="viewport picture" id="picture" tabindex="0" aria-label="Picture">
+                <div>
+                    <img src="./landing/lanterns.jpg" width="1600" height="1067" alt="Paper lanterns over a street at night" draggable="false">
+                </div>
             </section>
         </div>
-        <div id="panel"></div>
-    </div>
+        <div class="code" data-example="picture">
+            <div class="code-bar"><span>picture.js</span></div>
+            <pre><code></code></pre>
+        </div>
+    </section>
+
+    <section class="example" id="example-carousel" aria-labelledby="carousel-title">
+        <div class="example-text">
+            <h2 id="carousel-title">Carousel with snap</h2>
+            <p>
+                <code>snap</code> receives the position where inertia would stop and returns the slide to stop on.
+                The arrows use <code>scrollBy()</code>, the dots <code>scrollTo()</code>, both animate with the same
+                physics as a throw.
+            </p>
+        </div>
+        <div class="example-demo">
+            <div class="carousel">
+                <section class="viewport slides" id="carousel" tabindex="0" aria-label="Carousel">
+                    <div class="slides-track" id="carousel-track"></div>
+                </section>
+                <button type="button" class="arrow prev" id="carousel-prev" aria-label="Previous slide">‹</button>
+                <button type="button" class="arrow next" id="carousel-next" aria-label="Next slide">›</button>
+            </div>
+            <div class="dots" id="carousel-dots"></div>
+        </div>
+        <div class="code" data-example="carousel">
+            <div class="code-bar"><span>carousel.js</span></div>
+            <pre><code></code></pre>
+        </div>
+    </section>
+
+    <section class="example" id="example-table" aria-labelledby="table-title">
+        <div class="example-text">
+            <h2 id="table-title">Wide table</h2>
+            <p>
+                <code>scrollMode: 'native'</code> moves the native scroll of the viewport, so the sticky header and
+                first column, scrollbars and touch scrolling work as usual. <code>axisLock</code> keeps a drag on a
+                row or a column. Checkboxes take clicks, a press on them does not drag.
+            </p>
+            <a class="more" href="./native.html">Native scroll and dragging the whole page</a>
+        </div>
+        <div class="example-demo">
+            <section class="viewport table-wrap" id="table" tabindex="0" aria-label="Table">
+                <table id="table-content"></table>
+            </section>
+        </div>
+        <div class="code" data-example="table">
+            <div class="code-bar"><span>table.js</span></div>
+            <pre><code></code></pre>
+        </div>
+    </section>
+
+    <section class="example" id="example-tabs" aria-labelledby="tabs-title">
+        <div class="example-text">
+            <h2 id="tabs-title">Tabs</h2>
+            <p>
+                <code>wheel: 'horizontal'</code> turns the mouse wheel into horizontal scroll, the page takes over
+                at the end of the strip. A click centers the tab with <code>scrollIntoView()</code>, a drag
+                selects nothing.
+            </p>
+        </div>
+        <div class="example-demo">
+            <div class="viewport tabs" id="tabs">
+                <div class="tabs-track" role="tablist" aria-label="Topics" id="tabs-track"></div>
+            </div>
+        </div>
+        <div class="code" data-example="tabs">
+            <div class="code-bar"><span>tabs.js</span></div>
+            <pre><code></code></pre>
+        </div>
+    </section>
+
+    <section class="example" id="example-parallax" aria-labelledby="parallax-title">
+        <div class="example-text">
+            <h2 id="parallax-title">Your own rendering</h2>
+            <p>
+                With <code>scrollMode: 'none'</code> ScrollBooster only computes the position, with inertia and
+                bounce, and <code>onUpdate</code> draws it. Here each layer moves at its own depth.
+            </p>
+        </div>
+        <div class="example-demo">
+            <section class="viewport scene" id="scene" tabindex="0" aria-label="Parallax scene">
+                <div class="layer" data-depth="0.15" id="scene-far"></div>
+                <div class="layer" data-depth="0.4" id="scene-mid"></div>
+                <div class="layer" data-depth="1" id="scene-near"></div>
+            </section>
+        </div>
+        <div class="code" data-example="parallax">
+            <div class="code-bar"><span>parallax.js</span></div>
+            <pre><code></code></pre>
+        </div>
+    </section>
+
+    <section class="demos" aria-labelledby="demos-title">
+        <h2 id="demos-title">More demos</h2>
+        <p>Pages for every scenario, each scroller with its live state.</p>
+        <ul class="demo-list">
+            <li><a href="./sandbox.html"><strong>Sandbox</strong><span>Every option as a control, methods and callbacks</span></a></li>
+            <li><a href="./gallery.html"><strong>Gallery</strong><span>Strips with links, snap, tabs, right-to-left</span></a></li>
+            <li><a href="./native.html"><strong>Native scroll</strong><span>Mouse drag with native touch, the whole page</span></a></li>
+            <li><a href="./nested.html"><strong>Nested</strong><span>Rows in a board, a scroller in a scroller</span></a></li>
+            <li><a href="./focus.html"><strong>Focus and keys</strong><span>Tab, fields and keyboard scrolling</span></a></li>
+            <li><a href="./images.html"><strong>Images</strong><span>Content that grows when images load</span></a></li>
+            <li><a href="./spa.html"><strong>Mount and destroy</strong><span>Create, move, replace content, destroy</span></a></li>
+            <li><a href="./motion.html"><strong>Motion</strong><span>Reduced motion and refresh rates</span></a></li>
+        </ul>
+    </section>
 </main>
-<script type="module" src="./index.ts"></script>
+
+<footer class="footer">
+    <a class="button primary big" href="https://github.com/ilyashubin/scrollbooster">
+        <svg viewBox="0 0 16 16" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        View on GitHub
+    </a>
+    <p>
+        <a href="https://www.npmjs.com/package/scrollbooster">npm</a> ·
+        <a href="https://github.com/ilyashubin/scrollbooster/blob/master/CHANGELOG.md">Changelog</a> ·
+        MIT License
+    </p>
+    <p class="photo-credit">Photo from Pexels</p>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="./landing/landing.ts"></script>
 </body>
 </html>
