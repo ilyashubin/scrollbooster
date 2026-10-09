@@ -7,8 +7,9 @@ Everything below is a list of behavior changes, each with what to do if it affec
 
 ## Browser support
 
-4.0 targets browsers released since 2021: Chrome and Edge 90+, Firefox 90+, Safari and iOS Safari 15+. IE11 and
-old Edge are not supported anymore, the build is ES2022 without polyfills. If you need IE11, stay on 3.x.
+4.0 targets browsers released since 2022: Chrome and Edge 104+, Firefox 90+, Safari and iOS Safari 15+. IE11 and
+old Edge are not supported anymore, the build is ES2022 without polyfills. Chrome 104 is the first with the CSS
+`translate` property that `'transform'` mode renders with. If you need IE11, stay on 3.x.
 
 ## Package
 
@@ -173,8 +174,8 @@ only options that used it.
 - `getState()` and `onUpdate` get new objects every time: a saved state does not change with later motion, and
   changing it does not affect the instance. In 3.x `dragOffset` was the internal object.
 - `updateOptions({ scrollMode })` removes the rendering of the previous mode: leaving `'transform'` removes the
-  transform from content, switching to `'transform'` moves native scroll into the transform. In 3.x the offsets of
-  both modes added up. A new `content` in `'transform'` mode leaves the previous content without transform.
+  translation from content, switching to `'transform'` moves native scroll into the translation. In 3.x the offsets
+  of both modes added up. A new `content` in `'transform'` mode leaves the previous content without translation.
 
 ## Scroll mode
 
@@ -182,9 +183,14 @@ only options that used it.
 nothing was rendered without `scrollMode`. If you render the scroll yourself in `onUpdate`, pass
 `scrollMode: 'none'`, `undefined` is not a valid value anymore.
 
-In `'transform'` mode content gets inline `will-change: transform`, its own compositing layer: a transform changed
-every frame otherwise repaints the content on each frame. `destroy()`, another `scrollMode` and new `content`
-restore the inline value the instance found.
+`'transform'` mode moves content with the inline CSS `translate` property instead of `transform`. Your own
+`transform` of the content, like `scale()` for zoom, stays and applies after the translation, so the offset is not
+scaled. In 3.x every frame replaced the inline `transform`. If you read the position from `content.style.transform`,
+read `content.style.translate` or `getState().position`. Sizes are measured from the layout, without transforms.
+
+Content gets inline `will-change: translate`, its own compositing layer: a translation changed every frame
+otherwise repaints the content on each frame. `destroy()`, another `scrollMode` and new `content` restore the
+inline value the instance found.
 
 `'native'` mode scrolls the viewport instantly, also with CSS `scroll-behavior: smooth` on it or on the root
 element. In 3.x the browser animated every assignment of `scrollLeft` and the drag lagged behind the pointer.
@@ -245,7 +251,7 @@ force reduced motion.
   them. A new viewport without `content` uses its first child.
 - `destroy()` stops the running animation and timers, removes all listeners including the `load` listener on
   content that 3.x left behind, and turns further method calls into no-ops. Calling it twice is safe.
-- `destroy()` removes the transform from content, so content returns to the start in `'transform'` mode. 3.x left
+- `destroy()` removes the translation from content, so content returns to the start in `'transform'` mode. 3.x left
   it shifted with nothing to move it back. To keep the position for a new instance, pass
   `getState().position` to its `setPosition()`. Native scroll in `'native'` mode stays.
 
@@ -253,4 +259,4 @@ force reduced motion.
 
 With `scrollMode: 'transform'` focusing an element outside the visible area (Tab, `focus()`) scrolls the content
 to show it. In 3.x native focus scroll and the transform added up and moved the element out of view. Native scroll
-of the viewport (find in page, anchor links) is moved into the transform as well.
+of the viewport (find in page, anchor links) is moved into the translation as well.

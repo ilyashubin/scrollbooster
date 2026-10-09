@@ -123,11 +123,12 @@ export function setNativeScroll(viewport: HTMLElement, left: number, top: number
 }
 
 /**
- * Render scroll offset with the built-in scroll mode, `x` grows to the right
+ * Render scroll offset with the built-in scroll mode, `x` grows to the right. The `translate` property keeps
+ * `transform` of the content to the page, it applies before it, so a scaled content is not moved by scaled offsets.
  */
 export function render(viewport: HTMLElement, content: HTMLElement, scrollMode: ScrollMode, scroll: Point): void {
     if (scrollMode === 'transform') {
-        content.style.transform = `translate(${-scroll.x}px, ${-scroll.y}px)`;
+        content.style.translate = `${-scroll.x}px ${-scroll.y}px`;
     }
     if (scrollMode === 'native') {
         setNativeScroll(viewport, scroll.x, scroll.y);

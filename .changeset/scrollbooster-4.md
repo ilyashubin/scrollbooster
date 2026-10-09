@@ -6,7 +6,7 @@ ScrollBooster 4.0, see [MIGRATION.md](https://github.com/ilyashubin/scrollbooste
 all behavior changes.
 
 - ESM and `<script>` builds with TypeScript types, no CommonJS build, the class is a named export only. ES2022
-  build for Chrome 90+, Firefox 90+, Safari 15+, IE11 is not supported anymore.
+  build for Chrome 104+, Firefox 90+, Safari 15+, IE11 is not supported anymore.
 - Input on Pointer Events and CSS `touch-action`: only the main mouse button drags, extra fingers are ignored,
   `pointercancel` is handled, page scroll outside the viewport is never blocked, no listeners on `window` outside
   of a drag.
@@ -15,9 +15,10 @@ all behavior changes.
 - New `reducedMotion` option, `prefers-reduced-motion` is respected by default.
 - Size changes are tracked with `ResizeObserver` (without it, as in jsdom, `updateMetrics()` is enough),
   `updateOptions()` accepts new `viewport` and `content`, `destroy()` stops animation, removes all listeners and the
-  transform from content.
+  translation from content.
 - An already scrolled viewport keeps its position on init, focused elements stay visible in `transform` mode.
-- `scrollMode` defaults to `'transform'`, `'none'` leaves rendering to `onUpdate`.
+- `scrollMode` defaults to `'transform'`, `'none'` leaves rendering to `onUpdate`. `'transform'` mode renders with
+  the CSS `translate` property and keeps the content's own `transform`.
 - Invalid options throw `TypeError`. `shouldScroll` is renamed to `shouldDrag`. `preventPointerMoveDefault` and
   `lockScrollOnDragDirection` are removed, `touch-action` follows `direction`. `pointerDownPreventDefault` is
   removed: a press moves focus as usual, selection and native drag are prevented only while dragging.

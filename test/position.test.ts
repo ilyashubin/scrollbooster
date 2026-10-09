@@ -10,7 +10,7 @@ describe('setPosition', () => {
         tick();
 
         expect(sb.getState().position).toEqual({ x: 100, y: 50 });
-        expect(content.style.transform).toBe('translate(-100px, -50px)');
+        expect(content.style.translate).toBe('-100px -50px');
     });
 
     it('sets scrollLeft and scrollTop in native mode', () => {
@@ -62,13 +62,27 @@ describe('setPosition', () => {
         expect(roundedPosition(sb)).toEqual({ x: 40, y: 100 });
     });
 
-    it('renders with transform by default', () => {
+    it('keeps transform of the content', () => {
+        const { sb, content } = mount();
+        content.style.transform = 'scale(2)';
+
+        sb.setPosition({ x: 100, y: 50 });
+        tick();
+
+        expect(content.style.transform).toBe('scale(2)');
+        expect(content.style.translate).toBe('-100px -50px');
+        sb.destroy();
+        expect(content.style.transform).toBe('scale(2)');
+        expect(content.style.translate).toBe('');
+    });
+
+    it('renders with translate by default', () => {
         const { sb, content, viewport } = mount();
 
         sb.setPosition({ x: 100, y: 50 });
         tick();
 
-        expect(content.style.transform).toBe('translate(-100px, -50px)');
+        expect(content.style.translate).toBe('-100px -50px');
         expect([viewport.scrollLeft, viewport.scrollTop]).toEqual([0, 0]);
     });
 
@@ -78,7 +92,7 @@ describe('setPosition', () => {
         sb.setPosition({ x: 100, y: 100 });
         tick();
 
-        expect(content.style.transform).toBe('');
+        expect(content.style.translate).toBe('');
         expect(viewport.scrollTop).toBe(0);
     });
 

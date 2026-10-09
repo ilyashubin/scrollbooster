@@ -112,9 +112,10 @@ sb.scrollTo({ x: 0 });
 
 ### Choosing `scrollMode`
 
-- `'transform'` (default) moves content with CSS transform and bounces beyond the edges. The viewport itself does
-  not scroll, so `position: sticky` inside content and code that listens to `scroll` do not work. Use
-  `sb.scrollIntoView()` instead of `element.scrollIntoView()`.
+- `'transform'` (default) moves content with the CSS `translate` property and bounces beyond the edges. Your own
+  `transform` of the content, like `scale()`, stays. The viewport itself does not scroll, so `position: sticky`
+  inside content and code that listens to `scroll` do not work. Use `sb.scrollIntoView()` instead of
+  `element.scrollIntoView()`.
 - `'native'` sets `scrollLeft` and `scrollTop` of the viewport. No bounce, everything the browser does with a
   scroller works.
 - `'none'` renders nothing, render the position in `onUpdate`. Set `will-change: transform` on the content in CSS,
@@ -229,7 +230,7 @@ directions. `dragOffset` and `borderCollision` stay physical, `borderCollision.r
 
 ### Browser support
 
-Chrome and Edge 90+, Firefox 90+, Safari and iOS Safari 15+. Version 3.x supports IE11.
+Chrome and Edge 104+, Firefox 90+, Safari and iOS Safari 15+. Version 3.x supports IE11.
 
 ### Special thanks
 

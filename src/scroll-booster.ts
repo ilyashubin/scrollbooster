@@ -188,7 +188,7 @@ export class ScrollBooster {
     }
 
     /**
-     * Stop animation, remove DOM listeners and observers, remove the transform from content.
+     * Stop animation, remove DOM listeners and observers, remove the translation from content.
      * Methods of destroyed instance do nothing.
      */
     destroy(): void {
@@ -268,7 +268,7 @@ export class ScrollBooster {
     #switchScrollMode(previous: ScrollMode): void {
         const { viewport, content, scrollMode } = this.#props;
         if (previous === 'transform') {
-            content.style.transform = '';
+            content.style.translate = '';
         }
         if (scrollMode === 'transform') {
             setNativeScroll(viewport, 0, 0);
@@ -372,7 +372,7 @@ export class ScrollBooster {
     }
 
     /**
-     * Remove DOM listeners and observers, restore touch-action of the viewport and remove the transform:
+     * Remove DOM listeners and observers, restore touch-action of the viewport and remove the translation:
      * elements keep nothing from this instance. Native scroll stays, it is a usual state of the viewport.
      */
     #unbindEvents(): void {
@@ -382,7 +382,7 @@ export class ScrollBooster {
         viewport.style.touchAction = this.#initialTouchAction;
         content.style.willChange = this.#initialWillChange;
         if (scrollMode === 'transform') {
-            content.style.transform = '';
+            content.style.translate = '';
         }
     }
 
@@ -429,7 +429,7 @@ export class ScrollBooster {
         const { viewport, scrollMode } = this.#props;
         const { scrollLeft, scrollTop } = viewport;
         // In transform mode browser can still scroll viewport natively (focus, find in page, anchor links).
-        // Reset native scroll and shift transform by the same offset.
+        // Reset native scroll and shift the translation by the same offset.
         if (scrollMode === 'transform') {
             if (scrollLeft || scrollTop) {
                 setNativeScroll(viewport, 0, 0);
@@ -449,12 +449,12 @@ export class ScrollBooster {
     }
 
     /**
-     * Content moved with transform gets its own compositing layer. A transform that script changes every frame
+     * Content moved with translate gets its own compositing layer. A translation that script changes every frame
      * otherwise repaints the content on each frame: in Chromium a drag over cards took 540 raster tasks instead of 4.
      */
     #applyWillChange(): void {
         const { content, scrollMode } = this.#props;
-        content.style.willChange = scrollMode === 'transform' ? 'transform' : this.#initialWillChange;
+        content.style.willChange = scrollMode === 'transform' ? 'translate' : this.#initialWillChange;
     }
 
     /**

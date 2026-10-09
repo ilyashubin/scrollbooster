@@ -19,7 +19,7 @@ describe('init', () => {
         sb.setPosition({ x: 10 });
         tick();
 
-        expect(getComputedStyle(content).transform).toBe('matrix(1, 0, 0, 1, -10, 0)');
+        expect(getComputedStyle(content).translate).toBe('-10px');
     });
 
     it('accepts explicit content element', () => {
@@ -31,7 +31,7 @@ describe('init', () => {
         sb.setPosition({ x: 10 });
         tick();
 
-        expect(getComputedStyle(inner).transform).toBe('matrix(1, 0, 0, 1, -10, 0)');
+        expect(getComputedStyle(inner).translate).toBe('-10px');
         expect(sb.getState().content).toEqual({ width: 2000, height: 100 });
         sb.destroy();
         viewport.remove();

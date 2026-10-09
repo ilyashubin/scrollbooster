@@ -14,10 +14,11 @@ function addInputs(content: HTMLElement, positions: [x: number, y: number][]) {
     });
 }
 
-// Translation of content from its computed transform
+// Translation of content from its computed translate property, `none` or one or two lengths
 function translation(content: HTMLElement) {
-    const matrix = new DOMMatrix(getComputedStyle(content).transform);
-    return { x: matrix.m41, y: matrix.m42 };
+    const { translate } = getComputedStyle(content);
+    const [x = 0, y = 0] = translate === 'none' ? [] : translate.split(' ').map(Number.parseFloat);
+    return { x, y };
 }
 
 function expectVisible(viewport: HTMLElement, element: Element, width = 50, height = 20) {
@@ -119,7 +120,7 @@ describe('focus in transform mode', () => {
         await nextRender();
 
         expectVisible(viewport, input);
-        expect(content.style.transform).toBe('');
+        expect(content.style.translate).toBe('');
         expect(sb.getState().position).toEqual({ x: viewport.scrollLeft, y: viewport.scrollTop });
     });
 });

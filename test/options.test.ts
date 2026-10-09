@@ -77,7 +77,7 @@ describe('updateOptions', () => {
         createPointer(next.viewport).mouseDrag([200, 200], [100, 200], { release: false });
         tick(100);
         expect(roundedPosition(sb)).toEqual({ x: 200, y: 0 });
-        expect(getComputedStyle(next.content).transform).toBe('matrix(1, 0, 0, 1, -200, 0)');
+        expect(getComputedStyle(next.content).translate).toBe('-200px');
         next.viewport.remove();
     });
 
@@ -94,16 +94,16 @@ describe('updateOptions', () => {
 });
 
 describe('updateOptions elements', () => {
-    // Only the transform that the instance rendered is removed from the previous content
+    // Only the translation that the instance rendered is removed from the previous content
     it('leaves style of previous content in native mode', () => {
         const { sb, content } = mount({ scrollMode: 'native' });
-        content.style.transform = 'scale(1)';
+        content.style.translate = '5px';
         const next = document.createElement('div');
         content.append(next);
 
         sb.updateOptions({ content: next });
 
-        expect(content.style.transform).toBe('scale(1)');
+        expect(content.style.translate).toBe('5px');
     });
 });
 
@@ -115,36 +115,36 @@ describe('updateOptions scrollMode', () => {
         return mounted;
     }
 
-    it('transform to native: removes transform and scrolls natively', () => {
+    it('transform to native: removes translation and scrolls natively', () => {
         const { sb, content, viewport } = scrolled('transform');
 
         sb.updateOptions({ scrollMode: 'native' });
 
-        expect(content.style.transform).toBe('');
+        expect(content.style.translate).toBe('');
         expect([viewport.scrollLeft, viewport.scrollTop]).toEqual([100, 50]);
         expect(sb.getState().position).toEqual({ x: 100, y: 50 });
     });
 
-    it('native to transform: resets native scroll and moves content with transform', () => {
+    it('native to transform: resets native scroll and moves content with translate', () => {
         const { sb, content, viewport } = scrolled('native');
 
         sb.updateOptions({ scrollMode: 'transform' });
 
         expect([viewport.scrollLeft, viewport.scrollTop]).toEqual([0, 0]);
-        expect(content.style.transform).toBe('translate(-100px, -50px)');
+        expect(content.style.translate).toBe('-100px -50px');
         expect(sb.getState().position).toEqual({ x: 100, y: 50 });
     });
 
-    it('transform to none: removes transform', () => {
+    it('transform to none: removes translation', () => {
         const { sb, content } = scrolled('transform');
 
         sb.updateOptions({ scrollMode: 'none' });
         tick(5);
 
-        expect(content.style.transform).toBe('');
+        expect(content.style.translate).toBe('');
     });
 
-    it('new content: removes transform from previous content', () => {
+    it('new content: removes translation from previous content', () => {
         const { sb, content, viewport } = scrolled('transform');
         const next = document.createElement('div');
         next.style.cssText = 'width: 1000px; height: 1000px;';
@@ -153,15 +153,15 @@ describe('updateOptions scrollMode', () => {
         sb.updateOptions({ content: next });
         tick();
 
-        expect(content.style.transform).toBe('');
-        expect(next.style.transform).toBe('translate(-100px, -50px)');
+        expect(content.style.translate).toBe('');
+        expect(next.style.translate).toBe('-100px -50px');
     });
 });
 
-// Content moved with transform gets its own compositing layer, the instance restores the inline value it found
+// Content moved with translate gets its own compositing layer, the instance restores the inline value it found
 describe('will-change', () => {
     it.each([
-        ['transform', 'transform'],
+        ['transform', 'translate'],
         ['native', 'opacity'],
         ['none', 'opacity'],
     ] as const)('%s mode sets %s', (scrollMode, willChange) => {
@@ -180,19 +180,19 @@ describe('will-change', () => {
         sb.updateOptions({ scrollMode: 'native' });
         expect(content.style.willChange).toBe('');
         sb.updateOptions({ scrollMode: 'transform' });
-        expect(content.style.willChange).toBe('transform');
+        expect(content.style.willChange).toBe('translate');
     });
 
     it('moves to new content and is restored on previous content and on destroy', () => {
         const { sb, content, viewport } = mount();
-        content.style.willChange = 'transform';
+        content.style.willChange = 'translate';
         const next = document.createElement('div');
         next.style.willChange = 'opacity';
         viewport.append(next);
 
         sb.updateOptions({ content: next });
         expect(content.style.willChange).toBe('');
-        expect(next.style.willChange).toBe('transform');
+        expect(next.style.willChange).toBe('translate');
 
         sb.destroy();
         expect(next.style.willChange).toBe('opacity');
@@ -226,7 +226,7 @@ describe('destroy', () => {
         expect(roundedPosition(sb)).toEqual({ x: 0, y: 0 });
     });
 
-    it('removes transform from content and keeps native scroll', () => {
+    it('removes translation from content and keeps native scroll', () => {
         const transform = mount();
         const native = mount({ scrollMode: 'native' });
         for (const { sb } of [transform, native]) {
@@ -237,7 +237,7 @@ describe('destroy', () => {
         transform.sb.destroy();
         native.sb.destroy();
 
-        expect(transform.content.style.transform).toBe('');
+        expect(transform.content.style.translate).toBe('');
         expect(native.viewport.scrollLeft).toBe(200);
     });
 
