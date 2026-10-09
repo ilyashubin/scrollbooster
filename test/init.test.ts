@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ScrollBooster } from '../src/index.ts';
-import { createFixture, mount, pendingFrames, tick } from './helpers.js';
+import { createFixture, type Fixture, mount, pendingFrames, tick } from './helpers.ts';
 
 describe('init', () => {
     it('reads viewport and content metrics', () => {
@@ -25,7 +25,7 @@ describe('init', () => {
     it('accepts explicit content element', () => {
         const { viewport } = createFixture();
         const inner = document.createElement('div');
-        viewport.firstElementChild.append(inner);
+        viewport.firstElementChild?.append(inner);
         inner.style.cssText = 'width: 2000px; height: 100px;';
         const sb = new ScrollBooster({ viewport, content: inner });
         sb.setPosition({ x: 10 });
@@ -48,6 +48,7 @@ describe('init', () => {
         ['without viewport', {}, 'option "viewport" must be an HTMLElement'],
         ['with non-element viewport', { viewport: { children: [] } }, 'option "viewport" must be an HTMLElement'],
     ])('throws TypeError %s', (_, options, message) => {
+        // @ts-expect-error invalid options
         expect(() => new ScrollBooster(options)).toThrow(new TypeError(`ScrollBooster: ${message}`));
     });
 
@@ -60,7 +61,7 @@ describe('init', () => {
     });
 
     it.each([
-        ['viewport itself', ({ viewport }) => viewport],
+        ['viewport itself', ({ viewport }: Fixture) => viewport],
         ['element outside viewport', () => document.body],
     ])('throws TypeError when content is %s', (_, getContent) => {
         const fixture = createFixture();
@@ -75,6 +76,7 @@ describe('init', () => {
         const addListener = vi.spyOn(EventTarget.prototype, 'addEventListener');
         const { viewport } = createFixture();
 
+        // @ts-expect-error invalid direction
         expect(() => new ScrollBooster({ viewport, direction: 'diagonal' })).toThrow(TypeError);
         expect(addListener).not.toHaveBeenCalled();
         expect(pendingFrames()).toBe(0);

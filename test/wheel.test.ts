@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mount, roundedPosition, tick, wheel } from './helpers.js';
+import { mount, roundedPosition, tick, wheel } from './helpers.ts';
 
 const fakeTimers = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 

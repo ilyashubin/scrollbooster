@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mount, tick } from './helpers.js';
+import { mount, tick } from './helpers.ts';
 
 describe('click', () => {
     it('passes click through when pointer moved 5px or less', () => {
@@ -18,13 +18,13 @@ describe('click', () => {
 
     it('prevents click and stops propagation after drag over 5px', () => {
         const onClick = vi.fn();
-        const { pointer, viewport } = mount({ onClick });
+        const { pointer } = mount({ onClick });
         const outer = vi.fn();
-        viewport.parentElement.addEventListener('click', outer);
+        document.body.addEventListener('click', outer);
 
         pointer.mouseDrag([100, 100], [106, 100], { steps: 1 });
         const event = pointer.click(106, 100);
-        viewport.parentElement.removeEventListener('click', outer);
+        document.body.removeEventListener('click', outer);
 
         expect(event.defaultPrevented).toBe(true);
         expect(outer).not.toHaveBeenCalled();

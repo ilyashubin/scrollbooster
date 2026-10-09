@@ -30,9 +30,9 @@ build. `scroll-booster.ts` holds the public class and connects the modules:
 `physics.ts` are covered by unit tests in `test/unit/`, they run in Node.
 
 Browser tests live in `test/` and run in real browsers with Vitest browser mode. `requestAnimationFrame` is replaced with a manual
-clock (`tick()` in `test/helpers.js`), so physics advances frame by frame and trajectories are deterministic.
+clock (`tick()` in `test/helpers.ts`), so physics advances frame by frame and trajectories are deterministic.
 Pointer helpers dispatch synthetic `PointerEvent`s in browser order. Browser default actions, pointer capture and
-click targets need real input, these tests in `test/real-input.test.js` drive Playwright mouse through the `mouse`
+click targets need real input, these tests in `test/real-input.test.ts` drive Playwright mouse through the `mouse`
 command. Browser commands live in `test/commands/`, `emulateReducedMotion` switches `prefers-reduced-motion`.
 Physics is defined per 60 Hz frame; `tick(frames, frameDuration)` with another duration checks other refresh rates.
 A known bug that is not fixed yet can be written as `it.fails` next to related tests: when a fix makes it fail,
@@ -43,17 +43,17 @@ switch it to `it`.
 Command | What it does
 ------- | ------------
 `pnpm lint` | Biome linter and formatter check, `pnpm lint:fix` applies fixes. The only check that runs in CI
-`pnpm typecheck` | TypeScript for `src` (`tsconfig.json`) and for TypeScript tests and configs (`tsconfig.test.json`)
+`pnpm typecheck` | TypeScript for `src` (`tsconfig.json`) and for tests and configs (`tsconfig.test.json`)
 `pnpm test` | Unit tests in Node and browser tests in Chromium, Firefox and WebKit
 `pnpm test:coverage` | Unit and Chromium tests with V8 coverage of `src`, HTML report in `coverage/`. V8 coverage works in Chromium only
-`pnpm build` | ESM, CommonJS and `<script>` builds with types in `dist`
+`pnpm build` | ESM and `<script>` builds with types in `dist`
 `pnpm check:package` | Checks the built package: `publint` for `package.json`, `@arethetypeswrong/cli` for types of every entry point, `size-limit` for the gzip size budget in `.size-limit.json`. Run `pnpm build` first
 `pnpm check` | All of the above except coverage, in this order
 
 Debugging tests:
 
 - `pnpm test:watch --project chromium --browser.headless=false` opens the browser with the test page, rerun a
-  single file with `pnpm test:watch test/drag.test.js`.
+  single file with `pnpm test:watch test/drag.test.ts`.
 - Trajectory snapshots in `test/__snapshots__/` pin the physics. A change that is not meant to change motion must
   not update them. When a change is meant to, update with `pnpm test -u` and review the snapshot diff.
 

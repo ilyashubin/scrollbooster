@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
 import { ScrollBooster } from '../src/index.ts';
-import { createFixture, mount, nextRender, tick } from './helpers.js';
+import { createFixture, mount, nextRender, tick } from './helpers.ts';
 
 // Text inputs at given content coordinates, WebKit on macOS moves focus with Tab only between form fields
-function addInputs(content, positions) {
+function addInputs(content: HTMLElement, positions: [x: number, y: number][]) {
     return positions.map(([x, y]) => {
         const input = document.createElement('input');
         input.style.cssText = `position: absolute; left: ${x}px; top: ${y}px; width: 50px; height: 20px;`;
@@ -15,12 +15,12 @@ function addInputs(content, positions) {
 }
 
 // Translation of content from its computed transform
-function translation(content) {
+function translation(content: HTMLElement) {
     const matrix = new DOMMatrix(getComputedStyle(content).transform);
     return { x: matrix.m41, y: matrix.m42 };
 }
 
-function expectVisible(viewport, element, width = 50, height = 20) {
+function expectVisible(viewport: HTMLElement, element: Element, width = 50, height = 20) {
     const { left, top } = offsetIn(viewport, element);
     expect(left).toBeGreaterThanOrEqual(0);
     expect(left + width).toBeLessThanOrEqual(viewport.clientWidth);
@@ -29,7 +29,7 @@ function expectVisible(viewport, element, width = 50, height = 20) {
 }
 
 // Element position relative to viewport client area
-function offsetIn(viewport, element) {
+function offsetIn(viewport: HTMLElement, element: Element) {
     const box = viewport.getBoundingClientRect();
     const rect = element.getBoundingClientRect();
     return { left: rect.left - box.left - viewport.clientLeft, top: rect.top - box.top - viewport.clientTop };

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, vi } from 'vitest';
-import { cleanup, installFrameClock } from './helpers.js';
+import { cleanup, installFrameClock } from './helpers.ts';
 
 beforeEach(() => {
     installFrameClock();

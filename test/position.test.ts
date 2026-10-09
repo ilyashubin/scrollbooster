@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mount, nextRender, pendingFrames, recordTrajectory, roundedPosition, tick } from './helpers.js';
+import { mount, nextRender, pendingFrames, recordTrajectory, roundedPosition, tick } from './helpers.ts';
 
 describe('setPosition', () => {
     it('moves content with transform in transform mode', () => {
@@ -131,7 +131,7 @@ describe('scrollTo', () => {
         expect(sb.getState().position).toEqual({ x: 300, y: 0 });
     });
 
-    it.each(['never', 'always'])('is ignored while dragging, reducedMotion: %s', (reducedMotion) => {
+    it.each(['never', 'always'] as const)('is ignored while dragging, reducedMotion: %s', (reducedMotion) => {
         const { sb, pointer } = mount({ reducedMotion });
         pointer.mouseDown(250, 250);
         pointer.mouseMove(200, 250);

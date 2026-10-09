@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mount, roundedPosition as position, round, tick } from './helpers.js';
+import { mount, roundedPosition as position, round, tick } from './helpers.ts';
 
 describe('mouse drag', () => {
     it('moves content opposite to pointer while held', () => {

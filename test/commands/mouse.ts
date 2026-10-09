@@ -1,6 +1,6 @@
 import type { BrowserCommand } from 'vitest/node';
 
-type MouseStep = ['move', number, number] | ['down'] | ['up'] | ['wheel', number, number];
+export type MouseStep = ['move', number, number] | ['down'] | ['up'] | ['wheel', number, number];
 
 /**
  * Real mouse input through Playwright. Coordinates are client coordinates inside the test iframe, wheel takes

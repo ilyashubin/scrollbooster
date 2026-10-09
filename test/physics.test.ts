@@ -1,6 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { commands } from 'vitest/browser';
-import { mount, nextRender, pendingFrames, recordTrajectory, roundedPosition, tick, wheel } from './helpers.js';
+import type { ScrollBooster } from '../src/index.ts';
+import {
+    type Mounted,
+    mount,
+    nextRender,
+    pendingFrames,
+    recordTrajectory,
+    roundedPosition,
+    tick,
+    wheel,
+} from './helpers.ts';
 
 describe('inertia', () => {
     it('keeps moving after release and stops', () => {
@@ -19,7 +29,7 @@ describe('inertia', () => {
     });
 
     it('travels farther with lower friction', () => {
-        const travel = (friction) => {
+        const travel = (friction: number) => {
             const { sb, pointer } = mount({ friction });
             pointer.mouseDrag([250, 250], [200, 250], { steps: 5 });
             tick(300);
@@ -93,7 +103,7 @@ describe('refresh rate', () => {
     const RATES = [30, 120, 144];
 
     // Tick at given refresh rate until motion stops, returns elapsed time in ms
-    function runUntilStopped(sb, frameRate) {
+    function runUntilStopped(sb: ScrollBooster, frameRate: number) {
         const frameDuration = 1000 / frameRate;
         let elapsed = 0;
         do {
@@ -104,7 +114,7 @@ describe('refresh rate', () => {
     }
 
     // Instance learns frame duration from previous frames, a real device has it after the first animation
-    function warmUp(sb, frameRate) {
+    function warmUp(sb: ScrollBooster, frameRate: number) {
         sb.scrollTo({ x: 1 });
         runUntilStopped(sb, frameRate);
         sb.setPosition({ x: 0 });
@@ -112,7 +122,7 @@ describe('refresh rate', () => {
     }
 
     // Drag at 1000 px/s for 200 ms and release
-    function fling(frameRate) {
+    function fling(frameRate: number) {
         const frameDuration = 1000 / frameRate;
         const { sb, pointer } = mount();
         const frames = Math.round(200 / frameDuration);
@@ -133,7 +143,7 @@ describe('refresh rate', () => {
 
     it.each(RATES)('bounce at %i Hz matches 60 Hz', (frameRate) => {
         // Hold content 150 px beyond the start edge until it stops, then release
-        const bounce = (rate) => {
+        const bounce = (rate: number) => {
             const { sb, pointer } = mount();
             warmUp(sb, rate);
             pointer.mouseDown(100, 150);
@@ -150,7 +160,7 @@ describe('refresh rate', () => {
 
     it.each(RATES)('scrollTo trajectory at %i Hz matches 60 Hz', (frameRate) => {
         // Position every 100 ms during the first second
-        const sample = (rate) => {
+        const sample = (rate: number) => {
             const { sb } = mount();
             warmUp(sb, rate);
             sb.scrollTo({ x: 400 });
@@ -202,7 +212,7 @@ describe('settling', () => {
     it.each([
         ['horizontal', { x: 333.3, y: 0 }],
         ['vertical', { x: 0, y: 100 }],
-    ])('stops exactly at scrollTo target along %s direction', (direction, expected) => {
+    ] as const)('stops exactly at scrollTo target along %s direction', (direction, expected) => {
         const { sb } = mount({ direction });
 
         sb.scrollTo({ x: 333.3, y: 100 });
@@ -248,9 +258,9 @@ describe('settling', () => {
     });
 
     it.each([
-        ['drag', ({ pointer }) => pointer.mouseDown(100, 100)],
-        ['wheel', ({ viewport }) => wheel(viewport, 0, 10)],
-        ['setPosition', ({ sb }) => sb.setPosition({ x: 50 })],
+        ['drag', ({ pointer }: Mounted) => pointer.mouseDown(100, 100)],
+        ['wheel', ({ viewport }: Mounted) => wheel(viewport, 0, 10)],
+        ['setPosition', ({ sb }: Mounted) => sb.setPosition({ x: 50 })],
     ])('%s cancels scrollTo', (_, interrupt) => {
         vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
         const mounted = mount();
@@ -300,7 +310,7 @@ describe('reducedMotion', () => {
     });
 
     // Firefox and WebKit update media query matches on the next rendering update
-    async function emulate(value) {
+    async function emulate(value: 'reduce' | 'no-preference' | 'reset') {
         await commands.emulateReducedMotion(value);
         await nextRender();
     }

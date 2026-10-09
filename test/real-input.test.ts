@@ -4,29 +4,33 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { commands } from 'vitest/browser';
-import { mount, roundedPosition, tick } from './helpers.js';
+import type { MouseStep } from './commands/mouse.ts';
+import { type Coords, mount, roundedPosition, tick } from './helpers.ts';
 
 // Client coordinates of a point relative to element top left corner
-function at(element, x, y) {
+function at(element: Element, x: number, y: number): Coords {
     const rect = element.getBoundingClientRect();
     return [rect.left + x, rect.top + y];
 }
 
-function drag(from, to, steps = 10) {
-    const moves = Array.from({ length: steps }, (_, i) => [
-        'move',
-        from[0] + ((to[0] - from[0]) * (i + 1)) / steps,
-        from[1] + ((to[1] - from[1]) * (i + 1)) / steps,
-    ]);
+function drag(from: Coords, to: Coords, steps = 10) {
+    const moves = Array.from(
+        { length: steps },
+        (_, i): MouseStep => [
+            'move',
+            from[0] + ((to[0] - from[0]) * (i + 1)) / steps,
+            from[1] + ((to[1] - from[1]) * (i + 1)) / steps,
+        ]
+    );
     return commands.mouse([['move', ...from], ['down'], ...moves, ['up']], window.innerWidth);
 }
 
-function click(point) {
+function click(point: Coords) {
     return commands.mouse([['move', ...point], ['down'], ['up']], window.innerWidth);
 }
 
 // Row across the whole content, so pointerdown and pointerup land on it before and after drag
-function addRow(content) {
+function addRow(content: HTMLElement) {
     const row = document.createElement('div');
     row.style.cssText = 'height: 100px; background: #ddd; font: 20px/100px monospace;';
     row.textContent = 'Some text in a row that can be selected';
@@ -82,7 +86,7 @@ describe('real mouse', () => {
 
         await drag(at(row, 250, 50), at(row, 50, 50));
 
-        expect(document.getSelection().toString()).toBe('');
+        expect(document.getSelection()?.toString()).toBe('');
     });
 
     it.each([
@@ -111,7 +115,9 @@ describe('real mouse', () => {
         const element = create();
         element.style.cssText = 'display: block; width: 300px; height: 100px; font: 20px/100px monospace;';
         content.prepend(element);
-        await element.decode?.();
+        if (element instanceof HTMLImageElement) {
+            await element.decode();
+        }
 
         await drag(at(element, 250, 50), at(element, 50, 50));
 

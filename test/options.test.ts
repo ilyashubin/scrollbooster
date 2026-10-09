@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ScrollBooster } from '../src/index.ts';
+import { ScrollBooster, type ScrollMode } from '../src/index.ts';
 import {
     createFixture,
     createPointer,
@@ -9,7 +9,7 @@ import {
     roundedPosition,
     tick,
     wheel,
-} from './helpers.js';
+} from './helpers.ts';
 
 describe('updateOptions', () => {
     it('merges options and calls onUpdate on the next frame', () => {
@@ -94,7 +94,7 @@ describe('updateOptions', () => {
 });
 
 describe('updateOptions scrollMode', () => {
-    function scrolled(scrollMode) {
+    function scrolled(scrollMode: ScrollMode) {
         const mounted = mount({ scrollMode });
         mounted.sb.setPosition({ x: 100, y: 50 });
         tick();
@@ -246,7 +246,7 @@ describe('touch-action', () => {
         ['all', 'pinch-zoom'],
         ['horizontal', 'pan-y pinch-zoom'],
         ['vertical', 'pan-x pinch-zoom'],
-    ])('direction %s leaves %s to the browser', (direction, touchAction) => {
+    ] as const)('direction %s leaves %s to the browser', (direction, touchAction) => {
         const { viewport } = mount({ direction });
 
         expect(viewport.style.touchAction).toBe(touchAction);
@@ -302,7 +302,7 @@ describe('touch-action', () => {
 });
 
 describe('wheel listener', () => {
-    function wheelListeners(callback) {
+    function wheelListeners(callback: () => void) {
         const add = vi.spyOn(EventTarget.prototype, 'addEventListener');
         callback();
         return add.mock.calls.filter(([type]) => type === 'wheel').length;
@@ -330,12 +330,12 @@ describe('wheel listener', () => {
     });
 
     // Vitest browser mode wraps window.addEventListener, so window needs its own spy
-    function blockingListeners(callback) {
+    function blockingListeners(callback: () => void) {
         const elementListeners = vi.spyOn(EventTarget.prototype, 'addEventListener');
         const windowListeners = vi.spyOn(window, 'addEventListener');
         callback();
         return [...elementListeners.mock.calls, ...windowListeners.mock.calls]
-            .filter(([, , options]) => options?.passive === false)
+            .filter(([, , options]) => typeof options === 'object' && options.passive === false)
             .map(([type]) => type);
     }
 
@@ -400,7 +400,9 @@ describe('options validation', () => {
     it('updateOptions throws and applies nothing when any option is invalid', () => {
         const { sb, pointer } = mount({ direction: 'horizontal' });
 
+        // @ts-expect-error invalid direction
         expect(() => sb.updateOptions({ friction: 0.2, direction: 'diagonal' })).toThrow(TypeError);
+        // @ts-expect-error unknown option
         expect(() => sb.updateOptions({ friction: 0.5, direction: 'all', bounse: false })).toThrow(
             'unknown option "bounse"'
         );
