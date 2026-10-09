@@ -26,7 +26,7 @@
     "build": "tsdown",
     "build:watch": "tsdown --watch",
     "build:demo": "vite build",
-    "preview:demo": "vite preview",
+    "preview:demo": "pnpm build:demo && vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --project unit --project chromium",

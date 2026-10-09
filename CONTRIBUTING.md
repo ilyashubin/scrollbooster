@@ -63,8 +63,8 @@ Page | Scenario
 
 Shared code lives in `demo/shared/`: page list for the navigation and the build, state panel, styles. A new page is
 added to `demo/shared/pages.ts`. `pnpm build:demo` builds the pages to `dist-demo/` with relative paths, for any
-static host, `pnpm preview:demo` serves the build. Biome rule `noNoninteractiveTabindex` is off for demo pages: a
-viewport in `transform` mode has `overflow: hidden`, it is reachable from the keyboard only with `tabindex`.
+static host, `pnpm preview:demo` builds and serves them. Biome rule `noNoninteractiveTabindex` is off for demo
+pages: a viewport in `transform` mode has `overflow: hidden`, it is reachable from the keyboard only with `tabindex`.
 
 Before a release try `index.html` and `gallery.html` on real devices: a high refresh rate display, iOS and Android.
 Tests do not catch how scrolling feels.
