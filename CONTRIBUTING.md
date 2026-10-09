@@ -105,6 +105,6 @@ Releases are made locally, CI only runs the linter.
    and creates a git tag
 4. Push the commit and the tag: `git push --follow-tags`
 
-While `.changeset/pre.json` exists the repository is in prerelease mode: versions get the `beta` suffix
-(`4.0.0-beta.0`, `4.0.0-beta.1`) and are published under the `beta` dist-tag, so `npm i scrollbooster` still installs
-3.x. Run `pnpm changeset pre exit` before the stable release.
+For a prerelease run `pnpm changeset pre enter beta` first: while `.changeset/pre.json` exists, versions get the
+`beta` suffix (`5.0.0-beta.0`) and are published under the `beta` dist-tag, so `npm i scrollbooster` keeps installing
+the stable version. Run `pnpm changeset pre exit` before the stable release.
