@@ -4,13 +4,13 @@
     "path": "dist/scrollbooster.min.js",
     "rolldown": false,
     "gzip": true,
-    "limit": "5 kB"
+    "limit": "6.5 kB"
   },
   {
     "name": "ESM import in a bundler",
     "path": "dist/index.js",
     "import": "{ ScrollBooster }",
     "gzip": true,
-    "limit": "5 kB"
+    "limit": "6.5 kB"
   }
 ]

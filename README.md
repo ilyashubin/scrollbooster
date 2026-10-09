@@ -1,6 +1,6 @@
 # ScrollBooster
 
-Enjoyable drag-to-scroll micro library (~5 kB gzipped). Supports smooth content scroll via mouse, touch and pen
+Enjoyable drag-to-scroll micro library (~6 kB gzipped). Supports smooth content scroll via mouse, touch and pen
 dragging, trackpad or mouse wheel, with inertia and elastic bounce that feel the same on 60 Hz and 120 Hz screens.
 Zero dependencies, TypeScript types included.
 
